@@ -14,6 +14,6 @@ mkdir build
 cd build
 cmake ..
 make
-./animator_tests
+./GameProject
 
 ```
