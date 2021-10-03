@@ -32,4 +32,5 @@ add_executable(GameProject
     ${SetupLib_sources}
 )
 
+set_property(TARGET GameProject APPEND_STRING PROPERTY COMPILE_FLAGS ${SetupLib_flags})
 target_link_libraries(GameProject ${SetupLib_libs})

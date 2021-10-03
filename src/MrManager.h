@@ -5,6 +5,7 @@
 #include <entt/entt.hpp>
 #include <imgui.h>
 #include "common/utils.h"
+#include "bgfx-imgui/imgui_impl_bgfx.h"
 
 
 class MrManager {
@@ -28,11 +29,24 @@ public:
 // -------------------------------------------------------------------------- //
 	void init() {
         updateBGFXDebug();
+        IMGUI_CHECKVERSION();
+    	ImGui::CreateContext();
+    	ImGui_Implbgfx_Init(0);
+    	ImGui::GetIO().DisplaySize = {(float)WindowSize.w, (float)WindowSize.h};
 	}
 
 	void tick(double time) {
 		auto e = registry.create();
 		// printf("wut %p\n", &e);
+
+		ImGui_Implbgfx_NewFrame();
+		ImGui::NewFrame();
+
+        ImGui::Begin("Fart window");
+        ImGui::Button("Hello!");
+        ImGui::End();
+        ImGui::Render();
+        ImGui_Implbgfx_RenderDrawLists(ImGui::GetDrawData());
 	}
 
 	void glfwEvent(GLFWwindow *window, int key, int scancode, int action, int mods) {

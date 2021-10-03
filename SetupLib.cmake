@@ -1,6 +1,7 @@
 # OUTPUT
 set(SetupLib_libs) # append lib names to this list
 set(SetupLib_sources) # append compile sources to this list
+set(SetupLib_flag) # append additional compile flags to this list
 
 
 # OPENGL
@@ -81,5 +82,18 @@ list(APPEND SetupLib_sources
     ${imgui_content_SOURCE_DIR}/imgui_draw.cpp
     ${imgui_content_SOURCE_DIR}/imgui_tables.cpp
     ${imgui_content_SOURCE_DIR}/imgui_widgets.cpp
+)
+# list(APPEND SetupLib_flags "-fobjc-arc")
+# BGFX + IMGUI
+FetchContent_Declare(
+    bgfx_imgui_content
+    GIT_REPOSITORY https://github.com/pr0g/sdl-bgfx-imgui-starter
+    GIT_TAG        origin/main
+    SOURCE_SUBDIR  bgfx-imgui # avoid CMakeLists.txt in root
+)
+FetchContent_MakeAvailable(bgfx_imgui_content)
+include_directories(${bgfx_imgui_content_SOURCE_DIR})
+list(APPEND SetupLib_sources
+    ${bgfx_imgui_content_SOURCE_DIR}/bgfx-imgui/imgui_impl_bgfx.cpp
 )
 endmacro()
