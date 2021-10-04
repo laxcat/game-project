@@ -21,7 +21,21 @@ static void glfw_errorCallback(int error, const char *description) {
 }
 
 static void glfw_keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-    mm.glfwEvent(window, key, scancode, action, mods);
+    mm.keyEvent(key, scancode, action, mods);
+}
+
+static void glfw_mousePosCallback(GLFWwindow *, double x, double y) {
+    auto & io = ImGui::GetIO();
+    io.MousePos.x = x;
+    io.MousePos.y = y;
+    mm.mousePosEvent(x, y);
+}
+
+static void glfw_mouseButtonCallback(GLFWwindow * window, int button, int action, int mods) {
+    auto & io = ImGui::GetIO();
+    if (button == 0) io.MouseDown[0] = (action == GLFW_PRESS);
+    if (button == 1) io.MouseDown[1] = (action == GLFW_PRESS);
+    mm.mouseButtonEvent(button, action, mods);
 }
 
 int main(int argc, char ** argv) {
@@ -37,6 +51,8 @@ int main(int argc, char ** argv) {
         return 1;
     }
     glfwSetKeyCallback(window, glfw_keyCallback);
+    glfwSetCursorPosCallback(window, glfw_mousePosCallback);
+    glfwSetMouseButtonCallback(window, glfw_mouseButtonCallback);
 
     // ensure SINGLE THREAD
     bgfx::renderFrame();
@@ -61,14 +77,31 @@ int main(int argc, char ** argv) {
     const bgfx::ViewId kClearView = 0;
     bgfx::setViewClear(kClearView, BGFX_CLEAR_COLOR);
     bgfx::setViewRect(kClearView, 0, 0, bgfx::BackbufferRatio::Equal);
-    double time;
 
-    mm.init();
+    mm.init(glfwGetTime());
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui_Implbgfx_Init(kClearView);
+    auto & io = ImGui::GetIO();
+    io.DisplaySize = {(float)mm.WindowSize.w, (float)mm.WindowSize.h};
+    io.IniFilename = NULL;
 
     while (!glfwWindowShouldClose(window)) {
-        time = (double)glfwGetTime();
+        mm.prevTime = mm.thisTime;
+        mm.thisTime = (double)glfwGetTime();
+        io.DeltaTime = mm.thisTime - mm.prevTime;
+
         glfwPollEvents();
-        mm.tick(time);
+
+        ImGui_Implbgfx_NewFrame();
+        ImGui::NewFrame();
+
+        mm.tick();
+
+        ImGui::Render();
+        ImGui_Implbgfx_RenderDrawLists(ImGui::GetDrawData());
+
         bgfx::touch(kClearView);
         bgfx::frame();
     }
