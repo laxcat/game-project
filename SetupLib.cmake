@@ -6,6 +6,7 @@ set(SetupLib_flag) # append additional compile flags to this list
 
 # OPENGL
 macro(SetupLib_opengl)
+message(STATUS "SETUP BGFX")
 find_package(OpenGL REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIR})
 list(APPEND SetupLib_libs ${OPENGL_gl_LIBRARY})
@@ -14,6 +15,7 @@ endmacro()
 
 # BGFX
 macro(SetupLib_bgfx)
+message(STATUS "SETUP BGFX")
 FetchContent_Declare(
     bgfx_content
     GIT_REPOSITORY https://github.com/bkaradzic/bgfx.cmake
@@ -31,6 +33,7 @@ endmacro()
 
 # GLFW
 macro(SetupLib_glfw)
+message(STATUS "SETUP GLFW")
 FetchContent_Declare(
     glfw_content
     GIT_REPOSITORY https://github.com/glfw/glfw.git
@@ -46,6 +49,7 @@ endmacro()
 
 # GLM
 macro(SetupLib_glm)
+message(STATUS "SETUP GLM")
 FetchContent_Declare(
     glm_content
     GIT_REPOSITORY https://github.com/g-truc/glm
@@ -58,6 +62,7 @@ endmacro()
 
 # ENTT
 macro(SetupLib_entt)
+message(STATUS "SETUP ENTT")
 FetchContent_Declare(
     entt_content
     GIT_REPOSITORY https://github.com/skypjack/entt
@@ -71,6 +76,7 @@ endmacro()
 
 # IMGUI
 macro(SetupLib_imgui)
+message(STATUS "SETUP IMGUI")
 FetchContent_Declare(
     imgui_content
     GIT_REPOSITORY https://github.com/ocornut/imgui
@@ -85,6 +91,7 @@ list(APPEND SetupLib_sources
 )
 # list(APPEND SetupLib_flags "-fobjc-arc")
 # BGFX + IMGUI
+message(STATUS "SETUP BGFX+IMGUI")
 FetchContent_Declare(
     bgfx_imgui_content
     GIT_REPOSITORY https://github.com/pr0g/sdl-bgfx-imgui-starter

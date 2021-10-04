@@ -5,7 +5,6 @@
 #include <entt/entity/registry.hpp>
 #include <imgui.h>
 #include "common/utils.h"
-#include "bgfx-imgui/imgui_impl_bgfx.h"
 
 
 class MrManager {

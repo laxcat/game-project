@@ -1,7 +1,5 @@
 #include <stdio.h>
 
-// #include <OpenGL/gl3.h>
-
 #define GLFW_INCLUDE_NONE
 #include "GLFW/glfw3.h"
 #define GLFW_EXPOSE_NATIVE_COCOA
@@ -9,6 +7,7 @@
 
 #include "bgfx/bgfx.h"
 #include "bgfx/platform.h"
+#include "bgfx-imgui/imgui_impl_bgfx.h"
 
 #include "MrManager.h"
 
