@@ -37,6 +37,7 @@ static void glfw_mouseButtonCallback(GLFWwindow * window, int button, int action
     mm.mouseButtonEvent(button, action, mods);
 }
 
+
 int main(int argc, char ** argv) {
     // glfw init, no graphics context!
     glfwSetErrorCallback(glfw_errorCallback);
@@ -88,7 +89,7 @@ int main(int argc, char ** argv) {
 
     while (!glfwWindowShouldClose(window)) {
         mm.prevTime = mm.thisTime;
-        mm.thisTime = (double)glfwGetTime();
+        mm.thisTime = glfwGetTime();
         io.DeltaTime = mm.thisTime - mm.prevTime;
 
         glfwPollEvents();

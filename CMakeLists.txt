@@ -2,12 +2,12 @@
 # SETUP
 # ############################################################################ #
 # GLOBAL SETTINGS
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.11)
 set(CMAKE_CXX_STANDARD 17)
 
 # INCLUDES
 include(FetchContent)
-include(SetupLib.cmake)
+include(cmake/SetupLib.cmake)
 
 # PROJECT
 project(game_project VERSION 0.1.0 LANGUAGES CXX)
@@ -16,11 +16,11 @@ project(game_project VERSION 0.1.0 LANGUAGES CXX)
 # ############################################################################ #
 # LIBRARIES
 # ############################################################################ #
-SetupLib_opengl()
+# SetupLib_opengl()
 SetupLib_bgfx()
 SetupLib_glfw()
-SetupLib_glm()
-SetupLib_entt()
+# SetupLib_glm()
+# SetupLib_entt()
 SetupLib_imgui()
 
 
