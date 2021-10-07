@@ -6,10 +6,10 @@
 
 
 struct PosColorVertex {
-    float m_x;
-    float m_y;
-    float m_z;
-    uint32_t m_abgr;
+    float x;
+    float y;
+    float z;
+    uint32_t abgr;
 
     static void init()
     {
@@ -25,10 +25,10 @@ struct PosColorVertex {
 bgfx::VertexLayout PosColorVertex::layout;
 
 PosColorVertex verts[] = {
-    {0.f, 0.f, 0.f, 0xff0000ff},
-    {1.f, 0.f, 0.f, 0x00ff00ff},
-    {1.f, 1.f, 0.f, 0x0000ffff},
-    {0.f, 1.f, 0.f, 0xff00ffff},
+    {0.f, 0.f, 0.f, 0xffff0000},
+    {1.f, 0.f, 0.f, 0xff00ff00},
+    {1.f, 1.f, 0.f, 0xff0000ff},
+    {0.f, 1.f, 0.f, 0xffff00ff},
 };
 
 uint16_t indices[] = {
@@ -48,7 +48,8 @@ public:
 // -------------------------------------------------------------------------- //
 // STATE VARS
 // -------------------------------------------------------------------------- //
-    bool showBGFXStats = true;
+    bgfx::ViewId const mainView = 0;
+    bool showBGFXStats = false;
     // glm::vec3 pos;
     // entt::registry registry;
     double thisTime;
@@ -60,11 +61,18 @@ public:
 
     Memory mem;
 
+    float viewMat[16];
+    float projMat[16];
+
 
 // -------------------------------------------------------------------------- //
 // LIFECYCLE
 // -------------------------------------------------------------------------- //
     void init(double time) {
+        // Set view 0 to the same dimensions as the window and to clear the color buffer
+        bgfx::setViewClear(mainView, BGFX_CLEAR_COLOR|BGFX_CLEAR_DEPTH);
+        bgfx::setViewRect(mainView, 0, 0, bgfx::BackbufferRatio::Equal);
+
         updateBGFXDebug();
         thisTime = time;
         prevTime = time;
@@ -75,6 +83,18 @@ public:
         vbh = bgfx::createVertexBuffer(bgfx::makeRef(verts, sizeof(verts)), PosColorVertex::layout);
         ibh = bgfx::createIndexBuffer(bgfx::makeRef(indices, sizeof(indices)));
         program = mem.loadProgram("vs_main", "fs_main");
+
+        const bx::Vec3 at  = { 0.5f, 0.5f,   0.0f };
+        const bx::Vec3 eye = { 0.5f, 0.5f,  -2.0f };
+
+        bx::mtxLookAt(viewMat, eye, at);
+
+        float ratio = float(WindowSize.w)/float(WindowSize.h);
+        bx::mtxProj(projMat, 60.0f, ratio, 0.1f, 100.0f, bgfx::getCaps()->homogeneousDepth);
+
+        for (int i = 0; i < 4; ++i) {
+            printf("vert %d: %08x\n", i, verts[i].abgr);
+        }
     }
 
     void shutdown() {
@@ -85,6 +105,23 @@ public:
         // ImGui::Begin("Fart window");
         // ImGui::Button("Hello!");
         // ImGui::End();
+
+        bgfx::setViewTransform(0, viewMat, projMat);
+
+        // Set view 0 default viewport.
+        bgfx::setViewRect(0, 0, 0, uint16_t(WindowSize.w), uint16_t(WindowSize.h));
+
+        bgfx::touch(mainView);
+
+        // Set vertex and index buffer.
+        bgfx::setVertexBuffer(mainView, vbh);
+        bgfx::setIndexBuffer(ibh);
+
+        // Set render states.
+        bgfx::setState(BGFX_STATE_WRITE_RGB);
+
+        // Submit primitive for rendering to view 0.
+        bgfx::submit(mainView, program);
     }
 
 

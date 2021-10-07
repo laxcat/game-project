@@ -73,16 +73,12 @@ int main(int argc, char ** argv) {
         snprintf(assetsPath, sizeof assetsPath, "%s/assets", cwd);
     }
 
-    // Set view 0 to the same dimensions as the window and to clear the color buffer.
-    const bgfx::ViewId kClearView = 0;
-    bgfx::setViewClear(kClearView, BGFX_CLEAR_COLOR);
-    bgfx::setViewRect(kClearView, 0, 0, bgfx::BackbufferRatio::Equal);
-
+    // setup everything
     mm.init(glfwGetTime());
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGui_Implbgfx_Init(kClearView);
+    ImGui_Implbgfx_Init(mm.mainView);
     auto & io = ImGui::GetIO();
     io.DisplaySize = {(float)mm.WindowSize.w, (float)mm.WindowSize.h};
     io.IniFilename = NULL;
@@ -94,15 +90,14 @@ int main(int argc, char ** argv) {
 
         glfwPollEvents();
 
-        ImGui_Implbgfx_NewFrame();
-        ImGui::NewFrame();
+        // ImGui_Implbgfx_NewFrame();
+        // ImGui::NewFrame();
 
         mm.tick();
 
-        ImGui::Render();
-        ImGui_Implbgfx_RenderDrawLists(ImGui::GetDrawData());
+        // ImGui::Render();
+        // ImGui_Implbgfx_RenderDrawLists(ImGui::GetDrawData());
 
-        bgfx::touch(kClearView);
         bgfx::frame();
     }
 
