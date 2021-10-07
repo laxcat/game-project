@@ -1,5 +1,7 @@
 # NOTES
-# Use specific git hashes speeds up build. (Doesn't have to check remote.)
+# Using specific git hashes speeds up build. (Doesn't have to check remote.)
+
+include(FetchContent)
 
 # OUTPUT
 set(SetupLib_libs) # append lib names to this list
