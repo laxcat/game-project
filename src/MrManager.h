@@ -1,10 +1,8 @@
 #pragma once
 #include <bgfx/bgfx.h>
-// #include <glm/vec3.hpp>
-// #include <glm/gtx/string_cast.hpp>
-// #include <entt/entity/registry.hpp>
 #include <imgui.h>
 #include "common/utils.h"
+#include "common/Memory.h"
 
 
 struct PosColorVertex {
@@ -50,11 +48,17 @@ public:
 // -------------------------------------------------------------------------- //
 // STATE VARS
 // -------------------------------------------------------------------------- //
-    bool showBGFXStats = false;
+    bool showBGFXStats = true;
     // glm::vec3 pos;
     // entt::registry registry;
     double thisTime;
     double prevTime;
+
+    bgfx::VertexBufferHandle vbh;
+    bgfx::IndexBufferHandle ibh;
+    bgfx::ProgramHandle program;
+
+    Memory mem;
 
 
 // -------------------------------------------------------------------------- //
@@ -65,7 +69,16 @@ public:
         thisTime = time;
         prevTime = time;
 
+        mem.init();
         PosColorVertex::init();
+
+        vbh = bgfx::createVertexBuffer(bgfx::makeRef(verts, sizeof(verts)), PosColorVertex::layout);
+        ibh = bgfx::createIndexBuffer(bgfx::makeRef(indices, sizeof(indices)));
+        program = mem.loadProgram("vs_main", "fs_main");
+    }
+
+    void shutdown() {
+        mem.shutdown();
     }
 
     void tick() {
@@ -79,7 +92,7 @@ public:
 // EVENT
 // -------------------------------------------------------------------------- //
     void keyEvent(int key, int scancode, int action, int mods) {
-        if (key == GLFW_KEY_F1 && action == GLFW_PRESS) {
+        if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
             showBGFXStats = !showBGFXStats;
             updateBGFXDebug();
         }

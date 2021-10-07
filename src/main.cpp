@@ -106,7 +106,7 @@ int main(int argc, char ** argv) {
         bgfx::frame();
     }
 
-    // Exit
+    mm.shutdown();
     glfwDestroyWindow(window);
     glfwTerminate();
     bgfx::shutdown();

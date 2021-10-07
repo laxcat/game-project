@@ -11,11 +11,16 @@ function(BGFXShader_compile shader_dir_rel_to_root)
 
     # run for each individual shader
     macro(compile dir type)
-        set(output_dir ${shader_dir}/${dir})
-        set(output ${output_dir}/${type}s_${dir}.sc.bin)
-        set(input ${output_dir}/${type}s_${dir}.sc)
+        set(output_dir ${root_dir}/build/shaders/metal)
+        set(output ${output_dir}/${type}s_${dir}.bin)
+        set(input ${shader_dir}/${dir}/${type}s_${dir}.sc)
 
         if(EXISTS ${input})
+            if(NOT EXISTS ${output_dir})
+                message(STATUS "MAKING DIRECTORY: " ${output_dir})
+                file(MAKE_DIRECTORY ${output_dir})
+            endif()
+
             add_custom_command(
                 DEPENDS ${shaderc} ${include_dir} ${input}
                 OUTPUT  ${output}
