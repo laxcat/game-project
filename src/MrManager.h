@@ -67,12 +67,14 @@ public:
     float viewMat[16];
     float projMat[16];
 
-    PosColorVertex verts[4] = {
+    static size_t const vertCount = 4;
+    PosColorVertex verts[vertCount] = {
         {0.f, 0.f, 0.f, 0xffff0000},
         {1.f, 0.f, 0.f, 0xff00ff00},
         {1.f, 1.f, 0.f, 0xff0000ff},
         {0.f, 1.f, 0.f, 0xffff00ff},
     };
+    float vertFloatColors[vertCount*4];
     bgfx::DynamicVertexBufferHandle vbh;
     bgfx::Memory const * vbRef;
 
@@ -130,12 +132,11 @@ public:
         ImGui::SetNextWindowSize({min.x+(max.x-min.x)*startWidth, min.y}, ImGuiCond_Once);
         ImGui::SetNextWindowSizeConstraints(min, max);
         ImGui::Begin("Vert Color");
-        static float guiVertColors[12];
         static char guiVertName[7];
         for (int i = 0; i < 4; ++i) {
             sprintf(guiVertName, "Vert %d", i);
-            ImGui::ColorEdit3(guiVertName, verts[i].getColor3(&guiVertColors[i*3]), ImGuiCond_Once);
-            verts[i].setColor3(&guiVertColors[i*3]);
+            ImGui::ColorEdit3(guiVertName, verts[i].getColor3(&vertFloatColors[i*4]), ImGuiCond_Once);
+            verts[i].setColor3(&vertFloatColors[i*4]);
         }
         ImGui::End();
     }
