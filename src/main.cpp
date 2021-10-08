@@ -118,13 +118,15 @@ int main(int argc, char ** argv) {
 
         glfwPollEvents();
 
-        ImGui_Implbgfx_NewFrame();
-        ImGui::NewFrame();
+        if (mm.showImGUI) {
+            ImGui_Implbgfx_NewFrame();
+            ImGui::NewFrame();
+            mm.gui();
+            ImGui::Render();
+            ImGui_Implbgfx_RenderDrawLists(ImGui::GetDrawData());
+        }
 
         mm.tick();
-
-        ImGui::Render();
-        ImGui_Implbgfx_RenderDrawLists(ImGui::GetDrawData());
 
         bgfx::frame();
     }

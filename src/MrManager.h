@@ -54,6 +54,7 @@ public:
     bgfx::ViewId const mainView = 0;
     bgfx::ViewId const guiView  = 0xff;
     bool showBGFXStats = false;
+    bool showImGUI = true;
     // glm::vec3 pos;
     // entt::registry registry;
     double thisTime;
@@ -121,7 +122,7 @@ public:
         mem.shutdown();
     }
 
-    void tick() {
+    void gui() {
         ImGui::SetNextWindowPos({0, 0});
         static const ImVec2 min{200, (float)WindowSize.h};
         static const ImVec2 max{WindowSize.w / 2.f, min.y};
@@ -137,7 +138,9 @@ public:
             verts[i].setColor3(&guiVertColors[i*3]);
         }
         ImGui::End();
+    }
 
+    void tick() {
 
         bgfx::setViewTransform(0, viewMat, projMat);
         bgfx::setViewRect(mainView, 0, 0, bgfx::BackbufferRatio::Equal);
@@ -157,10 +160,13 @@ public:
 // EVENT
 // -------------------------------------------------------------------------- //
     void keyEvent(int key, int scancode, int action, int mods) {
-        // if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-        //     showBGFXStats = !showBGFXStats;
-        //     updateBGFXDebug();
-        // }
+        if (key == GLFW_KEY_F1 && action == GLFW_PRESS) {
+            showBGFXStats = !showBGFXStats;
+            updateBGFXDebug();
+        }
+        if (key == GLFW_KEY_GRAVE_ACCENT && action == GLFW_PRESS) {
+            showImGUI = !showImGUI;
+        }
     }
 
     void mousePosEvent(double x, double y) {
