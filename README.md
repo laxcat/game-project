@@ -1,11 +1,6 @@
 # Game Project
 
-Bare bones framework for a general PC game, using popular open source tools:
-- glfw
-- bgfx
-- imgui
-- entt
-- glm
+Bare bones framework for a general PC game, using some popular open source tools. Experimentation zone for finding and implementing more tools. See [SetupLib.cmake](cmake/SetupLib.cmake) for supported libraries.
 
 ## Build Instructions
 
