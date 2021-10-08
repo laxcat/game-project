@@ -34,7 +34,7 @@ add_executable(GameProject
 )
 
 # SHADERS
-BGFXShader_compile(src/shaders)
+BGFXShader_compile(src/shaders bgfx_content)
 
 # CONFIGURE MAIN BINARY
 set_property(TARGET GameProject APPEND_STRING PROPERTY COMPILE_FLAGS ${SetupLib_flags})

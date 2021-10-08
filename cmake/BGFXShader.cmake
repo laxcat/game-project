@@ -1,11 +1,14 @@
 #
 # Loops through subdirectories and looks for BGFX shaders and compiles them.
+# Depends on FetchContent; provide FetchContent name as bgfx_content parameter.
 #
-function(BGFXShader_compile shader_dir_rel_to_root)
+function(BGFXShader_compile shader_dir_rel_to_root bgfx_content)
     # vars
     set(root_dir ${CMAKE_CURRENT_SOURCE_DIR})
-    set(shaderc ${root_dir}/build/_deps/bgfx_content-build/shaderc)
-    set(include_dir ${root_dir}/build/_deps/bgfx_content-src/bgfx/src)
+    set(bin_dir "${${bgfx_content}_BINARY_DIR}")
+    set(src_dir "${${bgfx_content}_SOURCE_DIR}")
+    set(shaderc ${bin_dir}/shaderc)
+    set(include_dir ${src_dir}/bgfx/src)
     set(shader_dir ${root_dir}/${shader_dir_rel_to_root})
     set(depends)
 
