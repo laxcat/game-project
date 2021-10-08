@@ -71,7 +71,6 @@ public:
     void init(double time) {
         // Set view 0 to the same dimensions as the window and to clear the color buffer
         bgfx::setViewClear(mainView, BGFX_CLEAR_COLOR|BGFX_CLEAR_DEPTH);
-        bgfx::setViewRect(mainView, 0, 0, bgfx::BackbufferRatio::Equal);
 
         updateBGFXDebug();
         thisTime = time;
@@ -107,20 +106,11 @@ public:
         // ImGui::End();
 
         bgfx::setViewTransform(0, viewMat, projMat);
-
-        // Set view 0 default viewport.
-        bgfx::setViewRect(0, 0, 0, uint16_t(WindowSize.w), uint16_t(WindowSize.h));
-
+        bgfx::setViewRect(mainView, 0, 0, bgfx::BackbufferRatio::Equal);
         bgfx::touch(mainView);
-
-        // Set vertex and index buffer.
         bgfx::setVertexBuffer(mainView, vbh);
         bgfx::setIndexBuffer(ibh);
-
-        // Set render states.
         bgfx::setState(BGFX_STATE_WRITE_RGB);
-
-        // Submit primitive for rendering to view 0.
         bgfx::submit(mainView, program);
     }
 
