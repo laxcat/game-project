@@ -11,30 +11,33 @@ struct PosColorVertex {
     float z;
     uint32_t abgr;
 
-    static void init()
-    {
+    static void init() {
         layout
             .begin()
             .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
             .add(bgfx::Attrib::Color0,   4, bgfx::AttribType::Uint8, true)
             .end();
-    };
+    }
+
+    float * getColor3(float * color) {
+        color[0] = ((abgr >>  0) & 0xff) / 255.f; // r
+        color[1] = ((abgr >>  8) & 0xff) / 255.f; // g
+        color[2] = ((abgr >> 16) & 0xff) / 255.f; // b
+        return color;
+    }
+
+    void setColor3(float * color) {
+        abgr = 
+            (((abgr >> 24) & 0xff)      << 24) | // a
+            (byte_t(color[2] * 0xff)    << 16) | // b
+            (byte_t(color[1] * 0xff)    <<  8) | // g
+            (byte_t(color[0] * 0xff)    <<  0);  // r
+
+    }
 
     static bgfx::VertexLayout layout;
 };
 bgfx::VertexLayout PosColorVertex::layout;
-
-PosColorVertex verts[] = {
-    {0.f, 0.f, 0.f, 0xffff0000},
-    {1.f, 0.f, 0.f, 0xff00ff00},
-    {1.f, 1.f, 0.f, 0xff0000ff},
-    {0.f, 1.f, 0.f, 0xffff00ff},
-};
-
-uint16_t indices[] = {
-    0, 1, 2,
-    0, 2, 3,
-};
 
 
 class MrManager {
@@ -49,20 +52,35 @@ public:
 // STATE VARS
 // -------------------------------------------------------------------------- //
     bgfx::ViewId const mainView = 0;
+    bgfx::ViewId const guiView  = 0xff;
     bool showBGFXStats = false;
     // glm::vec3 pos;
     // entt::registry registry;
     double thisTime;
     double prevTime;
 
-    bgfx::VertexBufferHandle vbh;
-    bgfx::IndexBufferHandle ibh;
     bgfx::ProgramHandle program;
 
     Memory mem;
 
     float viewMat[16];
     float projMat[16];
+
+    PosColorVertex verts[4] = {
+        {0.f, 0.f, 0.f, 0xffff0000},
+        {1.f, 0.f, 0.f, 0xff00ff00},
+        {1.f, 1.f, 0.f, 0xff0000ff},
+        {0.f, 1.f, 0.f, 0xffff00ff},
+    };
+    bgfx::DynamicVertexBufferHandle vbh;
+    bgfx::Memory const * vbRef;
+
+    uint16_t indices[6] = {
+        0, 1, 2,
+        0, 2, 3,
+    };
+    bgfx::IndexBufferHandle ibh;
+
 
 
 // -------------------------------------------------------------------------- //
@@ -79,8 +97,11 @@ public:
         mem.init();
         PosColorVertex::init();
 
-        vbh = bgfx::createVertexBuffer(bgfx::makeRef(verts, sizeof(verts)), PosColorVertex::layout);
+        vbRef = bgfx::makeRef(verts, sizeof(verts));
+        vbh = bgfx::createDynamicVertexBuffer(vbRef, PosColorVertex::layout);
+
         ibh = bgfx::createIndexBuffer(bgfx::makeRef(indices, sizeof(indices)));
+        
         program = mem.loadProgram("vs_main", "fs_main");
 
         const bx::Vec3 at  = { 0.5f, 0.5f,   0.0f };
@@ -101,16 +122,33 @@ public:
     }
 
     void tick() {
-        // ImGui::Begin("Fart window");
-        // ImGui::Button("Hello!");
-        // ImGui::End();
+        ImGui::SetNextWindowPos({0, 0});
+        static const ImVec2 min{200, (float)WindowSize.h};
+        static const ImVec2 max{WindowSize.w / 2.f, min.y};
+        static const float startWidth = 0;
+        ImGui::SetNextWindowSize({min.x+(max.x-min.x)*startWidth, min.y}, ImGuiCond_Once);
+        ImGui::SetNextWindowSizeConstraints(min, max);
+        ImGui::Begin("Vert Color");
+        static float guiVertColors[12];
+        static char guiVertName[7];
+        for (int i = 0; i < 4; ++i) {
+            sprintf(guiVertName, "Vert %d", i);
+            ImGui::ColorEdit3(guiVertName, verts[i].getColor3(&guiVertColors[i*3]), ImGuiCond_Once);
+            verts[i].setColor3(&guiVertColors[i*3]);
+        }
+        ImGui::End();
+
 
         bgfx::setViewTransform(0, viewMat, projMat);
         bgfx::setViewRect(mainView, 0, 0, bgfx::BackbufferRatio::Equal);
+
         bgfx::touch(mainView);
+        
+        bgfx::update(vbh, 0, bgfx::makeRef(verts, sizeof(verts)));
         bgfx::setVertexBuffer(mainView, vbh);
         bgfx::setIndexBuffer(ibh);
         bgfx::setState(BGFX_STATE_WRITE_RGB);
+        
         bgfx::submit(mainView, program);
     }
 
@@ -119,10 +157,10 @@ public:
 // EVENT
 // -------------------------------------------------------------------------- //
     void keyEvent(int key, int scancode, int action, int mods) {
-        if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-            showBGFXStats = !showBGFXStats;
-            updateBGFXDebug();
-        }
+        // if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+        //     showBGFXStats = !showBGFXStats;
+        //     updateBGFXDebug();
+        // }
     }
 
     void mousePosEvent(double x, double y) {
