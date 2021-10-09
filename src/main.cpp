@@ -43,6 +43,11 @@ static void glfw_mouseButtonCallback(GLFWwindow * window, int button, int action
     mm.mouseButtonEvent(button, action, mods);
 }
 
+static void glfw_scrollCallback(GLFWwindow * window, double x, double y) {
+    auto & io = ImGui::GetIO();
+    io.MouseWheel = y;
+}
+
 
 int main(int argc, char ** argv) {
     // glfw init, no graphics context!
@@ -59,6 +64,7 @@ int main(int argc, char ** argv) {
     glfwSetKeyCallback(window, glfw_keyCallback);
     glfwSetCursorPosCallback(window, glfw_mousePosCallback);
     glfwSetMouseButtonCallback(window, glfw_mouseButtonCallback);
+    glfwSetScrollCallback(window, glfw_scrollCallback);
 
     // ensure SINGLE THREAD
     bgfx::renderFrame();
