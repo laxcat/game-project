@@ -20,8 +20,9 @@ project(game_project VERSION 0.1.0 LANGUAGES CXX)
 SetupLib_bgfx()
 SetupLib_glfw()
 # SetupLib_glm()
-# SetupLib_entt()
+SetupLib_entt()
 SetupLib_imgui()
+SetupLib_tinygltf()
 
 
 # ---------------------------------------------------------------------------- #

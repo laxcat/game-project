@@ -114,6 +114,7 @@ macro(SetupLib_imgui)
         ${imgui_content_SOURCE_DIR}/imgui_draw.cpp
         ${imgui_content_SOURCE_DIR}/imgui_tables.cpp
         ${imgui_content_SOURCE_DIR}/imgui_widgets.cpp
+        ${imgui_content_SOURCE_DIR}/imgui_demo.cpp
     )
     # list(APPEND SetupLib_flags "-fobjc-arc")
     # BGFX + IMGUI
@@ -130,4 +131,19 @@ macro(SetupLib_imgui)
     list(APPEND SetupLib_sources
         ${bgfx_imgui_content_SOURCE_DIR}/bgfx-imgui/imgui_impl_bgfx.cpp
     )
+endmacro()
+
+
+# ---------------------------------------------------------------------------- #
+# TINY GLTF
+# ---------------------------------------------------------------------------- #
+macro(SetupLib_tinygltf)
+    message(STATUS "SETUP TINY GLTF")
+    FetchContent_Declare(
+        tinygltf_content
+        GIT_REPOSITORY https://github.com/syoyo/tinygltf
+        GIT_TAG        a159945db9d97e79a30cb34e2aaa45fd28dea576 # arbitrary, captured Oct.2021, https://github.com/syoyo/tinygltf/releases/tag/v2.5.0
+        # FETCHCONTENT_UPDATES_DISCONNECTED ON
+    )
+    FetchContent_MakeAvailable(tinygltf_content)
 endmacro()
