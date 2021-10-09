@@ -1,6 +1,7 @@
 #pragma once
 #include <bgfx/bgfx.h>
 #include <imgui.h>
+#include <entt/entity/registry.hpp>
 #include "common/utils.h"
 #include "common/Memory.h"
 
@@ -47,7 +48,6 @@ class MrManager {
 public:
     size2 const WindowSize = {1280, 720};
 
-
 // -------------------------------------------------------------------------- //
 // STATE VARS
 // -------------------------------------------------------------------------- //
@@ -56,14 +56,13 @@ public:
     bool showBGFXStats = false;
     bool showImGUI = true;
     // glm::vec3 pos;
-    // entt::registry registry;
+    entt::registry registry;
     double thisTime;
     double prevTime;
 
     bgfx::ProgramHandle program;
 
     Memory mem;
-
     float viewMat[16];
     float projMat[16];
 
@@ -118,6 +117,16 @@ public:
         for (int i = 0; i < 4; ++i) {
             printf("vert %d: %08x\n", i, verts[i].abgr);
         }
+
+        auto a = registry.create();
+        auto b = registry.create();
+        auto c = registry.create();
+        printf("wut %p %zu, %p %zu, %p %zu\n", 
+            &a, (size_t)a,
+            &b, (size_t)b,
+            &c, (size_t)c
+        );
+
     }
 
     void shutdown() {
@@ -125,18 +134,23 @@ public:
     }
 
     void gui() {
+        // ImGui::ShowDemoWindow();
         ImGui::SetNextWindowPos({0, 0});
-        static const ImVec2 min{200, (float)WindowSize.h};
+        static const ImVec2 min{250, (float)WindowSize.h};
         static const ImVec2 max{WindowSize.w / 2.f, min.y};
         static const float startWidth = 0;
         ImGui::SetNextWindowSize({min.x+(max.x-min.x)*startWidth, min.y}, ImGuiCond_Once);
         ImGui::SetNextWindowSizeConstraints(min, max);
-        ImGui::Begin("Vert Color");
-        static char guiVertName[7];
-        for (int i = 0; i < 4; ++i) {
-            sprintf(guiVertName, "Vert %d", i);
-            ImGui::ColorEdit3(guiVertName, verts[i].getColor3(&vertFloatColors[i*4]), ImGuiCond_Once);
-            verts[i].setColor3(&vertFloatColors[i*4]);
+        ImGui::Begin("Editor");
+        if (ImGui::CollapsingHeader("Vert Color")) {
+            static char guiVertName[7];
+            for (int i = 0; i < 4; ++i) {
+                sprintf(guiVertName, "Vert %d", i);
+                ImGui::ColorPicker3(guiVertName, verts[i].getColor3(&vertFloatColors[i*4]), ImGuiCond_Once|ImGuiColorEditFlags_NoInputs);
+                verts[i].setColor3(&vertFloatColors[i*4]);
+            }
+        }
+        if (ImGui::CollapsingHeader("Entity")) {
         }
         ImGui::End();
     }
@@ -167,6 +181,10 @@ public:
         }
         if (key == GLFW_KEY_GRAVE_ACCENT && action == GLFW_PRESS) {
             showImGUI = !showImGUI;
+            // auto old = debugState;
+            // debugState = DebugState(uint8_t(debugState) + 1);
+            // if (debugState == DebugState::_Count) debugState = DebugState::Off;
+            // updateBGFXDebug();
         }
     }
 
