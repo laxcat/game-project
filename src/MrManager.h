@@ -41,6 +41,14 @@ struct PosColorVertex {
 bgfx::VertexLayout PosColorVertex::layout;
 
 
+struct Info {
+    char name[16];
+
+    Info(char const * name) {
+        strcpy(this->name, name);
+    }
+};
+
 class MrManager {
 // -------------------------------------------------------------------------- //
 // PUBLIC SETTINGS
@@ -118,14 +126,14 @@ public:
             printf("vert %d: %08x\n", i, verts[i].abgr);
         }
 
-        auto a = registry.create();
-        auto b = registry.create();
-        auto c = registry.create();
-        printf("wut %p %zu, %p %zu, %p %zu\n", 
-            &a, (size_t)a,
-            &b, (size_t)b,
-            &c, (size_t)c
-        );
+        // entt::entity a = registry.create();
+        // auto b = registry.create();
+        // auto c = registry.create();
+        // printf("wut %p %zu, %p %zu, %p %zu\n", 
+        //     &a, (size_t)a,
+        //     &b, (size_t)b,
+        //     &c, (size_t)c
+        // );
 
     }
 
@@ -150,7 +158,21 @@ public:
                 verts[i].setColor3(&vertFloatColors[i*4]);
             }
         }
-        if (ImGui::CollapsingHeader("Entity")) {
+        if (ImGui::CollapsingHeader("Entity", ImGuiTreeNodeFlags_DefaultOpen)) {
+            ImGui::Indent();
+            if (ImGui::Button("Add Entity")) {
+                auto e = registry.create();
+                static char temp[16];
+                sprintf(temp, "Entity %zu", (size_t)e);
+                // auto i = Info(temp);
+                registry.emplace<Info>(e, temp);
+            }
+            registry.view<Info>().each([](Info & info){
+                if (ImGui::CollapsingHeader(info.name)) {
+                    ImGui::Text("fart");
+                }
+            });
+
         }
         ImGui::End();
     }
