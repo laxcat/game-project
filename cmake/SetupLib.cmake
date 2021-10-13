@@ -92,6 +92,20 @@ macro(SetupLib_entt)
 endmacro()
 
 
+macro(SetupLib_cereal)
+    # Note: header only; nothing to "build"
+    message(STATUS "SETUP CEREAL")
+    FetchContent_Declare(
+        cereal_content
+        GIT_REPOSITORY https://github.com/USCiLab/cereal/
+        GIT_TAG        02eace19a99ce3cd564ca4e379753d69af08c2c8 # arbitrary, captured Oct.2021, https://github.com/USCiLab/cereal/releases/tag/v1.3.0
+        SOURCE_SUBDIR  do-nothing # avoid CMakeLists.txt in root
+    )
+    FetchContent_MakeAvailable(cereal_content)
+    include_directories(${cereal_content_SOURCE_DIR}/include)
+endmacro()
+
+
 # ---------------------------------------------------------------------------- #
 # IMGUI
 # ---------------------------------------------------------------------------- #

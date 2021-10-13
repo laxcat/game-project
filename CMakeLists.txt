@@ -21,6 +21,7 @@ SetupLib_bgfx()
 SetupLib_glfw()
 # SetupLib_glm()
 SetupLib_entt()
+SetupLib_cereal()
 SetupLib_imgui()
 SetupLib_tinygltf()
 

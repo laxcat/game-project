@@ -1,7 +1,12 @@
 #pragma once
+#include <sstream>
+#include <fstream>
 #include <bgfx/bgfx.h>
 #include <imgui.h>
 #include <entt/entity/registry.hpp>
+#include <entt/entity/snapshot.hpp>
+#include <cereal/cereal.hpp>
+#include <cereal/archives/binary.hpp>
 #include "common/utils.h"
 #include "common/Memory.h"
 
@@ -44,8 +49,15 @@ bgfx::VertexLayout PosColorVertex::layout;
 struct Info {
     char name[16];
 
+    Info() : Info("") {} // entt snapshot seems to require default constructor
+
     Info(char const * name) {
         strcpy(this->name, name);
+    }
+
+    template<class Archive>
+    void serialize(Archive & archive) {
+        archive(name);
     }
 };
 
@@ -126,15 +138,7 @@ public:
             printf("vert %d: %08x\n", i, verts[i].abgr);
         }
 
-        // entt::entity a = registry.create();
-        // auto b = registry.create();
-        // auto c = registry.create();
-        // printf("wut %p %zu, %p %zu, %p %zu\n", 
-        //     &a, (size_t)a,
-        //     &b, (size_t)b,
-        //     &c, (size_t)c
-        // );
-
+        loadAllEntities();
     }
 
     void shutdown() {
@@ -164,7 +168,6 @@ public:
                 auto e = registry.create();
                 static char temp[16];
                 sprintf(temp, "Entity %zu", (size_t)e);
-                // auto i = Info(temp);
                 registry.emplace<Info>(e, temp);
             }
             registry.view<Info>().each([](Info & info){
@@ -208,6 +211,10 @@ public:
             // if (debugState == DebugState::_Count) debugState = DebugState::Off;
             // updateBGFXDebug();
         }
+        // save (cmd+S for mac. ctrl+s for others)
+        if (key == GLFW_KEY_S && action == GLFW_PRESS && mods == GLFW_MOD_SUPER) {
+            saveAllEntities();
+        }
     }
 
     void mousePosEvent(double x, double y) {
@@ -225,5 +232,24 @@ public:
 private:
     void updateBGFXDebug() {
         bgfx::setDebug(showBGFXStats ? BGFX_DEBUG_STATS : BGFX_DEBUG_NONE);
+    }
+
+    void saveAllEntities() {
+        // std::stringstream storage;
+        std::ofstream storage;
+        storage.open("entities.bin");
+        cereal::BinaryOutputArchive output{storage};
+        entt::snapshot{registry}
+            .entities(output)
+            .component<Info>(output);
+    }
+
+    void loadAllEntities() {
+        std::ifstream storage;
+        storage.open("entities.bin");
+        cereal::BinaryInputArchive input{storage};
+        entt::snapshot_loader{registry}
+            .entities(input)
+            .component<Info>(input);
     }
 };
