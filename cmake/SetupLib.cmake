@@ -92,6 +92,9 @@ macro(SetupLib_entt)
 endmacro()
 
 
+# ---------------------------------------------------------------------------- #
+# CEREAL
+# ---------------------------------------------------------------------------- #
 macro(SetupLib_cereal)
     # Note: header only; nothing to "build"
     message(STATUS "SETUP CEREAL")
@@ -124,6 +127,7 @@ macro(SetupLib_imgui)
         ${imgui_content_SOURCE_DIR}/imgui_tables.cpp
         ${imgui_content_SOURCE_DIR}/imgui_widgets.cpp
         ${imgui_content_SOURCE_DIR}/imgui_demo.cpp
+        ${imgui_content_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
     )
     # list(APPEND SetupLib_flags "-fobjc-arc")
     # BGFX + IMGUI

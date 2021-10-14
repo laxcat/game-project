@@ -1,14 +1,15 @@
 #pragma once
 #include <sstream>
 #include <fstream>
+#include <GLFW/glfw3.h>
 #include <bgfx/bgfx.h>
-#include <imgui.h>
 #include <entt/entity/registry.hpp>
 #include <entt/entity/snapshot.hpp>
 #include <cereal/cereal.hpp>
 #include <cereal/archives/binary.hpp>
 #include "common/utils.h"
 #include "common/Memory.h"
+#include "editor/Editor.h"
 
 
 struct PosColorVertex {
@@ -41,9 +42,8 @@ struct PosColorVertex {
 
     }
 
-    static bgfx::VertexLayout layout;
+    static inline bgfx::VertexLayout layout;
 };
-bgfx::VertexLayout PosColorVertex::layout;
 
 
 struct Info {
@@ -67,6 +67,7 @@ class MrManager {
 // -------------------------------------------------------------------------- //
 public:
     size2 const WindowSize = {1280, 720};
+    static constexpr char const * entitiesBinPath = "entities.bin";
 
 // -------------------------------------------------------------------------- //
 // STATE VARS
@@ -85,6 +86,8 @@ public:
     Memory mem;
     float viewMat[16];
     float projMat[16];
+
+    Editor editor;
 
     static size_t const vertCount = 4;
     PosColorVertex verts[vertCount] = {
@@ -146,38 +149,8 @@ public:
     }
 
     void gui() {
+        editor.gui();
         // ImGui::ShowDemoWindow();
-        ImGui::SetNextWindowPos({0, 0});
-        static const ImVec2 min{250, (float)WindowSize.h};
-        static const ImVec2 max{WindowSize.w / 2.f, min.y};
-        static const float startWidth = 0;
-        ImGui::SetNextWindowSize({min.x+(max.x-min.x)*startWidth, min.y}, ImGuiCond_Once);
-        ImGui::SetNextWindowSizeConstraints(min, max);
-        ImGui::Begin("Editor");
-        if (ImGui::CollapsingHeader("Vert Color")) {
-            static char guiVertName[7];
-            for (int i = 0; i < 4; ++i) {
-                sprintf(guiVertName, "Vert %d", i);
-                ImGui::ColorPicker3(guiVertName, verts[i].getColor3(&vertFloatColors[i*4]), ImGuiCond_Once|ImGuiColorEditFlags_NoInputs);
-                verts[i].setColor3(&vertFloatColors[i*4]);
-            }
-        }
-        if (ImGui::CollapsingHeader("Entity", ImGuiTreeNodeFlags_DefaultOpen)) {
-            ImGui::Indent();
-            if (ImGui::Button("Add Entity")) {
-                auto e = registry.create();
-                static char temp[16];
-                sprintf(temp, "Entity %zu", (size_t)e);
-                registry.emplace<Info>(e, temp);
-            }
-            registry.view<Info>().each([](Info & info){
-                if (ImGui::CollapsingHeader(info.name)) {
-                    ImGui::Text("fart");
-                }
-            });
-
-        }
-        ImGui::End();
     }
 
     void tick() {
@@ -237,7 +210,7 @@ private:
     void saveAllEntities() {
         // std::stringstream storage;
         std::ofstream storage;
-        storage.open("entities.bin");
+        storage.open(entitiesBinPath);
         cereal::BinaryOutputArchive output{storage};
         entt::snapshot{registry}
             .entities(output)
@@ -246,10 +219,13 @@ private:
 
     void loadAllEntities() {
         std::ifstream storage;
-        storage.open("entities.bin");
+        storage.open(entitiesBinPath);
         cereal::BinaryInputArchive input{storage};
         entt::snapshot_loader{registry}
             .entities(input)
             .component<Info>(input);
     }
 };
+
+
+inline MrManager mm;

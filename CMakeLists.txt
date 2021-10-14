@@ -32,6 +32,7 @@ SetupLib_tinygltf()
 # COMPILE SOURCES
 add_executable(GameProject
     src/main.cpp
+    src/editor/Editor.cpp
     ${SetupLib_sources}
 )
 
