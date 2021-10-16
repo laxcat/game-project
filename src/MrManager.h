@@ -1,15 +1,15 @@
 #pragma once
-#include <sstream>
 #include <fstream>
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <bgfx/bgfx.h>
 #include <entt/entity/registry.hpp>
 #include <entt/entity/snapshot.hpp>
-#include <cereal/cereal.hpp>
 #include <cereal/archives/binary.hpp>
 #include "common/utils.h"
 #include "common/Memory.h"
 #include "editor/Editor.h"
+#include "components/all.h"
 
 
 struct PosColorVertex {
@@ -45,21 +45,6 @@ struct PosColorVertex {
     static inline bgfx::VertexLayout layout;
 };
 
-
-struct Info {
-    char name[16];
-
-    Info() : Info("") {} // entt snapshot seems to require default constructor
-
-    Info(char const * name) {
-        strcpy(this->name, name);
-    }
-
-    template<class Archive>
-    void serialize(Archive & archive) {
-        archive(name);
-    }
-};
 
 class MrManager {
 // -------------------------------------------------------------------------- //
@@ -142,6 +127,11 @@ public:
         }
 
         loadAllEntities();
+
+        for (int i = 0; i < componentCount; ++i) {
+            printf("type %s\n", allComponents[i]);
+        }
+
     }
 
     void shutdown() {
@@ -154,7 +144,6 @@ public:
     }
 
     void tick() {
-
         bgfx::setViewTransform(0, viewMat, projMat);
         bgfx::setViewRect(mainView, 0, 0, bgfx::BackbufferRatio::Equal);
 

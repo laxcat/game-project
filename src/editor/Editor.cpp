@@ -12,12 +12,12 @@ void Editor::gui() {
     SetNextWindowPos({0, 0});
     static const ImVec2 min{250, (float)mm.WindowSize.h};
     static const ImVec2 max{mm.WindowSize.w / 2.f, min.y};
-    static const float startWidth = 0;
+    static const float startWidth = .5;
     SetNextWindowSize({min.x+(max.x-min.x)*startWidth, min.y}, ImGuiCond_Once);
     SetNextWindowSizeConstraints(min, max);
     Begin("Editor", NULL, ImGuiWindowFlags_NoTitleBar);
 
-    guiDemoVertColorEditor();
+    // guiDemoVertColorEditor();
 
     guiEntityEditor();
 
@@ -37,27 +37,28 @@ void Editor::guiDemoVertColorEditor() {
 void Editor::guiEntityEditor() {
     if (CollapsingHeader("Entities", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-        static size_t justCreated;
+        static size_t justCreatedEID;
 
         if (Button("Add Entity")) {
             auto e = mm.registry.create();
-            justCreated = (size_t)e;
-            sprintf(temp, "Entity %zu", justCreated);
-            mm.registry.emplace<Info>(e, temp);
+            justCreatedEID = (size_t)e;
+            Info & newInfo = mm.registry.emplace<Info>(e);
+            sprintf(newInfo.name, "Entity %zu", justCreatedEID);
+
             // SetNextItemOpen(true);
         }
         else {
-            justCreated = SIZE_MAX;
+            justCreatedEID = SIZE_MAX;
         }
 
         NewLine();
 
         auto view = mm.registry.view<Info>();
-        view.each([this](auto const & entity, auto const & info){
+        view.each([](auto const & entity, auto const & info){
             size_t eid = (size_t)entity;
             PushID(eid);
             sprintf(temp, "%s###%zu", info.name, eid);
-            if (eid == justCreated) SetNextItemOpen(true);
+            if (eid == justCreatedEID) SetNextItemOpen(true);
             if (CollapsingHeader(temp)) {
                 Indent();
 
@@ -68,7 +69,10 @@ void Editor::guiEntityEditor() {
                     //     strcpy((char *)&info.name[0], &temp[0]);
                     // }
                 }
-                if (eid == justCreated) SetKeyboardFocusHere(-1);
+                if (eid == justCreatedEID) SetKeyboardFocusHere(-1);
+        
+                NewLine();
+        
                 if (SmallButton("Delete")) {
                     OpenPopup("Delete?");
                 }
