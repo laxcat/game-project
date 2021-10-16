@@ -17,30 +17,30 @@
 # };
 #
 # Note that:
-# • The order they appear in the list will be preserved in the display.
+# • The order they appear in the list will be preserved in the array order.
 # • Each item must have an explicit value assigned.
-# • The enum value will be used as the permenent component id, used for serialization. 
+# • The enum value is intended to never change and safe for serialization. 
 # • The enum values (IDs) do not necessarily need to be sequential.
 #
-# From that enum, it generates a list of types and their ids, and populates
-# all.h.in with CMAKE variables as follows:
+# From that enum, it generates a list of component types and their ids, 
+# and populates all.h.in with CMAKE variables as follows:
 #
-# ComponentList_message                         # Warning "do not edit" comment message.
-# ComponentList_includes                        # Include list of all components.
-# ComponentList_enum                            # Regenerated enum to repeat in output.
-# ComponentList_typeCount                       # Number of components found.
-# ComponentList_typeListAsStrings               # List of componets as quoted strings
-# ComponentList_fnComponentId                   # If statements, check var "name", returns id
-# ComponentList_fnComponentIndex                # If statements, check var "name", returns index
-# ComponentList_fnEmplaceComponentByName        # If statements, checks var "name", runs r.emplace<Type>(e)
-# ComponentList_fnEmplaceComponentByIndex       # If statements, checks var "index", runs r.emplace<Type>(e)
-# ComponentList_fnEmplaceComponentById          # If statements, checks var "id", runs r.emplace<Type>(e)
+# ComponentList_message                     # Warning "do not edit" comment message.
+# ComponentList_includes                    # Include list of all components.
+# ComponentList_enum                        # Regenerated enum to repeat in output.
+# ComponentList_typeCount                   # Number of components found.
+# ComponentList_typeListAsStrings           # List of componets as quoted strings
+# ComponentList_fnComponentId               # If statements, check var "name", returns id
+# ComponentList_fnComponentIndex            # If statements, check var "name", returns index
+# ComponentList_fnEmplaceComponentByName    # If statements, checks var "name", runs r.emplace<Type>(e)
+# ComponentList_fnEmplaceComponentByIndex   # If statements, checks var "index", runs r.emplace<Type>(e)
+# ComponentList_fnEmplaceComponentById      # If statements, checks var "id", runs r.emplace<Type>(e)
 # 
 # Writes result to all.h
 #
 
 
-function(ComponentList_generate infile template outfile)
+function(ComponentList_generate infile templatefile outfile)
     # read file, find the enum, match the contents between {}
     file(READ ${infile} whole_file)
     string(REGEX MATCH "enum[ \t\r\n]+class[ \t\r\n]+Components[ \t\r\n]*{([^}]*)}" _ ${whole_file})
@@ -131,8 +131,10 @@ function(ComponentList_generate infile template outfile)
 
     set(ComponentList_enum "enum class Components {\n    ${ComponentList_enum}\n};\n")
 
-    # set(root_dir ${CMAKE_CURRENT_SOURCE_DIR})
-    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/${template}" "${CMAKE_CURRENT_SOURCE_DIR}/${outfile}")
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/${templatefile}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/${outfile}"
+    )
 
     add_custom_target(
         ComponentList_target
