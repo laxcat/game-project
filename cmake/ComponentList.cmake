@@ -21,7 +21,7 @@
 # Note that:
 # • The order they appear in the list will be preserved in the array order.
 # • Each item must have an explicit value assigned.
-# • The enum value is intended to never change and safe for serialization. 
+# • The enum value is intended to be permanent and safe for serialization. 
 # • The enum values (IDs) do not necessarily need to be sequential.
 #
 # From that enum, it generates a list of component types and their ids, 
