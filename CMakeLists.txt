@@ -39,7 +39,7 @@ add_executable(GameProject
 
 # CODE GENERATION
 ComponentList_generate(
-    src/components/_list.h      # in
+    src/components/@list.h      # in
     src/components/all.h.in     # template
     src/components/all.h        # out
 )
