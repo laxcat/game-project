@@ -1,5 +1,6 @@
 @ComponentList_message@
 #pragma once
+#include <entt/entity/registry.hpp>
 @ComponentList_includes@
 
 @ComponentList_enum@

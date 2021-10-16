@@ -1,9 +1,45 @@
 #
 # Generates simple runtime iterable arrays from enum representing types.
 # 
-# Takes:
-
+# Usage:
+# ComponentList_generate(
+#     components/@list.h      # in
+#     components/all.h.in     # template
+#     components/all.h        # out
+# )
 #
+# Given the above, ... 
+# Looks for component enum in @list.h in the form of:
+#
+# enum class Components {
+#     Info = 1,
+#     Mesh = 3,
+# };
+#
+# Note that:
+# • The order they appear in the list will be preserved in the display.
+# • Each item must have an explicit value assigned.
+# • The enum value will be used as the permenent component id, used for serialization. 
+# • The enum values (IDs) do not necessarily need to be sequential.
+#
+# From that enum, it generates a list of types and their ids, and populates
+# all.h.in with CMAKE variables as follows:
+#
+# ComponentList_message                         # Warning "do not edit" comment message.
+# ComponentList_includes                        # Include list of all components.
+# ComponentList_enum                            # Regenerated enum to repeat in output.
+# ComponentList_typeCount                       # Number of components found.
+# ComponentList_typeListAsStrings               # List of componets as quoted strings
+# ComponentList_fnComponentId                   # If statements, check var "name", returns id
+# ComponentList_fnComponentIndex                # If statements, check var "name", returns index
+# ComponentList_fnEmplaceComponentByName        # If statements, checks var "name", runs r.emplace<Type>(e)
+# ComponentList_fnEmplaceComponentByIndex       # If statements, checks var "index", runs r.emplace<Type>(e)
+# ComponentList_fnEmplaceComponentById          # If statements, checks var "id", runs r.emplace<Type>(e)
+# 
+# Writes result to all.h
+#
+
+
 function(ComponentList_generate infile template outfile)
     # read file, find the enum, match the contents between {}
     file(READ ${infile} whole_file)
@@ -19,10 +55,6 @@ function(ComponentList_generate infile template outfile)
     string(REGEX REPLACE "[ \t\r\n]" "" items ${CMAKE_MATCH_1})
     # convert to list
     string(REPLACE "," ";" items ${items})
-    
-    # message(STATUS "++++++++++++++++++++++")
-    # message(STATUS "${items}")
-    # message(STATUS "++++++++++++++++++++++")
     
     # look at the contents and generate list of types and ids
     set(type_id_pairs)
@@ -41,8 +73,6 @@ function(ComponentList_generate infile template outfile)
         list(APPEND type_id_pairs "${CMAKE_MATCH_1},${CMAKE_MATCH_2}")
     endforeach()
 
-    # message(STATUS "TYPES=${type_id_pairs}")
-
     # SET VARIABLES TO BE USED IN configure_file TEMPLATE
 
     string(APPEND ComponentList_message
@@ -59,7 +89,7 @@ function(ComponentList_generate infile template outfile)
         string(REPLACE "," ";" item ${item})
         list(GET item 0 type)
         list(GET item 1 id)
-        set(if_name "if (strcmp(name, allComponents[${count}]) == 0)")
+        set(if_name "if (strcmp(name, \"${type}\") == 0)")
         set(if_index "if (index == ${count})")
         set(if_id "if (id == ${id})")
         set(endl   "\n    ")
