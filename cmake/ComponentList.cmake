@@ -61,7 +61,7 @@ function(ComponentList_generate infile template outfile)
         list(GET item 1 id)
         set(if_name "if (strcmp(name, allComponents[${count}]) == 0)")
         set(if_index "if (index == ${count})")
-        set(if_id "if (index == ${id})")
+        set(if_id "if (id == ${id})")
         set(endl   "\n    ")
 
         string(APPEND ComponentList_includes
