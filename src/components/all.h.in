@@ -2,12 +2,7 @@
 #pragma once
 @ComponentList_includes@
 
-
-enum class Components {
-    Info = 1,
-    Mesh = 3,
-};
-
+@ComponentList_enum@
 
 inline constexpr int componentCount = @ComponentList_typeCount@; 
 inline constexpr char const * allComponents[componentCount] = {
@@ -31,4 +26,8 @@ inline void emplaceComponentByName(char const * name, entt::registry & r, entt::
 
 inline void emplaceComponentByIndex(int index, entt::registry & r, entt::entity const e) {
     @ComponentList_fnEmplaceComponentByIndex@
+}
+
+inline void emplaceComponentById(int id, entt::registry & r, entt::entity const e) {
+    @ComponentList_fnEmplaceComponentById@
 }
