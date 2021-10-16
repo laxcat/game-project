@@ -1,5 +1,7 @@
 #
-# Generates simple runtime iterable arrays from enum representing types.
+# Generates helper code for converting a list of component types into
+# runtime-iterable arrays and and if-statement lists for use in lookup 
+# functions.
 # 
 # Usage:
 # ComponentList_generate(
@@ -25,7 +27,7 @@
 # From that enum, it generates a list of component types and their ids, 
 # and populates all.h.in with CMAKE variables as follows:
 #
-# ComponentList_message                     # Warning "do not edit" comment message.
+# ComponentList_message                     # Warning "do not edit" comment.
 # ComponentList_includes                    # Include list of all components.
 # ComponentList_enum                        # Regenerated enum to repeat in output.
 # ComponentList_typeCount                   # Number of components found.
