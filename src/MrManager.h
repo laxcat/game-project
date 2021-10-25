@@ -139,8 +139,13 @@ public:
         std::string warn;
 
         char const * fn = "box.glb";
-        bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, fn);
-        printf("successfully loaded %s\n", fn);
+        bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, fn);
+        if (ret) {
+            printf("successfully loaded %s\n", fn);
+        }
+        else {
+            printf("failed to load %s\n", fn);
+        }
     }
 
     void shutdown() {
