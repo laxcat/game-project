@@ -156,5 +156,10 @@ macro(SetupLib_tinygltf)
         GIT_REPOSITORY https://github.com/syoyo/tinygltf
         GIT_TAG        a159945db9d97e79a30cb34e2aaa45fd28dea576 # arbitrary, captured Oct.2021, https://github.com/syoyo/tinygltf/releases/tag/v2.5.0
     )
+    set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(tinygltf_content)
+    include_directories(${tinygltf_content_SOURCE_DIR})
+    list(APPEND SetupLib_sources
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/libraries/tiny_gltf.cpp
+    )
 endmacro()

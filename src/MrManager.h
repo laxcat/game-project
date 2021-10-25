@@ -6,6 +6,7 @@
 #include <entt/entity/registry.hpp>
 #include <entt/entity/snapshot.hpp>
 #include <cereal/archives/binary.hpp>
+#include <tiny_gltf.h>
 #include "common/utils.h"
 #include "common/Memory.h"
 #include "editor/Editor.h"
@@ -132,6 +133,14 @@ public:
             printf("type %s\n", allComponents[i]);
         }
 
+        tinygltf::Model model;
+        tinygltf::TinyGLTF loader;
+        std::string err;
+        std::string warn;
+
+        char const * fn = "box.glb";
+        bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, fn);
+        printf("successfully loaded %s\n", fn);
     }
 
     void shutdown() {
