@@ -12,6 +12,7 @@
 #include "editor/Editor.h"
 #include "components/all.h"
 #include "render/PosColorVertex.h"
+#include "render/RenderManager.h"
 #include "render/TestQuad.h"
 
 
@@ -43,8 +44,7 @@ public:
 
     Editor editor;
 
-    TestQuad testQuad;
-
+    RenderManager rendMan;
 
 
 // -------------------------------------------------------------------------- //
@@ -61,7 +61,9 @@ public:
         mem.init();
         PosColorVertex::init();
 
-        testQuad.init();
+        auto testQuad = new TestQuad();
+        testQuad->init();
+        rendMan.add(testQuad);
 
         program = mem.loadProgram("vs_main", "fs_main");
 
@@ -78,10 +80,13 @@ public:
         for (int i = 0; i < componentCount; ++i) {
             printf("type %s\n", allComponents[i]);
         }
+
+        rendMan.loadGLTF("box.glb");
     }
 
     void shutdown() {
         mem.shutdown();
+        rendMan.shutdown();
     }
 
     void gui() {
@@ -95,7 +100,7 @@ public:
 
         bgfx::touch(mainView);
 
-        testQuad.draw();
+        rendMan.draw();
     }
 
 

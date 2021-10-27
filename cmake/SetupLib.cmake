@@ -30,7 +30,7 @@ macro(SetupLib_bgfx)
         GIT_REPOSITORY https://github.com/bkaradzic/bgfx.cmake
         GIT_TAG        e3b3cb5909882ec023cfe08fa52f106a2ddff08f # arbitrary, captured Oct.2021, https://github.com/bkaradzic/bgfx.cmake/releases/tag/v1.115.7924-e3b3cb5
     )
-    set(BGFX_BUILD_TOOLS        ON  CACHE BOOL "" FORCE)
+    set(BGFX_BUILD_TOOLS        OFF CACHE BOOL "" FORCE)
     set(BGFX_BUILD_EXAMPLES     OFF CACHE BOOL "" FORCE)
     set(BGFX_INSTALL            OFF CACHE BOOL "" FORCE)
     set(BGFX_CONFIG_DEBUG       OFF CACHE BOOL "" FORCE)

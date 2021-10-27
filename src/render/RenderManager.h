@@ -1,12 +1,50 @@
 #pragma once
-#include <unordered_map>
+#include <vector>
 #include "Renderable.h"
 
 
-class RenderableManager {
+class RenderManager {
 public:
 
-    void traverseNodes(tinygltf::Model const & model, std::vector<int> const & nodes, int level) {
+    std::vector<Renderable *> renderables;
+
+    void loadGLTF(char const * filename) {
+        using namespace tinygltf;
+
+        Model model;
+        TinyGLTF loader;
+        std::string err;
+        std::string warn;
+
+        if (loader.LoadBinaryFromFile(&model, &err, &warn, filename)) {
+            printf("successfully loaded %s\n", filename);
+        }
+        else {
+            printf("failed to load %s\n", filename);
+        }
+
+        Scene const & scene = model.scenes[model.defaultScene];
+        traverseGLTFNodes(model, scene.nodes, 0);
+    }
+
+    void add(Renderable * renderable) {
+        renderables.push_back(renderable);
+    }
+
+    void draw() {
+        for (auto * renderable : renderables) {
+            renderable->draw();
+        }
+    }
+
+    void shutdown() {
+        for (auto * renderable : renderables) {
+            renderable->shutdown();
+        }
+    }
+
+private:
+    void traverseGLTFNodes(tinygltf::Model const & model, std::vector<int> const & nodes, int level) {
         using namespace tinygltf;
 
         size_t nodeCount = nodes.size();
@@ -22,29 +60,7 @@ public:
                 node.mesh,
                 model.meshes[node.mesh].name.c_str()
             );
-            traverseNodes(model, node.children, level+1);
+            traverseGLTFNodes(model, node.children, level+1);
         }
     }
-
-    void loadGLTF(char const * filename) {
-        using namespace tinygltf;
-
-        Model model;
-        TinyGLTF loader;
-        std::string err;
-        std::string warn;
-
-        char const * fn = "MetalRoughSpheres.glb";
-        if (loader.LoadBinaryFromFile(&model, &err, &warn, fn)) {
-            printf("successfully loaded %s\n", fn);
-        }
-        else {
-            printf("failed to load %s\n", fn);
-        }
-
-        Scene const & scene = model.scenes[model.defaultScene];
-        traverseNodes(model, scene.nodes, 0);
-    }
-
-    std::unordered_map<size_t, Renderable> renderables;
 };

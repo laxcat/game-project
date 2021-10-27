@@ -10,19 +10,36 @@ static uint16_t indices[6] = {
 
 
 void TestQuad::init() {
+    vertCount = 4;
+
+    PosColorVertex v[] = {
+        {0.f, 0.f, 0.f, 0xffff0000},
+        {1.f, 0.f, 0.f, 0xff00ff00},
+        {1.f, 1.f, 0.f, 0xff0000ff},
+        {0.f, 1.f, 0.f, 0xffff00ff},
+    };
+    vertsByteSize = sizeof(PosColorVertex) * vertCount;
+    printf("vertsByteSize %zu\n", vertsByteSize);
+    verts = (PosColorVertex *)malloc(vertsByteSize);
+    memcpy(verts, v, vertsByteSize);
+
     for (int i = 0; i < 4; ++i) {
         printf("vert %d: %08x\n", i, verts[i].abgr);
     }
 
-    vbRef = bgfx::makeRef(verts, sizeof(verts));
-    vbh = bgfx::createDynamicVertexBuffer(vbRef, PosColorVertex::layout);
+    vbh = bgfx::createDynamicVertexBuffer(vertsRef(), PosColorVertex::layout);
     ibh = bgfx::createIndexBuffer(bgfx::makeRef(indices, sizeof(indices)));
 }
 
 void TestQuad::draw() {
-    bgfx::update(vbh, 0, bgfx::makeRef(verts, sizeof(verts)));
+    bgfx::update(vbh, 0, vertsRef());
     bgfx::setVertexBuffer(mm.mainView, vbh);
     bgfx::setIndexBuffer(ibh);
     bgfx::setState(BGFX_STATE_WRITE_RGB);
     bgfx::submit(mm.mainView, mm.program);
+}
+
+void TestQuad::shutdown() {
+    free(verts);
+    verts = nullptr;
 }
