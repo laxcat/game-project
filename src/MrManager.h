@@ -11,40 +11,8 @@
 #include "common/Memory.h"
 #include "editor/Editor.h"
 #include "components/all.h"
-
-
-struct PosColorVertex {
-    float x;
-    float y;
-    float z;
-    uint32_t abgr;
-
-    static void init() {
-        layout
-            .begin()
-            .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
-            .add(bgfx::Attrib::Color0,   4, bgfx::AttribType::Uint8, true)
-            .end();
-    }
-
-    float * getColor3(float * color) {
-        color[0] = ((abgr >>  0) & 0xff) / 255.f; // r
-        color[1] = ((abgr >>  8) & 0xff) / 255.f; // g
-        color[2] = ((abgr >> 16) & 0xff) / 255.f; // b
-        return color;
-    }
-
-    void setColor3(float * color) {
-        abgr = 
-            (((abgr >> 24) & 0xff)      << 24) | // a
-            (byte_t(color[2] * 0xff)    << 16) | // b
-            (byte_t(color[1] * 0xff)    <<  8) | // g
-            (byte_t(color[0] * 0xff)    <<  0);  // r
-
-    }
-
-    static inline bgfx::VertexLayout layout;
-};
+#include "render/PosColorVertex.h"
+#include "render/TestQuad.h"
 
 
 class MrManager {
@@ -75,22 +43,7 @@ public:
 
     Editor editor;
 
-    static size_t const vertCount = 4;
-    PosColorVertex verts[vertCount] = {
-        {0.f, 0.f, 0.f, 0xffff0000},
-        {1.f, 0.f, 0.f, 0xff00ff00},
-        {1.f, 1.f, 0.f, 0xff0000ff},
-        {0.f, 1.f, 0.f, 0xffff00ff},
-    };
-    float vertFloatColors[vertCount*4];
-    bgfx::DynamicVertexBufferHandle vbh;
-    bgfx::Memory const * vbRef;
-
-    uint16_t indices[6] = {
-        0, 1, 2,
-        0, 2, 3,
-    };
-    bgfx::IndexBufferHandle ibh;
+    TestQuad testQuad;
 
 
 
@@ -108,11 +61,8 @@ public:
         mem.init();
         PosColorVertex::init();
 
-        vbRef = bgfx::makeRef(verts, sizeof(verts));
-        vbh = bgfx::createDynamicVertexBuffer(vbRef, PosColorVertex::layout);
+        testQuad.init();
 
-        ibh = bgfx::createIndexBuffer(bgfx::makeRef(indices, sizeof(indices)));
-        
         program = mem.loadProgram("vs_main", "fs_main");
 
         const bx::Vec3 at  = { 0.5f, 0.5f,   0.0f };
@@ -123,28 +73,10 @@ public:
         float ratio = float(WindowSize.w)/float(WindowSize.h);
         bx::mtxProj(projMat, 60.0f, ratio, 0.1f, 100.0f, bgfx::getCaps()->homogeneousDepth);
 
-        for (int i = 0; i < 4; ++i) {
-            printf("vert %d: %08x\n", i, verts[i].abgr);
-        }
-
         loadAllEntities();
 
         for (int i = 0; i < componentCount; ++i) {
             printf("type %s\n", allComponents[i]);
-        }
-
-        tinygltf::Model model;
-        tinygltf::TinyGLTF loader;
-        std::string err;
-        std::string warn;
-
-        char const * fn = "box.glb";
-        bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, fn);
-        if (ret) {
-            printf("successfully loaded %s\n", fn);
-        }
-        else {
-            printf("failed to load %s\n", fn);
         }
     }
 
@@ -162,13 +94,8 @@ public:
         bgfx::setViewRect(mainView, 0, 0, bgfx::BackbufferRatio::Equal);
 
         bgfx::touch(mainView);
-        
-        bgfx::update(vbh, 0, bgfx::makeRef(verts, sizeof(verts)));
-        bgfx::setVertexBuffer(mainView, vbh);
-        bgfx::setIndexBuffer(ibh);
-        bgfx::setState(BGFX_STATE_WRITE_RGB);
-        
-        bgfx::submit(mainView, program);
+
+        testQuad.draw();
     }
 
 

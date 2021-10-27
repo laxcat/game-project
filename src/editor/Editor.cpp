@@ -17,7 +17,7 @@ void Editor::gui() {
     SetNextWindowSizeConstraints(min, max);
     Begin("Editor", NULL, ImGuiWindowFlags_NoTitleBar);
 
-    // guiDemoVertColorEditor();
+    guiDemoVertColorEditor();
 
     guiEntityEditor();
 
@@ -25,11 +25,11 @@ void Editor::gui() {
 }
 
 void Editor::guiDemoVertColorEditor() {
-    if (CollapsingHeader("Vert Color")) {
+    if (CollapsingHeader("Vert Color", ImGuiTreeNodeFlags_DefaultOpen)) {
         for (int i = 0; i < 4; ++i) {
             sprintf(temp, "Vert %d", i);
-            ColorPicker3(temp, mm.verts[i].getColor3(&mm.vertFloatColors[i*4]), ImGuiCond_Once|ImGuiColorEditFlags_NoInputs);
-            mm.verts[i].setColor3(&mm.vertFloatColors[i*4]);
+            ColorPicker3(temp, mm.testQuad.verts[i].getColor3(&mm.testQuad.vertFloatColors[i*4]), ImGuiCond_Once|ImGuiColorEditFlags_NoInputs);
+            mm.testQuad.verts[i].setColor3(&mm.testQuad.vertFloatColors[i*4]);
         }
     }
 }
