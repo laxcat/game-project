@@ -61,9 +61,7 @@ public:
         mem.init();
         PosColorVertex::init();
 
-        auto testQuad = new TestQuad();
-        testQuad->init();
-        rendMan.add(testQuad);
+        rendMan.create<TestQuad>("testquad");
 
         program = mem.loadProgram("vs_main", "fs_main");
 

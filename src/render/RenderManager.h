@@ -1,12 +1,113 @@
 #pragma once
 #include <vector>
+#include <string>
+#include <unordered_map>
 #include "Renderable.h"
 
 
 class RenderManager {
 public:
+    // 
+    // MANAGER LIFECYCLE
+    //
 
-    std::vector<Renderable *> renderables;
+    void draw() {
+        for (auto i : renderables) {
+            at(i)->draw();
+        }
+    }
+
+    void shutdown() {
+        Renderable * r;
+        for (size_t i = 0; i < poolSize; ++i) {
+            r = at(i);
+            if (r->active) r->shutdown();
+            r->active = false;
+        }
+    }
+
+
+    // 
+    // RENDERABLE LIFECYCLE
+    //
+
+    template<typename T>
+    size_t create(char const * key = "") {
+        static_assert(std::is_base_of<Renderable, T>::value, "T must be Renderable");
+        if (poolNextFree >= poolSize) {
+            fprintf(stderr, "WARNING: did not create renderable. Pool full.");
+            return SIZE_MAX;
+        }
+        if (strcmp(key, "") != 0 && keyExists(key)) {
+            fprintf(stderr, "WARNING: did not create renderable. Key already in use.");
+            return SIZE_MAX;
+        }
+
+        size_t index = poolNextFree;
+        new (pool + index * sizeof(Renderable)) T();
+        T * renderable = at<T>(index);
+        renderable->init();
+        renderable->active = true;
+        renderables.push_back(index);
+        if (strcmp(key, "") != 0) {
+            renderable->key = key;
+            keys.emplace(key, index);
+        }
+
+        setPoolNextFree(index+1);
+        return index;
+    }
+
+    template<typename T>
+    T * at(int index) {
+        assert(index < poolSize && "Out of bounds.");
+        return static_cast<T *>(&pool[index]);
+    }
+
+    Renderable * at(int index) {
+        return at<Renderable>(index);
+    }
+
+    template<typename T>
+    T * at(char const * key) {
+        return at<T>(keys.at(key));
+    }
+
+    Renderable * at(char const * key) {
+        return at(keys.at(key));
+    }
+
+    void destroy(size_t index) {
+        auto * r = at(index);
+        r->shutdown();
+        r->active = false;
+        for(auto i = renderables.begin(); i != renderables.end(); ++i) {
+            if (*i == index) {
+                renderables.erase(i);
+                break;
+            }
+        }
+        keys.erase(r->key);
+        setPoolNextFree(index);
+    }
+
+    void destroy(char const * key) {
+        destroy(keys.at(key));
+    }
+
+
+    // 
+    // RENDERABLE UTILS
+    //
+
+    bool keyExists(char const * key) {
+        return (keys.find(key) != keys.end());
+    }
+
+
+    // 
+    // GLTF
+    //
 
     void loadGLTF(char const * filename) {
         using namespace tinygltf;
@@ -25,22 +126,6 @@ public:
 
         Scene const & scene = model.scenes[model.defaultScene];
         traverseGLTFNodes(model, scene.nodes, 0);
-    }
-
-    void add(Renderable * renderable) {
-        renderables.push_back(renderable);
-    }
-
-    void draw() {
-        for (auto * renderable : renderables) {
-            renderable->draw();
-        }
-    }
-
-    void shutdown() {
-        for (auto * renderable : renderables) {
-            renderable->shutdown();
-        }
     }
 
 private:
@@ -63,4 +148,22 @@ private:
             traverseGLTFNodes(model, node.children, level+1);
         }
     }
+
+    void setPoolNextFree(size_t startFrom) {
+        if (poolNextFree < startFrom) return;
+        for (size_t i = startFrom; i < poolSize; ++i) {
+            if (at(i)->active) {
+                poolNextFree = i;
+                return;
+            }
+        }
+        // no free slots found
+        poolNextFree = SIZE_MAX;
+    }
+
+    static constexpr size_t poolSize = 16;
+    Renderable pool[poolSize];
+    size_t poolNextFree = 0;
+    std::vector<size_t> renderables;
+    std::unordered_map<std::string, size_t> keys;
 };

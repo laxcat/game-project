@@ -25,7 +25,7 @@ void Editor::gui() {
 }
 
 void Editor::guiDemoVertColorEditor() {
-    auto testQuad = (TestQuad *)mm.rendMan.renderables[0];
+    auto testQuad = mm.rendMan.at<TestQuad>("testquad");
     float vertFloatColors[testQuad->vertCount*4];
 
     if (CollapsingHeader("Vert Color", ImGuiTreeNodeFlags_DefaultOpen)) {

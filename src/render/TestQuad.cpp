@@ -8,20 +8,20 @@ static uint16_t indices[6] = {
     0, 2, 3,
 };
 
+static PosColorVertex init_verts[] = {
+    {0.f, 0.f, 0.f, 0xffff0000},
+    {1.f, 0.f, 0.f, 0xff00ff00},
+    {1.f, 1.f, 0.f, 0xff0000ff},
+    {0.f, 1.f, 0.f, 0xffff00ff},
+};
 
 void TestQuad::init() {
     vertCount = 4;
 
-    PosColorVertex v[] = {
-        {0.f, 0.f, 0.f, 0xffff0000},
-        {1.f, 0.f, 0.f, 0xff00ff00},
-        {1.f, 1.f, 0.f, 0xff0000ff},
-        {0.f, 1.f, 0.f, 0xffff00ff},
-    };
     vertsByteSize = sizeof(PosColorVertex) * vertCount;
     printf("vertsByteSize %zu\n", vertsByteSize);
     verts = (PosColorVertex *)malloc(vertsByteSize);
-    memcpy(verts, v, vertsByteSize);
+    memcpy(verts, init_verts, vertsByteSize);
 
     for (int i = 0; i < 4; ++i) {
         printf("vert %d: %08x\n", i, verts[i].abgr);

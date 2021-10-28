@@ -5,6 +5,9 @@
 
 class Renderable {
 public:
+    bool active = false;
+    char const * key = "";
+
     bgfx::DynamicVertexBufferHandle vbh;
     bgfx::IndexBufferHandle ibh;
 
