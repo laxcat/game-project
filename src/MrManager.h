@@ -17,12 +17,13 @@
 
 
 class MrManager {
+public:
 // -------------------------------------------------------------------------- //
 // PUBLIC SETTINGS
 // -------------------------------------------------------------------------- //
-public:
     size2 const WindowSize = {1280, 720};
     static constexpr char const * entitiesBinPath = "entities.bin";
+
 
 // -------------------------------------------------------------------------- //
 // STATE VARS
@@ -61,8 +62,6 @@ public:
         mem.init();
         PosColorVertex::init();
 
-        rendMan.create<TestQuad>("testquad");
-
         program = mem.loadProgram("vs_main", "fs_main");
 
         const bx::Vec3 at  = { 0.5f, 0.5f,   0.0f };
@@ -79,6 +78,7 @@ public:
             printf("type %s\n", allComponents[i]);
         }
 
+        rendMan.create<TestQuad>("testquad");
         rendMan.loadGLTF("box.glb");
     }
 
@@ -132,10 +132,10 @@ public:
     }
 
 
+private:
 // -------------------------------------------------------------------------- //
 // UTIL
 // -------------------------------------------------------------------------- //
-private:
     void updateBGFXDebug() {
         bgfx::setDebug(showBGFXStats ? BGFX_DEBUG_STATS : BGFX_DEBUG_NONE);
     }

@@ -28,15 +28,26 @@ void Editor::guiDemoVertColorEditor() {
     auto testQuad = mm.rendMan.at<TestQuad>("testquad");
     float vertFloatColors[testQuad->vertCount*4];
 
-    if (CollapsingHeader("Vert Color", ImGuiTreeNodeFlags_DefaultOpen)) {
-        for (int i = 0; i < 4; ++i) {
+    if (CollapsingHeader("Vert Color")) {
+        PushItemWidth(GetWindowSize().x * 0.46f);
+        int order[] = {3, 2, 0, 1};
+        int i;
+        for (int o = 0; o < 4; ++o) {
+            i = order[o];
             sprintf(temp, "Vert %d", i);
-            // get color from buffer, convert to float
+            // get color from buffer, convert to float, store in vertFloatColors
             testQuad->verts[i].getColor3(&vertFloatColors[i*4]);
             // use float color for ImGUI memory
-            ColorPicker3(temp, &vertFloatColors[i*4], ImGuiCond_Once|ImGuiColorEditFlags_NoInputs);
+            ColorPicker3(temp, &vertFloatColors[i*4], 
+                ImGuiCond_Once|
+                ImGuiColorEditFlags_NoLabel|
+                ImGuiColorEditFlags_NoSidePreview|
+                ImGuiColorEditFlags_DisplayHex
+            );
             // put float color back in real buffer
             testQuad->verts[i].setColor3(&vertFloatColors[i*4]);
+
+            if (o % 2 == 0) SameLine();
         }
     }
 }

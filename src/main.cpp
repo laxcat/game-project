@@ -84,7 +84,6 @@ int main(int argc, char ** argv) {
     while (!glfwWindowShouldClose(window)) {
         mm.prevTime = mm.thisTime;
         mm.thisTime = glfwGetTime();
-        // io.DeltaTime = mm.thisTime - mm.prevTime;
 
         glfwPollEvents();
 
@@ -100,7 +99,6 @@ int main(int argc, char ** argv) {
         mm.tick();
 
         bgfx::frame();
-
     }
 
     ImGui_ImplGlfw_Shutdown();
