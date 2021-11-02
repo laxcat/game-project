@@ -44,9 +44,8 @@ public:
         }
 
         size_t index = poolNextFree;
-        byte_t * ptr = (byte_t *)&pool[0] + index * sizeof(Renderable);
-        fprintf(stderr, "CREATING AT %zu (%p)\n", index, ptr);
-        new (ptr) T();
+        fprintf(stderr, "CREATING AT %zu (%p)\n", index, &pool[index]);
+        new (&pool[index]) T();
         T * renderable = at<T>(index);
         renderable->init();
         renderable->active = true;
