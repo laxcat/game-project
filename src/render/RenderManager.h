@@ -33,7 +33,7 @@ public:
 
     template<typename T>
     size_t create(char const * key = "") {
-        static_assert(std::is_base_of<Renderable, T>::value, "T must be Renderable");
+        static_assert(std::is_base_of<Renderable, T>::value, "T must be (or subclass of) Renderable");
         if (poolNextFree >= poolSize) {
             fprintf(stderr, "WARNING: did not create renderable. Pool full.");
             return SIZE_MAX;
@@ -44,7 +44,9 @@ public:
         }
 
         size_t index = poolNextFree;
-        new (pool + index * sizeof(Renderable)) T();
+        byte_t * ptr = (byte_t *)&pool[0] + index * sizeof(Renderable);
+        fprintf(stderr, "CREATING AT %zu (%p)\n", index, ptr);
+        new (ptr) T();
         T * renderable = at<T>(index);
         renderable->init();
         renderable->active = true;
@@ -57,6 +59,7 @@ public:
         setPoolNextFree(index+1);
         return index;
     }
+    size_t create(char const * key = "") { return create<Renderable>(key); }
 
     template<typename T>
     T * at(int index) {
@@ -87,8 +90,12 @@ public:
                 break;
             }
         }
-        keys.erase(r->key);
-        setPoolNextFree(index);
+        if (keys.at(r->key)) keys.erase(r->key);
+
+        // we know this slot is free, but it shouldn't be the new free slot
+        // if there is already a lower one
+        if (poolNextFree > index)
+            poolNextFree = index;
     }
 
     void destroy(char const * key) {
@@ -150,9 +157,11 @@ private:
     }
 
     void setPoolNextFree(size_t startFrom) {
-        if (poolNextFree < startFrom) return;
+        // if (poolNextFree < startFrom) return;
+        fprintf(stderr, "LOOKING FOR NEXT FREE....\n");
         for (size_t i = startFrom; i < poolSize; ++i) {
-            if (at(i)->active) {
+            fprintf(stderr, "item in pool at %zu is %s\n", i, at(i)->active?"ACTIVE":"NOT ACTIVE");
+            if (!at(i)->active) {
                 poolNextFree = i;
                 return;
             }
