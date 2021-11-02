@@ -6,7 +6,6 @@
 #include <entt/entity/registry.hpp>
 #include <entt/entity/snapshot.hpp>
 #include <cereal/archives/binary.hpp>
-#include <tiny_gltf.h>
 #include "common/utils.h"
 #include "common/Memory.h"
 #include "editor/Editor.h"
@@ -78,8 +77,9 @@ public:
             printf("type %s\n", allComponents[i]);
         }
 
-        rendMan.create<TestQuad>("testquad");
-        rendMan.loadGLTF("box.glb");
+        auto tq = rendMan.create<TestQuad>("testquad");
+        auto box = rendMan.create("box");
+        rendMan.at(box)->loadGLTF("box.glb");
     }
 
     void shutdown() {

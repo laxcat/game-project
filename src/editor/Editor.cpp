@@ -17,7 +17,7 @@ void Editor::gui() {
     SetNextWindowSizeConstraints(min, max);
     Begin("Editor", NULL, ImGuiWindowFlags_NoTitleBar);
 
-    guiDemoVertColorEditor();
+    // guiDemoVertColorEditor();
 
     guiEntityEditor();
 

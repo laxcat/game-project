@@ -1,5 +1,6 @@
 #pragma once
 #include <bgfx/bgfx.h>
+#include <tiny_gltf.h>
 #include "PosColorVertex.h"
 
 
@@ -18,6 +19,9 @@ public:
     virtual void init() {}
     virtual void draw() {}
     virtual void shutdown() {}
+
+    void loadGLTF(char const * filename);
+    void traverseGLTFNodes(tinygltf::Model const & model, std::vector<int> const & nodes, int level);
 
     bgfx::Memory const * vertsRef() const {
         return bgfx::makeRef(verts, vertsByteSize);

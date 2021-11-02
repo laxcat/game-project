@@ -35,6 +35,7 @@ add_executable(GameProject
     src/main.cpp
     src/editor/Editor.cpp
     src/render/TestQuad.cpp
+    src/render/Renderable.cpp
     ${SetupLib_sources}
 )
 
