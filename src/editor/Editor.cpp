@@ -16,18 +16,19 @@ void Editor::gui() {
     SetNextWindowSizeConstraints(min, max);
     Begin("Editor", NULL, ImGuiWindowFlags_NoTitleBar);
 
-    // guiDemoVertColorEditor();
+    guiDemoVertColorEditor();
 
-    guiEntityEditor();
+    // guiEntityEditor();
 
     End();
 }
 
 void Editor::guiDemoVertColorEditor() {
     auto testQuad = mm.rendMan.at<TestQuad>("testquad");
-    float vertFloatColors[testQuad->vertCount*4];
+    float vertFloatColors[testQuad->primitives[0].vertCount*4];
+    auto verts = testQuad->primitives[0].verts;
 
-    if (CollapsingHeader("Vert Color")) {
+    if (CollapsingHeader("Vert Color", ImGuiTreeNodeFlags_DefaultOpen)) {
         PushItemWidth(GetWindowSize().x * 0.46f);
         int order[] = {3, 2, 0, 1};
         int i;
@@ -35,7 +36,7 @@ void Editor::guiDemoVertColorEditor() {
             i = order[o];
             sprintf(temp, "Vert %d", i);
             // get color from buffer, convert to float, store in vertFloatColors
-            testQuad->verts[i].getColor3(&vertFloatColors[i*4]);
+            verts[i].getColor3(&vertFloatColors[i*4]);
             // use float color for ImGUI memory
             ColorPicker3(temp, &vertFloatColors[i*4], 
                 ImGuiCond_Once|
@@ -44,7 +45,7 @@ void Editor::guiDemoVertColorEditor() {
                 ImGuiColorEditFlags_DisplayHex
             );
             // put float color back in real buffer
-            testQuad->verts[i].setColor3(&vertFloatColors[i*4]);
+            verts[i].setColor3(&vertFloatColors[i*4]);
 
             if (o % 2 == 0) SameLine();
         }
