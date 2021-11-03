@@ -89,7 +89,7 @@ public:
     }
 
     void gui() {
-        editor.gui();
+        // editor.gui();
         // ImGui::ShowDemoWindow();
     }
 

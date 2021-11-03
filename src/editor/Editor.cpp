@@ -8,7 +8,6 @@ static char temp[32];
 
 
 void Editor::gui() {
-
     SetNextWindowPos({0, 0});
     static const ImVec2 min{250, (float)mm.WindowSize.h};
     static const ImVec2 max{mm.WindowSize.w / 2.f, min.y};
