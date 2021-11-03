@@ -16,11 +16,7 @@ static PosColorVertex init_verts[] = {
 };
 
 void TestQuad::init() {
-    vertCount = 4;
-
-    vertsByteSize = sizeof(PosColorVertex) * vertCount;
-    printf("vertsByteSize %zu\n", vertsByteSize);
-    verts = (PosColorVertex *)malloc(vertsByteSize);
+    initVerts(4);
     memcpy(verts, init_verts, vertsByteSize);
 
     for (int i = 0; i < 4; ++i) {

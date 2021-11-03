@@ -13,6 +13,7 @@
 #include "render/PosColorVertex.h"
 #include "render/RenderManager.h"
 #include "render/TestQuad.h"
+#include "render/GLTFRenderable.h"
 
 
 class MrManager {
@@ -79,7 +80,7 @@ public:
 
         auto tq = rendMan.create<TestQuad>("testquad");
         auto box = rendMan.create("box");
-        rendMan.at(box)->loadGLTF("box.glb");
+        rendMan.at<GLTFRenderable>(box)->load("box.glb");
     }
 
     void shutdown() {
