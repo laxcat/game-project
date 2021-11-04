@@ -10,5 +10,5 @@
 
 enum class Components {
     Info = 1,
-    Mesh = 3,
+    Sample = 3,
 };

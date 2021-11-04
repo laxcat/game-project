@@ -1,5 +1,10 @@
 #include "GLTFRenderable.h"
+#include "../MrManager.h"
 
+
+void GLTFRenderable::init() {
+    program = mm.mem.loadProgram("vs_main", "fs_main");
+}
 
 void GLTFRenderable::load(char const * filename) {
     using namespace tinygltf;
@@ -30,12 +35,6 @@ void GLTFRenderable::traverseNodes(tinygltf::Model const & model, std::vector<in
     indent[level*4] = '\0';
     for (size_t i = 0; i < nodeCount; ++i) {
         Node const & node = model.nodes[nodes[i]];
-        if (node.mesh > 0) {
-            Mesh const & mesh = model.meshes[node.mesh];
-            for (size_t p = 0; p < mesh.primitives.size(); ++p) {
-                processPrimitive(model, mesh.primitives[p]);
-            }
-        }
         printf("%snode(%s, child count: %zu, mesh: %d (%s))\n", 
             indent, 
             node.name.c_str(), 
@@ -43,56 +42,127 @@ void GLTFRenderable::traverseNodes(tinygltf::Model const & model, std::vector<in
             node.mesh,
             model.meshes[node.mesh].name.c_str()
         );
+        if (node.mesh >= 0) {
+            tinygltf::Mesh const & mesh = model.meshes[node.mesh];
+            for (size_t p = 0; p < mesh.primitives.size(); ++p) {
+                processPrimitive(model, mesh.primitives[p]);
+            }
+        }
         traverseNodes(model, node.children, level+1);
     }
 }
 
 void GLTFRenderable::processPrimitive(tinygltf::Model const & model, tinygltf::Primitive const & primitive) {
-    using namespace tinygltf;
+    // make one "Mesh" for every primitive
+    meshes.push_back({});
+    Mesh & mesh = meshes.back();
 
-    // map all buffers and buffer views
-    // associate all accessors with buffer views
-    // create one vertex buffer for every 
+    // check mode
+    if (primitive.mode != TINYGLTF_MODE_TRIANGLES) {
+        fprintf(stderr, "WARNING UNRECOGNIZED MODE!: %d\n", primitive.mode);
+    }
 
+    // setup index buffer info
+    tinygltf::Accessor const & indexAcc = model.accessors[primitive.indices];
+    tinygltf::BufferView const & indexBV = model.bufferViews[indexAcc.bufferView];
+    byte_t const * indexData = model.buffers[indexBV.buffer].data.data();
+    mesh.ibuf = bgfx::createIndexBuffer(bgfx::makeRef(indexData, indexAcc.count * 2));
+    if (indexAcc.componentType != TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
+        fprintf(stderr, "WARNING UNRECOGNIZED INDEX COMPONENT TYPE!: %d\n", indexAcc.componentType);
+    }
 
-    // Mesh const & mesh = model.meshes[meshIndex];
+    // collect all the relevent data from Attrributes, Accessors, BufferViews, Buffers
+    struct AttribInfo {
+        bgfx::Attrib::Enum type;
+        bgfx::AttribType::Enum compType;
+        int compCount;
+        int bufViewId;
+        int stride;
+        int bufId;
+        int offset;
+        int count;
+        int byteSize;
+    };
+    std::vector<AttribInfo> info;
 
-    // // bgfx::VertexLayout layout;
-    // // layout.begin();
+    // for each attribute...
+    for (auto attribPair : primitive.attributes) {
+        tinygltf::Accessor const & acc = model.accessors[attribPair.second];
+        tinygltf::BufferView const & bv = model.bufferViews[acc.bufferView];
 
-    // // for each buffer view
-    // for (size_t i = 0; i < model.bufferViews.size(); ++i) {
-    //     BufferView const & bufferView = model.bufferViews[i];
+        AttribInfo ai;
 
-    //     // bgfx::VertexLayout layout;
-    //     // layout.begin();
+        ai.type = 
+            (attribPair.first == "POSITION")    ? bgfx::Attrib::Position    :
+            (attribPair.first == "NORMAL")      ? bgfx::Attrib::Normal      :
+            (attribPair.first == "TANGENT")     ? bgfx::Attrib::Tangent     :
+            (attribPair.first == "TEXCOORD_0")  ? bgfx::Attrib::TexCoord0   :
+            (attribPair.first == "TEXCOORD_1")  ? bgfx::Attrib::TexCoord1   :
+            (attribPair.first == "TEXCOORD_2")  ? bgfx::Attrib::TexCoord2   :
+            (attribPair.first == "TEXCOORD_3")  ? bgfx::Attrib::TexCoord3   :
+            (attribPair.first == "COLOR_0")     ? bgfx::Attrib::Color0      :
+            (attribPair.first == "WEIGHTS_0")   ? bgfx::Attrib::Weight      :
+            bgfx::Attrib::Count;
+        if (ai.type == bgfx::Attrib::Count) {
+            fprintf(stderr, "WARNING UNRECOGNIZED ATTRIBUTE!: %s\n", attribPair.first.c_str());
+        }
 
-    //     // for each accessor
-    //     for (size_t a = 0; a < model.accessors.size(); ++a) {
-    //         Accessor const & accessor = model.accessors[a];
-    //         if (accessor.bufferView != i) continue;
+        // only support floats for now. reasonable restriction for vbuffs?
+        if (acc.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) {
+            fprintf(stderr, "WARNING UNRECOGNIZED VERTEX COMPONENT TYPE!: %d\n", acc.componentType);
+        }
+        ai.compType = bgfx::AttribType::Float;
 
-    //         printf("ACCESSOR %zu, bv: %d, type: 0x%04x, ctype: 0x%04x\n", a, accessor.bufferView, accessor.type, accessor.componentType);
-    //     }
+        ai.compCount = 
+            (acc.type == TINYGLTF_TYPE_VEC2) ? 2 :
+            (acc.type == TINYGLTF_TYPE_VEC3) ? 3 :
+            (acc.type == TINYGLTF_TYPE_VEC4) ? 4 :
+            0;
+        if (ai.compCount == 0) {
+            fprintf(stderr, "WARNING UNRECOGNIZED COMPONENT COUNT!: %d\n", acc.type);
+        }
 
-    //     switch (bufferView.target) {
-    //         case GLArrayBuffer: {
-    //             // initVerts(bufferView.byteLength);
-    //             // vbh = bgfx::createVertexBuffer(vertsRef(), PosColorVertex::layout);
-    //         }
-    //         case GLElementArrayBuffer: {
+        ai.bufViewId = acc.bufferView;
+        ai.stride = bv.byteStride;
+        ai.bufId = bv.buffer;
+        ai.offset = bv.byteOffset + acc.byteOffset;
+        ai.count = acc.count;
+        ai.byteSize = acc.count * ai.compCount * 4; // (always float; always 4)
 
-    //         }
-    //         default: {
+        info.push_back(ai);
+    }
 
-    //         }
-    //     }
+    // sort by offset
+    std::sort(info.begin(), info.end(), [](auto a, auto b){ return a.offset < b.offset; });
 
-    //     printf("buffer view %zu %s, 0x%x (%s)\n", 
-    //         i, 
-    //         bufferView.name.c_str(), 
-    //         bufferView.target, 
-    //         glString(bufferView.target)
-    //     );
-    // }
+    // if no overlap, create one vbuf for each accessor
+    if (1) {
+
+        // for each attrib
+        for (size_t i = 0; i < info.size(); ++i) {
+            auto & ai = info[i];
+            byte_t const * data = model.buffers[ai.bufId].data.data();
+
+            printf("ATTRIB INFO index:%zu type:%d, bufViewId:%d, stride:%d, bufId:%d, offset:%d, count:%d, compCount: %d, size:%d\n", 
+                i, ai.type, ai.bufViewId, ai.stride, ai.bufId, ai.offset, ai.count, ai.compCount, ai.byteSize);
+
+            // copy vert data
+            mesh.initVerts(ai.count);
+            memcpy(mesh.verts, data + ai.offset, ai.byteSize);
+
+            // create layout
+            bgfx::VertexLayout layout;
+            layout.begin();
+            layout.add(ai.type, ai.compCount, ai.compType);
+            layout.end();
+
+            // add a vbuf
+            mesh.vbufs.push_back(bgfx::createVertexBuffer(mesh.vertsRef(), layout));
+        }
+    }
+
+    // overlap (interleaved) combine multiple accessors into one buffer
+    if (0) {
+
+    }
 }

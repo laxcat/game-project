@@ -36,7 +36,7 @@ add_executable(GameProject
     src/editor/Editor.cpp
     src/render/TestQuad.cpp
     src/render/GLTFRenderable.cpp
-    # src/render/Primitive.cpp
+    src/render/Renderable.cpp
     ${SetupLib_sources}
 )
 
@@ -48,7 +48,7 @@ ComponentList_generate(
 )
 
 # SHADERS
-BGFXShader_compile(src/shaders bgfx_content)
+BGFXShader_compile(src/shader/shaders bgfx_content)
 
 # CONFIGURE MAIN BINARY
 set_property(TARGET GameProject APPEND_STRING PROPERTY COMPILE_FLAGS ${SetupLib_flags})

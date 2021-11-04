@@ -37,8 +37,6 @@ public:
     double thisTime;
     double prevTime;
 
-    bgfx::ProgramHandle program;
-
     Memory mem;
     float viewMat[16];
     float projMat[16];
@@ -62,8 +60,6 @@ public:
         mem.init();
         PosColorVertex::init();
 
-        program = mem.loadProgram("vs_main", "fs_main");
-
         const bx::Vec3 at  = { 0.5f, 0.5f,   0.0f };
         const bx::Vec3 eye = { 0.5f, 0.5f,  -2.0f };
 
@@ -79,8 +75,8 @@ public:
         }
 
         auto tq = rendMan.create<TestQuad>("testquad");
-        auto box = rendMan.create("box");
-        rendMan.at<GLTFRenderable>(box)->load("box.glb");
+        // auto box = rendMan.create<GLTFRenderable>("box");
+        // rendMan.at<GLTFRenderable>(box)->load("box.glb");
     }
 
     void shutdown() {

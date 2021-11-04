@@ -1,10 +1,13 @@
 #pragma once
+#include <vector>
 
-class Primitive {
+
+class Mesh {
 public:
 
-    bgfx::DynamicVertexBufferHandle vbh;
-    bgfx::IndexBufferHandle ibh;
+    std::vector<bgfx::VertexBufferHandle> vbufs;
+    std::vector<bgfx::DynamicVertexBufferHandle> dvbufs;
+    bgfx::IndexBufferHandle ibuf;
 
     PosColorVertex * verts;
     size_t vertCount;

@@ -2,12 +2,12 @@
 #include <cereal/cereal.hpp>
 
 
-struct Mesh {
+struct Sample {
     char name[16];
 
-    Mesh() : Mesh("") {}
+    Sample() : Sample("") {}
 
-    Mesh(char const * name) {
+    Sample(char const * name) {
         strcpy(this->name, name);
     }
 

@@ -16,29 +16,32 @@ static PosColorVertex init_verts[] = {
 };
 
 void TestQuad::init() {
-    primitives.push_back({});
-    auto & primitive = primitives.back();
+    program = mm.mem.loadProgram("vs_main", "fs_main");
 
-    primitive.initVerts(4);
-    memcpy(primitive.verts, init_verts, primitive.vertsByteSize);
+    // important to place mesh in place first and get a reference
+    meshes.push_back({});
+    auto & mesh = meshes.back();
+
+    mesh.initVerts(4);
+    memcpy(mesh.verts, init_verts, mesh.vertsByteSize);
 
     for (int i = 0; i < 4; ++i) {
-        printf("vert %d: %08x\n", i, primitive.verts[i].abgr);
+        printf("vert %d: %08x\n", i, mesh.verts[i].abgr);
     }
 
-    primitive.vbh = bgfx::createDynamicVertexBuffer(primitive.vertsRef(), PosColorVertex::layout);
-    primitive.ibh = bgfx::createIndexBuffer(bgfx::makeRef(indices, sizeof(indices)));
+    mesh.dvbufs.push_back(bgfx::createDynamicVertexBuffer(mesh.vertsRef(), PosColorVertex::layout));
+    mesh.ibuf = bgfx::createIndexBuffer(bgfx::makeRef(indices, sizeof(indices)));
 }
 
-void TestQuad::draw() {
-    bgfx::update(primitives[0].vbh, 0, primitives[0].vertsRef());
-    bgfx::setVertexBuffer(mm.mainView, primitives[0].vbh);
-    bgfx::setIndexBuffer(primitives[0].ibh);
-    bgfx::setState(BGFX_STATE_WRITE_RGB);
-    bgfx::submit(mm.mainView, mm.program);
-}
+// void TestQuad::draw() {
+    // bgfx::update(meshes[0].dvbufs[0], 0, meshes[0].vertsRef());
+    // bgfx::setVertexBuffer(mm.mainView, meshes[0].dvbufs[0]);
+    // bgfx::setIndexBuffer(meshes[0].ibuf);
+    // bgfx::setState(BGFX_STATE_WRITE_RGB);
+    // bgfx::submit(mm.mainView, program);
+// }
 
 void TestQuad::shutdown() {
-    free(primitives[0].verts);
-    primitives[0].verts = nullptr;
+    free(meshes[0].verts);
+    meshes[0].verts = nullptr;
 }

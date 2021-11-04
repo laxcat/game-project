@@ -12,6 +12,7 @@ public:
     //
 
     void draw() {
+        // fprintf(stderr, "renderable count: %zu\n", renderables.size());
         for (auto i : renderables) {
             at(i)->draw();
         }
