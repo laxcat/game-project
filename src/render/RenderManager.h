@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include "Renderable.h"
+#include "GLTFLoader.h"
 
 
 class RenderManager {
@@ -10,6 +11,8 @@ public:
     // 
     // MANAGER LIFECYCLE
     //
+
+    void init();
 
     void draw() {
         // fprintf(stderr, "renderable count: %zu\n", renderables.size());
@@ -22,7 +25,6 @@ public:
         Renderable * r;
         for (size_t i = 0; i < poolSize; ++i) {
             r = at(i);
-            if (r->active) r->shutdown();
             r->active = false;
         }
     }
@@ -32,9 +34,7 @@ public:
     // RENDERABLE LIFECYCLE
     //
 
-    template<typename T>
-    size_t create(char const * key = "") {
-        static_assert(std::is_base_of<Renderable, T>::value, "T must be (or subclass of) Renderable");
+    size_t create(bgfx::ProgramHandle program, char const * key = "") {
         if (poolNextFree >= poolSize) {
             fprintf(stderr, "WARNING: did not create renderable. Pool full.");
             return SIZE_MAX;
@@ -46,9 +46,9 @@ public:
 
         size_t index = poolNextFree;
         fprintf(stderr, "CREATING AT %zu (%p)\n", index, &pool[index]);
-        new (&pool[index]) T();
-        T * renderable = at<T>(index);
-        renderable->init();
+        new (&pool[index]) Renderable();
+        Renderable * renderable = at(index);
+        renderable->program = program;
         renderable->active = true;
         renderables.push_back(index);
         if (strcmp(key, "") != 0) {
@@ -59,21 +59,16 @@ public:
         setPoolNextFree(index+1);
         return index;
     }
-    size_t create(char const * key = "") { return create<Renderable>(key); }
 
-    template<typename T>
-    T * at(int index) {
-        assert(index < poolSize && "Out of bounds.");
-        return static_cast<T *>(&pool[index]);
+    size_t createFromGLTF(char const * filename = "") { 
+        auto renderable = create(gltfProgram, filename);
+        gltfLoader.load(filename, renderable);
+        return renderable;
     }
 
     Renderable * at(int index) {
-        return at<Renderable>(index);
-    }
-
-    template<typename T>
-    T * at(char const * key) {
-        return at<T>(keys.at(key));
+        assert(index < poolSize && "Out of bounds.");
+        return &pool[index];
     }
 
     Renderable * at(char const * key) {
@@ -82,7 +77,6 @@ public:
 
     void destroy(size_t index) {
         auto * r = at(index);
-        r->shutdown();
         r->active = false;
         for(auto i = renderables.begin(); i != renderables.end(); ++i) {
             if (*i == index) {
@@ -133,4 +127,6 @@ private:
     size_t poolNextFree = 0;
     std::vector<size_t> renderables;
     std::unordered_map<std::string, size_t> keys;
+    GLTFLoader gltfLoader;
+    bgfx::ProgramHandle gltfProgram;
 };

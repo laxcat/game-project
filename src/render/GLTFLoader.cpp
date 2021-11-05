@@ -1,12 +1,8 @@
-#include "GLTFRenderable.h"
+#include "GLTFLoader.h"
 #include "../MrManager.h"
 
 
-void GLTFRenderable::init() {
-    program = mm.mem.loadProgram("vs_main", "fs_main");
-}
-
-void GLTFRenderable::load(char const * filename) {
+void GLTFLoader::load(char const * filename, size_t renderable) {
     using namespace tinygltf;
 
     Model model;
@@ -23,10 +19,10 @@ void GLTFRenderable::load(char const * filename) {
     }
 
     Scene const & scene = model.scenes[model.defaultScene];
-    traverseNodes(model, scene.nodes, 0);
+    traverseNodes(renderable, model, scene.nodes, 0);
 }
 
-void GLTFRenderable::traverseNodes(tinygltf::Model const & model, std::vector<int> const & nodes, int level) {
+void GLTFLoader::traverseNodes(size_t renderable, tinygltf::Model const & model, std::vector<int> const & nodes, int level) {
     using namespace tinygltf;
 
     size_t nodeCount = nodes.size();
@@ -45,15 +41,16 @@ void GLTFRenderable::traverseNodes(tinygltf::Model const & model, std::vector<in
         if (node.mesh >= 0) {
             tinygltf::Mesh const & mesh = model.meshes[node.mesh];
             for (size_t p = 0; p < mesh.primitives.size(); ++p) {
-                processPrimitive(model, mesh.primitives[p]);
+                processPrimitive(renderable, model, mesh.primitives[p]);
             }
         }
-        traverseNodes(model, node.children, level+1);
+        traverseNodes(renderable, model, node.children, level+1);
     }
 }
 
-void GLTFRenderable::processPrimitive(tinygltf::Model const & model, tinygltf::Primitive const & primitive) {
+void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & model, tinygltf::Primitive const & primitive) {
     // make one "Mesh" for every primitive
+    auto & meshes = mm.rendMan.at(renderable)->meshes;
     meshes.push_back({});
     Mesh & mesh = meshes.back();
 
@@ -132,8 +129,13 @@ void GLTFRenderable::processPrimitive(tinygltf::Model const & model, tinygltf::P
         info.push_back(ai);
     }
 
-    // sort by offset
-    std::sort(info.begin(), info.end(), [](auto a, auto b){ return a.offset < b.offset; });
+    // sort by buffer, then bufferview, then offset (totaled from bv and accessor)
+    std::sort(info.begin(), info.end(), [](auto a, auto b){ 
+        return 
+            (a.bufId != b.bufId)            ? a.bufId < b.bufId :
+            (a.bufViewId != b.bufViewId)    ? a.bufViewId < b.bufViewId :
+            a.offset < b.offset;
+    });
 
     // if no overlap, create one vbuf for each accessor
     if (1) {
@@ -146,15 +148,15 @@ void GLTFRenderable::processPrimitive(tinygltf::Model const & model, tinygltf::P
             printf("ATTRIB INFO index:%zu type:%d, bufViewId:%d, stride:%d, bufId:%d, offset:%d, count:%d, compCount: %d, size:%d\n", 
                 i, ai.type, ai.bufViewId, ai.stride, ai.bufId, ai.offset, ai.count, ai.compCount, ai.byteSize);
 
-            // copy vert data
-            mesh.initVerts(ai.count);
-            memcpy(mesh.verts, data + ai.offset, ai.byteSize);
-
             // create layout
             bgfx::VertexLayout layout;
             layout.begin();
             layout.add(ai.type, ai.compCount, ai.compType);
             layout.end();
+
+            // copy vert data
+            mesh.initVerts(ai.count, layout.getStride());
+            memcpy(mesh.verts, data + ai.offset, ai.byteSize);
 
             // add a vbuf
             mesh.vbufs.push_back(bgfx::createVertexBuffer(mesh.vertsRef(), layout));

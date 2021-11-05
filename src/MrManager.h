@@ -10,10 +10,8 @@
 #include "common/Memory.h"
 #include "editor/Editor.h"
 #include "components/all.h"
-#include "render/PosColorVertex.h"
 #include "render/RenderManager.h"
 #include "render/TestQuad.h"
-#include "render/GLTFRenderable.h"
 
 
 class MrManager {
@@ -45,6 +43,8 @@ public:
 
     RenderManager rendMan;
 
+    TestQuad tq;
+
 
 // -------------------------------------------------------------------------- //
 // LIFECYCLE
@@ -58,7 +58,8 @@ public:
         prevTime = time;
 
         mem.init();
-        PosColorVertex::init();
+
+        rendMan.init();
 
         const bx::Vec3 at  = { 0.5f, 0.5f,   0.0f };
         const bx::Vec3 eye = { 0.5f, 0.5f,  -2.0f };
@@ -74,12 +75,12 @@ public:
             printf("type %s\n", allComponents[i]);
         }
 
-        auto tq = rendMan.create<TestQuad>("testquad");
-        // auto box = rendMan.create<GLTFRenderable>("box");
-        // rendMan.at<GLTFRenderable>(box)->load("box.glb");
+        tq.init();
+        // rendMan.createFromGLTF("box.glb");
     }
 
     void shutdown() {
+        tq.shutdown();
         mem.shutdown();
         rendMan.shutdown();
     }

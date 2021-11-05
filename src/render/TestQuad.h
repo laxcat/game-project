@@ -1,11 +1,14 @@
 #pragma once
 #include "Renderable.h"
-#include "PosColorVertex.h"
 
 
-class TestQuad : public Renderable {
+class TestQuad {
 public:
-    void init() override;
-    // void draw() override;
-    void shutdown() override;
+    size_t renderable = -1;
+    
+    void init();
+    void shutdown();
+
+    float * getColor3(int index, float * color);
+    void setColor3(int index, float * color);
 };
