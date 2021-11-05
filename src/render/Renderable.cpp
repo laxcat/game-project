@@ -5,7 +5,11 @@
 void Renderable::draw() {
     fprintf(stderr, "do it!\n");
     for (auto const & mesh : meshes) {
-        for (auto const & vbuf : mesh.dvbufs) {
+        for (auto const & dvbuf : mesh.dvbufs) {
+            bgfx::update(dvbuf, 0, mesh.vertsRef());
+            bgfx::setVertexBuffer(mm.mainView, dvbuf);
+        }
+        for (auto const & vbuf : mesh.vbufs) {
             bgfx::setVertexBuffer(mm.mainView, mesh.dvbufs[0]);
         }
         bgfx::setIndexBuffer(mesh.ibuf);
