@@ -32,10 +32,10 @@ struct PosColorVertex {
 };
 
 static PosColorVertex init_verts[] = {
-    {0.f, 0.f, 0.f, 0xffff0000},
-    {1.f, 0.f, 0.f, 0xff00ff00},
-    {1.f, 1.f, 0.f, 0xff0000ff},
-    {0.f, 1.f, 0.f, 0xffff00ff},
+    {-0.5f, -0.5f, 0.f, 0xffff0000},
+    {+0.5f, -0.5f, 0.f, 0xff00ff00},
+    {+0.5f, +0.5f, 0.f, 0xff0000ff},
+    {-0.5f, +0.5f, 0.f, 0xffff00ff},
 };
 
 void TestQuad::init() {
