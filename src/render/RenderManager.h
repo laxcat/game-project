@@ -84,7 +84,7 @@ public:
                 break;
             }
         }
-        if (keys.at(r->key)) keys.erase(r->key);
+        if (keyExists(r->key)) keys.erase(r->key);
 
         // we know this slot is free, but it shouldn't be the new free slot
         // if there is already a lower one

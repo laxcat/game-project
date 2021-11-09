@@ -65,9 +65,11 @@ void TestQuad::init() {
 }
 
 void TestQuad::shutdown() {
+    if (renderable == -1) return;
     auto & meshes = mm.rendMan.at(renderable)->meshes;
     free(meshes[0].verts);
     meshes[0].verts = nullptr;
+    renderable = -1;
 }
 
 float * TestQuad::getColor3(int index, float * color) {
