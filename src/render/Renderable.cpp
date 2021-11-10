@@ -1,5 +1,6 @@
 #include "Renderable.h"
 #include "../MrManager.h"
+#include <glm/gtc/type_ptr.hpp>
 
 
 void Renderable::draw() {
@@ -12,7 +13,13 @@ void Renderable::draw() {
             bgfx::setVertexBuffer(mm.mainView, vbuf);
         }
         bgfx::setIndexBuffer(mesh.ibuf);
-        bgfx::setState(BGFX_STATE_WRITE_RGB);
+        bgfx::setState(
+            BGFX_STATE_WRITE_MASK|
+            BGFX_STATE_DEPTH_TEST_LESS
+        );
+
+        // print16f(glm::value_ptr(model));
+        bgfx::setTransform(glm::value_ptr(model));
         bgfx::submit(mm.mainView, program);
     }
 

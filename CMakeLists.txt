@@ -20,7 +20,7 @@ project(game_project VERSION 0.1.0 LANGUAGES CXX)
 # SetupLib_opengl()
 SetupLib_bgfx()
 SetupLib_glfw()
-# SetupLib_glm()
+SetupLib_glm()
 SetupLib_entt()
 SetupLib_cereal()
 SetupLib_imgui()
@@ -38,6 +38,7 @@ add_executable(GameProject
     src/render/Renderable.cpp
     src/render/RenderManager.cpp
     src/render/TestQuad.cpp
+    src/render/Tester.cpp
     ${SetupLib_sources}
 )
 

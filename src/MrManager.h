@@ -63,7 +63,7 @@ public:
         rendMan.init();
 
         const bx::Vec3 at  = { 0.0f, 0.0f,   0.0f };
-        const bx::Vec3 eye = { 0.0f, 0.0f,  -10.0f };
+        const bx::Vec3 eye = { 0.0f, 0.0f,  -2.0f };
 
         bx::mtxLookAt(viewMat, eye, at);
 
@@ -92,7 +92,7 @@ public:
     }
 
     void tick() {
-        bgfx::setViewTransform(0, viewMat, projMat);
+        bgfx::setViewTransform(mainView, viewMat, projMat);
         bgfx::setViewRect(mainView, 0, 0, bgfx::BackbufferRatio::Equal);
 
         bgfx::touch(mainView);

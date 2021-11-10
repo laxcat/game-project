@@ -1,6 +1,7 @@
 #pragma once
 #include <bgfx/bgfx.h>
 #include <tiny_gltf.h>
+#include <glm/mat4x4.hpp>
 #include "Mesh.h"
 
 
@@ -13,6 +14,9 @@ public:
 
     // loader or initializer should populate
     std::vector<Mesh> meshes;
+
+    // model
+    glm::mat4 model{1.f};
 
     void draw();
 };
