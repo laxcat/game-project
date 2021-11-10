@@ -33,7 +33,7 @@ macro(SetupLib_bgfx)
     set(BGFX_BUILD_TOOLS        ON  CACHE BOOL "" FORCE)
     set(BGFX_BUILD_EXAMPLES     OFF CACHE BOOL "" FORCE)
     set(BGFX_INSTALL            OFF CACHE BOOL "" FORCE)
-    set(BGFX_CONFIG_DEBUG       OFF CACHE BOOL "" FORCE)
+    set(BGFX_CONFIG_DEBUG       ON  CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(bgfx_content)
     # include_directories(${BGFX_DIR}/../) # the bgfx_content-src dir, so we can #include <bgfx/examples/...>
     # include_directories(${BGFX_DIR}/3rdparty/)

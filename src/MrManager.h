@@ -53,6 +53,7 @@ public:
         // Set view 0 to the same dimensions as the window and to clear the color buffer
         bgfx::setViewClear(mainView, BGFX_CLEAR_COLOR|BGFX_CLEAR_DEPTH);
 
+        // bgfx::setDebug(BGFX_DEBUG_PROFILER);
         updateBGFXDebug();
         thisTime = time;
         prevTime = time;
@@ -61,8 +62,8 @@ public:
 
         rendMan.init();
 
-        const bx::Vec3 at  = { 0.5f, 0.5f,   0.0f };
-        const bx::Vec3 eye = { 0.5f, 0.5f,  -2.0f };
+        const bx::Vec3 at  = { 0.0f, 0.0f,   0.0f };
+        const bx::Vec3 eye = { 0.0f, 0.0f,  -10.0f };
 
         bx::mtxLookAt(viewMat, eye, at);
 
@@ -75,8 +76,8 @@ public:
             printf("type %s\n", allComponents[i]);
         }
 
-        tq.init();
-        // rendMan.createFromGLTF("box.glb");
+        // tq.init();
+        rendMan.createFromGLTF("box.glb");
     }
 
     void shutdown() {
@@ -86,7 +87,7 @@ public:
     }
 
     void gui() {
-        editor.gui();
+        // editor.gui();
         // ImGui::ShowDemoWindow();
     }
 

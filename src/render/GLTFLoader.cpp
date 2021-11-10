@@ -63,14 +63,22 @@ void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & mod
     tinygltf::Accessor const & indexAcc = model.accessors[primitive.indices];
     tinygltf::BufferView const & indexBV = model.bufferViews[indexAcc.bufferView];
     byte_t const * indexData = model.buffers[indexBV.buffer].data.data();
-    mesh.ibuf = bgfx::createIndexBuffer(bgfx::makeRef(indexData, indexAcc.count * 2));
+    auto indexRef = bgfx::makeRef(indexData + indexAcc.byteOffset + indexBV.byteOffset, indexAcc.count * 2);
+    mesh.ibuf = bgfx::createIndexBuffer(indexRef);
     if (indexAcc.componentType != TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
         fprintf(stderr, "WARNING UNRECOGNIZED INDEX COMPONENT TYPE!: %d\n", indexAcc.componentType);
+    }
+
+    fprintf(stderr, "TRIANGLES!!!!\n");
+    for (size_t i = 0; i < indexAcc.count / 3; ++i) {
+        unsigned short * d = (unsigned short *)(indexData + indexAcc.byteOffset + indexBV.byteOffset + i * 6);
+        fprintf(stderr, "(%d, %d, %d)\n", d[0], d[1], d[2]);
     }
 
     // collect all the relevent data from Attrributes, Accessors, BufferViews, Buffers
     struct AttribInfo {
         bgfx::Attrib::Enum type;
+        std::string typeString;
         bgfx::AttribType::Enum compType;
         int compCount;
         int bufViewId;
@@ -93,16 +101,17 @@ void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & mod
             (attribPair.first == "POSITION")    ? bgfx::Attrib::Position    :
             (attribPair.first == "NORMAL")      ? bgfx::Attrib::Normal      :
             (attribPair.first == "TANGENT")     ? bgfx::Attrib::Tangent     :
+            (attribPair.first == "COLOR_0")     ? bgfx::Attrib::Color0      :
+            (attribPair.first == "WEIGHTS_0")   ? bgfx::Attrib::Weight      :
             (attribPair.first == "TEXCOORD_0")  ? bgfx::Attrib::TexCoord0   :
             (attribPair.first == "TEXCOORD_1")  ? bgfx::Attrib::TexCoord1   :
             (attribPair.first == "TEXCOORD_2")  ? bgfx::Attrib::TexCoord2   :
             (attribPair.first == "TEXCOORD_3")  ? bgfx::Attrib::TexCoord3   :
-            (attribPair.first == "COLOR_0")     ? bgfx::Attrib::Color0      :
-            (attribPair.first == "WEIGHTS_0")   ? bgfx::Attrib::Weight      :
             bgfx::Attrib::Count;
         if (ai.type == bgfx::Attrib::Count) {
             fprintf(stderr, "WARNING UNRECOGNIZED ATTRIBUTE!: %s\n", attribPair.first.c_str());
         }
+        ai.typeString = attribPair.first;
 
         // only support floats for now. reasonable restriction for vbuffs?
         if (acc.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) {
@@ -129,9 +138,10 @@ void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & mod
         info.push_back(ai);
     }
 
-    // sort by buffer, then bufferview, then offset (totaled from bv and accessor)
+    // sort by attribute type, then buffer, then bufferview, then offset (totaled from bv and accessor)
     std::sort(info.begin(), info.end(), [](auto a, auto b){ 
         return 
+            (a.type != b.type)              ? a.type < b.type :
             (a.bufId != b.bufId)            ? a.bufId < b.bufId :
             (a.bufViewId != b.bufViewId)    ? a.bufViewId < b.bufViewId :
             a.offset < b.offset;
@@ -145,8 +155,8 @@ void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & mod
             auto & ai = info[i];
             byte_t const * data = model.buffers[ai.bufId].data.data();
 
-            printf("ATTRIB INFO index:%zu type:%d, bufViewId:%d, stride:%d, bufId:%d, offset:%d, count:%d, compCount: %d, size:%d\n", 
-                i, ai.type, ai.bufViewId, ai.stride, ai.bufId, ai.offset, ai.count, ai.compCount, ai.byteSize);
+            printf("ATTRIB INFO index:%zu type:%s (%d), bufViewId:%d, stride:%d, bufId:%d, offset:%d, count:%d, compCount: %d, size:%d\n", 
+                i, ai.typeString.c_str(), ai.type, ai.bufViewId, ai.stride, ai.bufId, ai.offset, ai.count, ai.compCount, ai.byteSize);
 
             // create layout
             bgfx::VertexLayout layout;
@@ -154,12 +164,18 @@ void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & mod
             layout.add(ai.type, ai.compCount, ai.compType);
             layout.end();
 
-            // copy vert data
-            mesh.initVerts(ai.count, layout.getStride());
-            memcpy(mesh.verts, data + ai.offset, ai.byteSize);
+            auto ref = bgfx::makeRef(data + ai.offset, ai.byteSize);
+            auto vbuf = bgfx::createVertexBuffer(ref, layout);
 
             // add a vbuf
-            mesh.vbufs.push_back(bgfx::createVertexBuffer(mesh.vertsRef(), layout));
+            mesh.vbufs.push_back(vbuf);
+
+            fprintf(stderr, "VERTICES!!!!\n");
+            for (size_t i = 0; i < ai.count; ++i) {
+                float const * d = (float *)(data + ai.offset + i * 12);
+                fprintf(stderr, "(%f, %f, %f)\n", d[0], d[1], d[2]);
+            }
+
         }
     }
 
