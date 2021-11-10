@@ -3,5 +3,5 @@
 
 
 void RenderManager::init() {
-    gltfProgram = mm.mem.loadProgram("vs_gltf", "fs_gltf");
+    gltfProgram = mm.mem.loadProgram("vs_tester", "fs_tester");
 }

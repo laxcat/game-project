@@ -79,8 +79,8 @@ public:
         }
 
         // tq.init();
-        tr.init();
-        // rendMan.createFromGLTF("box.glb");
+        // tr.init();
+        rendMan.createFromGLTF("box.glb");
     }
 
     void shutdown() {

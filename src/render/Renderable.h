@@ -12,6 +12,9 @@ public:
     char const * key = "";
     bgfx::ProgramHandle program;
 
+    byte_t * buffer;
+    size_t bufferSize;
+
     // loader or initializer should populate
     std::vector<Mesh> meshes;
 

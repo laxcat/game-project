@@ -18,6 +18,14 @@ void GLTFLoader::load(char const * filename, size_t renderable) {
         printf("failed to load %s\n", filename);
     }
 
+    if (model.buffers.size() > 1) {
+        fprintf(stderr, "WARNING MORE THAN ONE BUFFER FOUND IN GLTF.\n");
+    }
+    auto r = mm.rendMan.at(renderable);
+    r->bufferSize = model.buffers[0].data.size();
+    r->buffer = (byte_t *)malloc(r->bufferSize);
+    memcpy(r->buffer, model.buffers[0].data.data(), r->bufferSize);
+
     Scene const & scene = model.scenes[model.defaultScene];
     traverseNodes(renderable, model, scene.nodes, 0);
 }
@@ -52,7 +60,8 @@ void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & mod
     fprintf(stderr, "PRIMITIVE!!!!!! %p\n", &primitive);
 
     // make one "Mesh" for every primitive
-    auto & meshes = mm.rendMan.at(renderable)->meshes;
+    auto r = mm.rendMan.at(renderable);
+    auto & meshes = r->meshes;
     meshes.push_back({});
     Mesh & mesh = meshes.back();
 
@@ -67,8 +76,8 @@ void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & mod
         fprintf(stderr, "WARNING UNRECOGNIZED INDEX COMPONENT TYPE!: %d\n", indexAcc.componentType);
     }
     tinygltf::BufferView const & indexBV = model.bufferViews[indexAcc.bufferView];
-    byte_t const * indexData = model.buffers[indexBV.buffer].data.data();
-    auto indices_temp = (unsigned short *)(indexData + indexAcc.byteOffset + indexBV.byteOffset);
+    // byte_t const * indexData = model.buffers[indexBV.buffer].data.data();
+    auto indices_temp = (unsigned short *)(r->buffer + indexAcc.byteOffset + indexBV.byteOffset);
     fprintf(stderr, "TRIANGLES!!!!\n");
     for (size_t i = 0; i < indexAcc.count / 3; ++i) {
         unsigned short * d = indices_temp + i * 3;
@@ -155,7 +164,7 @@ void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & mod
         // for each attrib
         for (size_t i = 0; i < info.size(); ++i) {
             auto & ai = info[i];
-            byte_t const * data = model.buffers[ai.bufId].data.data();
+            // byte_t const * data = model.buffers[ai.bufId].data.data();
 
             printf("ATTRIB INFO index:%zu type:%s (%d), bufViewId:%d, stride:%d, bufId:%d, offset:%d, count:%d, compCount: %d, size:%d\n", 
                 i, ai.typeString.c_str(), ai.type, ai.bufViewId, ai.stride, ai.bufId, ai.offset, ai.count, ai.compCount, ai.byteSize);
@@ -166,7 +175,7 @@ void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & mod
             layout.add(ai.type, ai.compCount, ai.compType);
             layout.end();
 
-            auto ref = bgfx::makeRef(data + ai.offset, ai.byteSize);
+            auto ref = bgfx::makeRef(r->buffer + ai.offset, ai.byteSize);
             auto vbuf = bgfx::createVertexBuffer(ref, layout);
 
             // add a vbuf
@@ -174,7 +183,7 @@ void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & mod
 
             fprintf(stderr, "VERTICES!!!!\n");
             for (size_t i = 0; i < ai.count; ++i) {
-                float const * d = (float *)(data + ai.offset + i * 12);
+                float const * d = (float *)(r->buffer + ai.offset + i * 12);
                 fprintf(stderr, "(%f, %f, %f)\n", d[0], d[1], d[2]);
             }
 
