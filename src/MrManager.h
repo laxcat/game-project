@@ -65,7 +65,7 @@ public:
         rendMan.init();
 
         const bx::Vec3 at  = { 0.0f, 0.0f,   0.0f };
-        const bx::Vec3 eye = { 0.0f, 0.0f,  -2.0f };
+        const bx::Vec3 eye = { 0.0f, 2.0f,  -2.0f };
 
         bx::mtxLookAt(viewMat, eye, at);
 
