@@ -110,11 +110,3 @@ void Tester::init() {
 
     mesh.ibuf = bgfx::createIndexBuffer(bgfx::makeRef(indices, sizeof(indices)));
 }
-
-void Tester::shutdown() {
-    if (renderable == -1) return;
-    auto & meshes = mm.rendMan.at(renderable)->meshes;
-    free(meshes[0].verts);
-    meshes[0].verts = nullptr;
-    renderable = -1;
-}

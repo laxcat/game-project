@@ -85,7 +85,6 @@ public:
 
     void shutdown() {
         // tq.shutdown();
-        tr.shutdown();
         mem.shutdown();
         rendMan.shutdown();
     }

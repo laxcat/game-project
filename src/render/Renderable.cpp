@@ -19,7 +19,7 @@ void Renderable::draw() {
         );
 
         // print16f(glm::value_ptr(model));
-        model = rotate(model, 0.03f, {0.0f, 1.0f, 0.0f});
+        model = rotate(model, 0.01f, {0.0f, 1.0f, 0.0f});
         bgfx::setTransform(glm::value_ptr(model));
         bgfx::submit(mm.mainView, program);
     }

@@ -49,6 +49,8 @@ void GLTFLoader::traverseNodes(size_t renderable, tinygltf::Model const & model,
 }
 
 void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & model, tinygltf::Primitive const & primitive) {
+    fprintf(stderr, "PRIMITIVE!!!!!! %p\n", &primitive);
+
     // make one "Mesh" for every primitive
     auto & meshes = mm.rendMan.at(renderable)->meshes;
     meshes.push_back({});
@@ -61,19 +63,19 @@ void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & mod
 
     // setup index buffer info
     tinygltf::Accessor const & indexAcc = model.accessors[primitive.indices];
-    tinygltf::BufferView const & indexBV = model.bufferViews[indexAcc.bufferView];
-    byte_t const * indexData = model.buffers[indexBV.buffer].data.data();
-    auto indexRef = bgfx::makeRef(indexData + indexAcc.byteOffset + indexBV.byteOffset, indexAcc.count * 2);
-    mesh.ibuf = bgfx::createIndexBuffer(indexRef);
     if (indexAcc.componentType != TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
         fprintf(stderr, "WARNING UNRECOGNIZED INDEX COMPONENT TYPE!: %d\n", indexAcc.componentType);
     }
-
+    tinygltf::BufferView const & indexBV = model.bufferViews[indexAcc.bufferView];
+    byte_t const * indexData = model.buffers[indexBV.buffer].data.data();
+    auto indices_temp = (unsigned short *)(indexData + indexAcc.byteOffset + indexBV.byteOffset);
     fprintf(stderr, "TRIANGLES!!!!\n");
     for (size_t i = 0; i < indexAcc.count / 3; ++i) {
-        unsigned short * d = (unsigned short *)(indexData + indexAcc.byteOffset + indexBV.byteOffset + i * 6);
+        unsigned short * d = indices_temp + i * 3;
         fprintf(stderr, "(%d, %d, %d)\n", d[0], d[1], d[2]);
     }
+    auto indexRef = bgfx::makeRef(indices_temp, indexAcc.count * 2);
+    mesh.ibuf = bgfx::createIndexBuffer(indexRef);
 
     // collect all the relevent data from Attrributes, Accessors, BufferViews, Buffers
     struct AttribInfo {
