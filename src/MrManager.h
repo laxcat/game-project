@@ -12,6 +12,7 @@
 #include "components/all.h"
 #include "render/RenderManager.h"
 #include "render/TestQuad.h"
+#include "render/Tester.h"
 
 
 class MrManager {
@@ -44,6 +45,7 @@ public:
     RenderManager rendMan;
 
     TestQuad tq;
+    Tester tr;
 
 
 // -------------------------------------------------------------------------- //
@@ -77,11 +79,13 @@ public:
         }
 
         // tq.init();
-        rendMan.createFromGLTF("box.glb");
+        tr.init();
+        // rendMan.createFromGLTF("box.glb");
     }
 
     void shutdown() {
-        tq.shutdown();
+        // tq.shutdown();
+        tr.shutdown();
         mem.shutdown();
         rendMan.shutdown();
     }
