@@ -2,7 +2,7 @@
 #include <bx/file.h>
 
 
-class Memory {
+class MemorySystem {
 public:
 
     bx::DefaultAllocator allocator;

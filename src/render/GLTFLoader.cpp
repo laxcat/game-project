@@ -21,7 +21,7 @@ void GLTFLoader::load(char const * filename, size_t renderable) {
     if (model.buffers.size() > 1) {
         fprintf(stderr, "WARNING MORE THAN ONE BUFFER FOUND IN GLTF.\n");
     }
-    auto r = mm.rendMan.at(renderable);
+    auto r = mm.rendSys.at(renderable);
     r->bufferSize = model.buffers[0].data.size();
     r->buffer = (byte_t *)malloc(r->bufferSize);
     memcpy(r->buffer, model.buffers[0].data.data(), r->bufferSize);
@@ -60,7 +60,7 @@ void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & mod
     fprintf(stderr, "PRIMITIVE!!!!!! %p\n", &primitive);
 
     // make one "Mesh" for every primitive
-    auto r = mm.rendMan.at(renderable);
+    auto r = mm.rendSys.at(renderable);
     auto & meshes = r->meshes;
     meshes.push_back({});
     Mesh & mesh = meshes.back();

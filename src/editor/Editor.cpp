@@ -34,7 +34,7 @@ void Editor::guiDemoVertColorEditor() {
             i = order[o];
             sprintf(temp, "Vert %d", i);
             // get color from buffer, convert to float, store in vertFloatColors
-            mm.tq.getColor3(i, &vertFloatColors[i*4]);
+            TestQuadSystem::getColor3(i, &vertFloatColors[i*4]);
             // use float color for ImGUI memory
             ColorPicker3(temp, &vertFloatColors[i*4], 
                 ImGuiCond_Once|
@@ -43,7 +43,7 @@ void Editor::guiDemoVertColorEditor() {
                 ImGuiColorEditFlags_DisplayHex
             );
             // put float color back in real buffer
-            mm.tq.setColor3(i, &vertFloatColors[i*4]);
+            TestQuadSystem::setColor3(i, &vertFloatColors[i*4]);
 
             if (o % 2 == 0) SameLine();
         }

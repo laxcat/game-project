@@ -10,5 +10,6 @@
 
 enum class Components {
     Info = 1,
-    Sample = 3,
+    NewRenderable = 2,
+    NewMesh = 3,
 };

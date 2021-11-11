@@ -20,6 +20,4 @@ public:
 
     // model
     glm::mat4 model{1.f};
-
-    void draw();
 };

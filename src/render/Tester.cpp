@@ -80,8 +80,8 @@ static PosVertex init_norms[] = {
 
 
 void Tester::init() {
-    renderable = mm.rendMan.create(mm.mem.loadProgram("vs_tester", "fs_tester"), "tester");
-    Renderable * r = mm.rendMan.at(renderable);
+    renderable = mm.rendSys.create(mm.memSys.loadProgram("vs_tester", "fs_tester"), "tester");
+    Renderable * r = mm.rendSys.at(renderable);
 
     r->meshes.push_back({});
     auto & mesh = r->meshes.back();

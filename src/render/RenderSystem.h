@@ -2,11 +2,12 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <entt/entity/registry.hpp>
 #include "Renderable.h"
 #include "GLTFLoader.h"
 
 
-class RenderManager {
+class RenderSystem {
 public:
     // 
     // MANAGER LIFECYCLE
@@ -14,12 +15,7 @@ public:
 
     void init();
 
-    void draw() {
-        // fprintf(stderr, "renderable count: %zu\n", renderables.size());
-        for (auto i : renderables) {
-            at(i)->draw();
-        }
-    }
+    void draw();
 
     void shutdown() {
         Renderable * r;
@@ -59,6 +55,8 @@ public:
         setPoolNextFree(index+1);
         return index;
     }
+
+    entt::entity create2(bgfx::ProgramHandle program, char const * key = "");
 
     size_t createFromGLTF(char const * filename = "") { 
         auto renderable = create(gltfProgram, filename);

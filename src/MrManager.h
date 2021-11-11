@@ -7,11 +7,11 @@
 #include <entt/entity/snapshot.hpp>
 #include <cereal/archives/binary.hpp>
 #include "common/utils.h"
-#include "common/Memory.h"
+#include "common/MemorySystem.h"
 #include "editor/Editor.h"
 #include "components/all.h"
-#include "render/RenderManager.h"
-#include "render/TestQuad.h"
+#include "render/RenderSystem.h"
+#include "render/TestQuadSystem.h"
 #include "render/Tester.h"
 
 
@@ -36,15 +36,14 @@ public:
     double thisTime;
     double prevTime;
 
-    Memory mem;
+    MemorySystem memSys;
+    RenderSystem rendSys;
+
     float viewMat[16];
     float projMat[16];
 
     Editor editor;
 
-    RenderManager rendMan;
-
-    TestQuad tq;
     Tester tr;
 
 
@@ -60,9 +59,9 @@ public:
         thisTime = time;
         prevTime = time;
 
-        mem.init();
+        memSys.init();
 
-        rendMan.init();
+        rendSys.init();
 
         const bx::Vec3 at  = { 0.0f, 0.0f,   0.0f };
         const bx::Vec3 eye = { 0.0f, 2.0f,  -2.0f };
@@ -78,15 +77,15 @@ public:
             printf("type %s\n", allComponents[i]);
         }
 
-        // tq.init();
+        TestQuadSystem::init();
         // tr.init();
-        rendMan.createFromGLTF("box.glb");
+        // rendSys.createFromGLTF("box.glb");
     }
 
     void shutdown() {
-        // tq.shutdown();
-        mem.shutdown();
-        rendMan.shutdown();
+        TestQuadSystem::shutdown();
+        memSys.shutdown();
+        rendSys.shutdown();
     }
 
     void gui() {
@@ -100,7 +99,7 @@ public:
 
         bgfx::touch(mainView);
 
-        rendMan.draw();
+        rendSys.draw();
     }
 
 
@@ -150,15 +149,25 @@ private:
         entt::snapshot{registry}
             .entities(output)
             .component<Info>(output);
+            // .component<NewRenderable>(output)
+            // .component<NewMesh>(output);
     }
 
     void loadAllEntities() {
-        std::ifstream storage;
-        storage.open(entitiesBinPath);
-        cereal::BinaryInputArchive input{storage};
-        entt::snapshot_loader{registry}
-            .entities(input)
-            .component<Info>(input);
+        try {
+            std::ifstream storage;
+            storage.open(entitiesBinPath);
+            cereal::BinaryInputArchive input{storage};
+            entt::snapshot_loader{registry}
+                .entities(input)
+                .component<Info>(input);
+                // .component<NewRenderable>(input)
+                // .component<NewMesh>(input);
+        }
+        catch (std::exception const & e) {
+            fprintf(stderr, "WARNING: DID NOT LOAD ENTITIES. %s\n", e.what());
+            return;
+        }
     }
 };
 
