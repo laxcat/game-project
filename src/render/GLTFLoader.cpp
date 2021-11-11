@@ -78,11 +78,11 @@ void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & mod
     tinygltf::BufferView const & indexBV = model.bufferViews[indexAcc.bufferView];
     // byte_t const * indexData = model.buffers[indexBV.buffer].data.data();
     auto indices_temp = (unsigned short *)(r->buffer + indexAcc.byteOffset + indexBV.byteOffset);
-    fprintf(stderr, "TRIANGLES!!!!\n");
-    for (size_t i = 0; i < indexAcc.count / 3; ++i) {
-        unsigned short * d = indices_temp + i * 3;
-        fprintf(stderr, "(%d, %d, %d)\n", d[0], d[1], d[2]);
-    }
+    // fprintf(stderr, "TRIANGLES!!!!\n");
+    // for (size_t i = 0; i < indexAcc.count / 3; ++i) {
+    //     unsigned short * d = indices_temp + i * 3;
+    //     fprintf(stderr, "(%d, %d, %d)\n", d[0], d[1], d[2]);
+    // }
     auto indexRef = bgfx::makeRef(indices_temp, indexAcc.count * 2);
     mesh.ibuf = bgfx::createIndexBuffer(indexRef);
 
@@ -181,11 +181,11 @@ void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & mod
             // add a vbuf
             mesh.vbufs.push_back(vbuf);
 
-            fprintf(stderr, "VERTICES!!!!\n");
-            for (size_t i = 0; i < ai.count; ++i) {
-                float const * d = (float *)(r->buffer + ai.offset + i * 12);
-                fprintf(stderr, "(%f, %f, %f)\n", d[0], d[1], d[2]);
-            }
+            // fprintf(stderr, "VERTICES!!!!\n");
+            // for (size_t i = 0; i < ai.count; ++i) {
+            //     float const * d = (float *)(r->buffer + ai.offset + i * 12);
+            //     fprintf(stderr, "(%f, %f, %f)\n", d[0], d[1], d[2]);
+            // }
 
         }
     }
