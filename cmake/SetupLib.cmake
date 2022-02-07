@@ -14,6 +14,7 @@ set(SetupLib_flag) # append additional compile flags to this list
 # ---------------------------------------------------------------------------- #
 macro(SetupLib_opengl)
     message(STATUS "SETUP OPENGL")
+    add_compile_definitions(BGFX_CONFIG_RENDERER_OPENGL=32)
     find_package(OpenGL REQUIRED)
     include_directories(${OPENGL_INCLUDE_DIR})
     list(APPEND SetupLib_libs ${OPENGL_gl_LIBRARY})
@@ -33,12 +34,16 @@ macro(SetupLib_bgfx)
     set(BGFX_BUILD_TOOLS        ON  CACHE BOOL "" FORCE)
     set(BGFX_BUILD_EXAMPLES     OFF CACHE BOOL "" FORCE)
     set(BGFX_INSTALL            OFF CACHE BOOL "" FORCE)
-    set(BGFX_CONFIG_DEBUG       ON  CACHE BOOL "" FORCE)
+    set(BGFX_CONFIG_DEBUG       OFF CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(bgfx_content)
     # include_directories(${BGFX_DIR}/../) # the bgfx_content-src dir, so we can #include <bgfx/examples/...>
     # include_directories(${BGFX_DIR}/3rdparty/)
     include_directories(${BX_DIR}/include)
     include_directories(${BIMG_DIR}/include)
+    target_compile_options(bgfx PUBLIC 
+        -Wno-tautological-compare
+        -Wno-deprecated-declarations
+    )
     list(APPEND SetupLib_libs bgfx)
 endmacro()
 
@@ -160,6 +165,31 @@ macro(SetupLib_tinygltf)
     FetchContent_MakeAvailable(tinygltf_content)
     include_directories(${tinygltf_content_SOURCE_DIR})
     list(APPEND SetupLib_sources
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/libraries/tiny_gltf.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/common/tiny_gltf.cpp
     )
 endmacro()
+
+
+# ---------------------------------------------------------------------------- #
+# NATIVE FILE DIALOG
+# ---------------------------------------------------------------------------- #
+macro(SetupLib_nativefiledialog)
+    message(STATUS "SETUP NATIVE FILE DIALOG")
+    FetchContent_Declare(
+        nativefiledialog_content
+        GIT_REPOSITORY https://github.com/mlabbe/nativefiledialog
+        GIT_TAG        67345b80ebb429ecc2aeda94c478b3bcc5f7888e # arbitrary, captured Dec.2021, https://github.com/mlabbe/nativefiledialog/releases/tag/release_116
+    )
+    FetchContent_MakeAvailable(nativefiledialog_content)
+    include_directories(${nativefiledialog_content_SOURCE_DIR}/src/include)
+    list(APPEND SetupLib_sources ${nativefiledialog_content_SOURCE_DIR}/src/nfd_common.c)
+    if (${MACOS})
+        list(APPEND SetupLib_sources ${nativefiledialog_content_SOURCE_DIR}/src/nfd_cocoa.m)
+    endif()
+    if (${WIN32})
+        list(APPEND SetupLib_sources ${nativefiledialog_content_SOURCE_DIR}/src/nfd_win.cpp)
+    endif()
+    #TODO: support linux
+endmacro()
+
+
