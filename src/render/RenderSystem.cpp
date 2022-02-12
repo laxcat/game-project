@@ -5,6 +5,16 @@
 
 void RenderSystem::init() {
     gltfProgram = mm.memSys.loadProgram("vs_tester", "fs_tester");
+    colors.init();
+}
+
+void RenderSystem::shutdown()  {
+    Renderable * r;
+    for (size_t i = 0; i < poolSize; ++i) {
+        r = at(i);
+        r->active = false;
+    }
+    colors.shutdown();
 }
 
 void RenderSystem::draw() {

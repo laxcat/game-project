@@ -22,7 +22,7 @@ public:
 // -------------------------------------------------------------------------- //
 // PUBLIC SETTINGS
 // -------------------------------------------------------------------------- //
-    size2 const WindowSize = {1280, 720};
+    size2 const WindowSize = {1920, 1080};
     static constexpr char const * entitiesBinPath = "entities.bin";
 
 
@@ -53,7 +53,6 @@ public:
 // -------------------------------------------------------------------------- //
     void init(double time) {
         // Set view 0 to the same dimensions as the window and to clear the color buffer
-        bgfx::setViewClear(mainView, BGFX_CLEAR_COLOR|BGFX_CLEAR_DEPTH);
 
         // bgfx::setDebug(BGFX_DEBUG_PROFILER);
         updateBGFXDebug();
@@ -90,13 +89,14 @@ public:
     }
 
     void gui() {
-        // editor.gui();
+        editor.gui();
         // ImGui::ShowDemoWindow();
     }
 
     void tick() {
         Animator::tick(thisTime);
 
+        bgfx::setViewClear(mainView, BGFX_CLEAR_COLOR|BGFX_CLEAR_DEPTH, rendSys.colors.background);
         bgfx::setViewTransform(mainView, viewMat, projMat);
         bgfx::setViewRect(mainView, 0, 0, bgfx::BackbufferRatio::Equal);
         bgfx::touch(mainView);

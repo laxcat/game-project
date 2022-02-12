@@ -3,12 +3,15 @@
 #include <string>
 #include <unordered_map>
 #include <entt/entity/registry.hpp>
-#include "Renderable.h"
+#include "Colors.h"
 #include "GLTFLoader.h"
+#include "Renderable.h"
 
 
 class RenderSystem {
 public:
+    Colors colors;
+
     // 
     // MANAGER LIFECYCLE
     //
@@ -17,13 +20,7 @@ public:
 
     void draw();
 
-    void shutdown() {
-        Renderable * r;
-        for (size_t i = 0; i < poolSize; ++i) {
-            r = at(i);
-            r->active = false;
-        }
-    }
+    void shutdown();
 
 
     // 
