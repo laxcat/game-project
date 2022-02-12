@@ -5,6 +5,7 @@ public:
     
     void gui();
 
+    void guiCamera();
     void guiDemoVertColorEditor();
     void guiEntityEditor();
 };

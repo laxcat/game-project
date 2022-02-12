@@ -1,5 +1,6 @@
 #include "Editor.h"
 #include <imgui.h>
+#include <magic_enum.hpp>
 #include "../MrManager.h"
 
 
@@ -16,11 +17,58 @@ void Editor::gui() {
     SetNextWindowSizeConstraints(min, max);
     Begin("Editor", NULL, ImGuiWindowFlags_NoTitleBar);
 
+    guiCamera();
     guiDemoVertColorEditor();
 
     // guiEntityEditor();
 
     End();
+}
+
+void Editor::guiCamera() {
+    if (CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
+
+        constexpr auto items = magic_enum::enum_names<Camera::ControlType>();
+        int current = mm.camera.controlType;
+        if (BeginCombo("Control Type", items[current].data())) {
+            for (int i = 0; i < items.size(); ++i) {
+                if (Selectable(items[i].data())) {
+                    current = i;
+                    SetItemDefaultFocus();
+                }
+            }
+            EndCombo();
+        }
+        mm.camera.controlType = (Camera::ControlType)current;
+
+        if (Button("Reset")) {
+            mm.camera.reset();
+        }
+        if (mm.camera.controlType == Camera::Orbit) {
+            float fov = mm.camera.fov;
+            SliderFloat("Distance", &mm.camera.distance, 0.1f, 50.0f, "%.3f");
+            SliderAngle("Pitch", &mm.camera.pitch, -90.0f, 90.0f, "%.3f");
+            SliderAngle("Yaw", &mm.camera.yaw);
+            SliderAngle("FOV", &mm.camera.fov, 1.f, 89.f);
+            SliderFloat3("Target", glm::value_ptr(mm.camera.target), -20.0f, 20.0f, "%.3f");
+            if (mm.camera.fov != fov) {
+                mm.camera.updateProjection();
+            }
+            mm.camera.updatePosFromDistancePitchYaw();
+        }
+        else if (mm.camera.controlType == Camera::Free) {
+            
+        }
+
+    }
+    // if (CollapsingHeader("Camera (Direct)")) {
+    //     SliderFloat("position x", &mm.camera.pos.x, -100.0f, 100.0f, "%.3f");
+    //     SliderFloat("position y", &mm.camera.pos.y, -100.0f, 100.0f, "%.3f");
+    //     SliderFloat("position z", &mm.camera.pos.z, -100.0f, 100.0f, "%.3f");
+    //     SliderFloat3("target", (float *)&mm.camera.target, -20.0f, 20.0f, "%.3f");
+    //     SliderFloat3("up", (float *)&mm.camera.up, -1.0f, 1.0f, "%.3f");
+    //     mm.camera.update();
+    // }
 }
 
 void Editor::guiDemoVertColorEditor() {

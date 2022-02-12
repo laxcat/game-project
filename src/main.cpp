@@ -19,21 +19,27 @@ static void glfw_errorCallback(int error, const char *description) {
 }
 
 static void glfw_keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-    mm.keyEvent(key, scancode, action, mods);
+    if (!ImGui::GetIO().WantCaptureKeyboard || !mm.devOverlay.isShowingImGUI()) {
+        mm.keyEvent(key, scancode, action, mods);
+    }
 }
 
 static void glfw_mousePosCallback(GLFWwindow *, double x, double y) {
-    auto & io = ImGui::GetIO();
-    io.MousePos.x = x;
-    io.MousePos.y = y;
-    mm.mousePosEvent(x, y);
+    if (!ImGui::GetIO().WantCaptureMouse || !mm.devOverlay.isShowingImGUI()) {
+        mm.mousePosEvent(x, y);
+    }
 }
 
 static void glfw_mouseButtonCallback(GLFWwindow * window, int button, int action, int mods) {
-    mm.mouseButtonEvent(button, action, mods);
+    if (!ImGui::GetIO().WantCaptureMouse || !mm.devOverlay.isShowingImGUI()) {
+        mm.mouseButtonEvent(button, action, mods);
+    }
 }
 
 static void glfw_scrollCallback(GLFWwindow * window, double x, double y) {
+    if (!ImGui::GetIO().WantCaptureMouse || !mm.devOverlay.isShowingImGUI()) {
+        mm.scrollEvent(x, y);
+    }
 }
 
 

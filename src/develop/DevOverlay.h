@@ -12,8 +12,8 @@ public:
         BGFXDebugText
     };
 
-    void init(size2 charGridSize) { 
-        this->charGridSize = charGridSize;
+    void init(size2 windowSize) { 
+        charGridSize = {windowSize.w/8, windowSize.h/16};
 
         cursorY = 0;
         totalLines = 0;

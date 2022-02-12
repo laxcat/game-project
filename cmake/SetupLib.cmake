@@ -193,3 +193,18 @@ macro(SetupLib_nativefiledialog)
 endmacro()
 
 
+# ---------------------------------------------------------------------------- #
+# MAGIC ENUM
+# ---------------------------------------------------------------------------- #
+macro(SetupLib_magicenum)
+    message(STATUS "SETUP MAGIC ENUM")
+    FetchContent_Declare(
+        magicenum_content
+        GIT_REPOSITORY https://github.com/Neargye/magic_enum
+        GIT_TAG        3d1f6a5a2a3fbcba077e00ad0ccc2dd9fefc2ca7 # arbitrary, captured Feb.2022, https://github.com/Neargye/magic_enum/releases/tag/v0.7.3
+    )
+    FetchContent_MakeAvailable(magicenum_content)
+    include_directories(${magicenum_content_SOURCE_DIR}/include)
+endmacro()
+
+

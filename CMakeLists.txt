@@ -25,6 +25,7 @@ SetupLib_entt()
 SetupLib_cereal()
 SetupLib_imgui()
 SetupLib_tinygltf()
+SetupLib_magicenum() # editor only?
 
 
 # ---------------------------------------------------------------------------- #
@@ -34,8 +35,9 @@ SetupLib_tinygltf()
 add_executable(GameProject
     src/main.cpp
     src/animation/Animator.cpp
-    src/develop/print.cpp
+    src/common/InputSys.cpp
     src/develop/Editor.cpp
+    src/develop/print.cpp
     src/render/GLTFLoader.cpp
     src/render/RenderSystem.cpp
     src/render/Tester.cpp

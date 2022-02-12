@@ -8,12 +8,14 @@
 #include <cereal/archives/binary.hpp>
 #include "animation/Animator.h"
 #include "common/glfw_extra.h"
+#include "common/InputSys.h"
 #include "common/utils.h"
 #include "common/MemorySystem.h"
 #include "develop/DevOverlay.h"
 #include "develop/Editor.h"
 #include "develop/print.h"
 #include "components/all.h"
+#include "render/Camera.h"
 #include "render/RenderSystem.h"
 #include "render/TestQuadSystem.h"
 #include "render/Tester.h"
@@ -41,9 +43,8 @@ public:
     MemorySystem memSys;
     RenderSystem rendSys;
     DevOverlay devOverlay;
-
-    float viewMat[16];
-    float projMat[16];
+    Camera camera;
+    InputSys input;
 
     Editor editor;
 
@@ -53,23 +54,13 @@ public:
 // LIFECYCLE
 // -------------------------------------------------------------------------- //
     void init(double time) {
-        // Set view 0 to the same dimensions as the window and to clear the color buffer
-
-        // bgfx::setDebug(BGFX_DEBUG_PROFILER);
         thisTime = time;
         prevTime = time;
 
         memSys.init();
         rendSys.init();
-        devOverlay.init({WindowSize.w/8, WindowSize.h/16});
-
-        const bx::Vec3 at  = { 0.0f, 0.0f,   0.0f };
-        const bx::Vec3 eye = { 0.0f, 2.0f,  -2.0f };
-
-        bx::mtxLookAt(viewMat, eye, at);
-
-        float ratio = float(WindowSize.w)/float(WindowSize.h);
-        bx::mtxProj(projMat, 60.0f, ratio, 0.1f, 100.0f, bgfx::getCaps()->homogeneousDepth);
+        devOverlay.init(WindowSize);
+        camera.init(WindowSize);
 
         // loadAllEntities();
 
@@ -101,7 +92,8 @@ public:
         Animator::tick(thisTime);
 
         bgfx::setViewClear(mainView, BGFX_CLEAR_COLOR|BGFX_CLEAR_DEPTH, rendSys.colors.background);
-        bgfx::setViewTransform(mainView, viewMat, projMat);
+        // bgfx::setViewTransform(mainView, viewMat, projMat);
+        bgfx::setViewTransform(mainView, glm::value_ptr(camera.viewMat), glm::value_ptr(camera.projMat));
         bgfx::setViewRect(mainView, 0, 0, bgfx::BackbufferRatio::Equal);
 
         devOverlay.tick();
@@ -126,11 +118,15 @@ public:
     }
 
     void mousePosEvent(double x, double y) {
-
+        input.mousePosEvent(x, y);
     }
 
     void mouseButtonEvent(int button, int action, int mods) {
+        input.mouseButtonEvent(button, action, mods);
+    }
 
+    void scrollEvent(double x, double y) {
+        input.scrollEvent(x, y);
     }
 
 
