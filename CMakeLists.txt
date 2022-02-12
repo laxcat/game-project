@@ -34,12 +34,12 @@ SetupLib_tinygltf()
 add_executable(GameProject
     src/main.cpp
     src/animation/Animator.cpp
-    src/debug/print.cpp
-    src/editor/Editor.cpp
+    src/develop/print.cpp
+    src/develop/Editor.cpp
     src/render/GLTFLoader.cpp
     src/render/RenderSystem.cpp
-    src/render/TestQuadSystem.cpp
     src/render/Tester.cpp
+    src/render/TestQuadSystem.cpp
     ${SetupLib_sources}
 )
 
