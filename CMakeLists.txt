@@ -33,6 +33,7 @@ SetupLib_tinygltf()
 # COMPILE SOURCES
 add_executable(GameProject
     src/main.cpp
+    src/animation/Animator.cpp
     src/editor/Editor.cpp
     src/render/GLTFLoader.cpp
     src/render/RenderSystem.cpp

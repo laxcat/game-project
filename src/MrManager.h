@@ -6,6 +6,7 @@
 #include <entt/entity/registry.hpp>
 #include <entt/entity/snapshot.hpp>
 #include <cereal/archives/binary.hpp>
+#include "animation/Animator.h"
 #include "common/utils.h"
 #include "common/MemorySystem.h"
 #include "editor/Editor.h"
@@ -22,6 +23,9 @@ public:
 // -------------------------------------------------------------------------- //
     size2 const WindowSize = {1280, 720};
     static constexpr char const * entitiesBinPath = "entities.bin";
+    using Clock = std::chrono::high_resolution_clock;
+    using TimePoint = Clock::time_point;
+    using Duration = std::chrono::duration<double>;
 
 
 // -------------------------------------------------------------------------- //
@@ -46,6 +50,8 @@ public:
 
     Tester tr;
 
+    TimePoint start;
+    TimePoint now;
 
 // -------------------------------------------------------------------------- //
 // LIFECYCLE
@@ -80,6 +86,8 @@ public:
         TestQuadSystem::init();
         // tr.init();
         // rendSys.createFromGLTF("box.glb");
+
+        start = Clock::now();
     }
 
     void shutdown() {
@@ -94,9 +102,11 @@ public:
     }
 
     void tick() {
+        now = Clock::now();
+        Animator::tick(Duration(now - start).count());
+
         bgfx::setViewTransform(mainView, viewMat, projMat);
         bgfx::setViewRect(mainView, 0, 0, bgfx::BackbufferRatio::Equal);
-
         bgfx::touch(mainView);
 
         rendSys.draw();
