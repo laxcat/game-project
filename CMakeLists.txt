@@ -49,7 +49,13 @@ ComponentList_generate(
 )
 
 # SHADERS
-BGFXShader_compile(src/shader/shaders bgfx_content)
+BGFXShader_compile(
+    ${CMAKE_SOURCE_DIR}/src/shader/shaders  # root of shaders to compile. expects shaders to be subdirs
+    ${CMAKE_BINARY_DIR}/shaders             # shader output dir. will create folders for each api
+    ${bgfx_content_BINARY_DIR}/shaderc      # path to shaderc
+    ${bgfx_content_SOURCE_DIR}/bgfx/src     # path to bgfx shader includes
+    "metal"                                 # list of ouput profiles. see shaderc help
+)
 
 # CONFIGURE MAIN BINARY
 set_property(TARGET GameProject APPEND_STRING PROPERTY COMPILE_FLAGS ${SetupLib_flags})

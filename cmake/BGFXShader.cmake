@@ -1,55 +1,91 @@
 #
 # Loops through subdirectories and looks for BGFX shaders and compiles them.
-# Depends on FetchContent; provide FetchContent name as bgfx_content parameter.
+# 
+# Output:
+# BGFXShader_target
+# Use this target to add the compiled shaders as dependencies of another target.
 #
 function(BGFXShader_compile
-    shader_dir_rel_to_root
-    bgfx_content
-    )
+    shader_input_dir
+    shader_output_dir
+    shaderc
+    include_dir
+    profile_list
+)
     # vars
-    set(root_dir ${CMAKE_CURRENT_SOURCE_DIR})
-    set(bin_dir "${${bgfx_content}_BINARY_DIR}")
-    set(src_dir "${${bgfx_content}_SOURCE_DIR}")
-    set(shaderc ${bin_dir}/shaderc)
-    set(include_dir ${src_dir}/bgfx/src)
-    set(shader_dir ${root_dir}/${shader_dir_rel_to_root})
-    set(depends)
+    set(outputs)
 
-    # run for each individual shader
-    macro(compile dir type)
-        set(output_dir ${root_dir}/build/shaders/metal)
-        set(output ${output_dir}/${type}s_${dir}.bin)
-        set(input ${shader_dir}/${dir}/${type}s_${dir}.sc)
+    # this macro gets run for each frag/vert/comp, for each shader, for each profile
+    macro(compile 
+        name        # name of shader. should be name of subdir and shaders
+        type        # v/f/c
+        profile     # see shaderc help
+        output_dir  # output directory
+    )
+        set(output ${output_dir}/${type}s_${name}.bin)
+        set(input_dir ${shader_input_dir}/${name})
+        set(input ${input_dir}/${type}s_${name}.sc)
+        set(varying ${input_dir}/varying.def.sc)
 
         if(EXISTS ${input})
-            if(NOT EXISTS ${output_dir})
-                message(STATUS "MAKING DIRECTORY: " ${output_dir})
-                file(MAKE_DIRECTORY ${output_dir})
+            # easier to read output using relative paths
+            set(input_display ${input})
+            set(output_display ${output})
+            if (${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.20")
+                cmake_path(RELATIVE_PATH input BASE_DIRECTORY ${CMAKE_BINARY_DIR} OUTPUT_VARIABLE input_display)
+                cmake_path(RELATIVE_PATH output BASE_DIRECTORY ${CMAKE_BINARY_DIR} OUTPUT_VARIABLE output_display)
             endif()
 
+            # build shader
             add_custom_command(
-                DEPENDS ${shaderc} ${include_dir} ${input}
                 OUTPUT  ${output}
+                DEPENDS ${shaderc} ${input} ${varying}
                 COMMAND ${shaderc}
-                ARGS    --platform osx -p metal --type ${type} -f ${input} -o ${output} -i ${include_dir}
+                ARGS    --platform osx -p ${profile} --type ${type} -f ${input} -o ${output} -i ${include_dir}
+                COMMENT "Compiling ${type} shader ${input_display} for ${profile} to ${output_display}"
             )
-            list(APPEND depends ${output})
+            list(APPEND outputs ${output})
         endif()
     endmacro()
     
     # loop through subdirectories
-    file(GLOB children RELATIVE "${shader_dir}" "${shader_dir}/*")
-    foreach(child ${children})
-        if(IS_DIRECTORY ${shader_dir}/${child})
-            compile(${child} v)
-            compile(${child} f)
-            compile(${child} c)
+    file(GLOB children RELATIVE "${shader_input_dir}" "${shader_input_dir}/*")
+
+    message(STATUS "children\n${children}")
+
+    # for each output profile
+    foreach(profile ${profile_list})
+        # determine output directory
+        if ("${profile}" MATCHES "^(120|130|140|150|330|400|410|420|430|440)$")
+            set(api_name "glsl")
+        elseif ("${profile}" MATCHES "metal")
+            set(api_name "metal")
+        # TODO: add direct3d detection for windows builds
+        else()
+            message(STATUS "WARNING UKNOWN PROFILE. SEE shaderc HELP FOR PROFILE LIST.")
+            return()
         endif()
+
+        # set ouput directory
+        set(output_dir "${shader_output_dir}/${api_name}")
+
+        # create rule to make output directory if necessary
+        add_custom_target("create_directory_${profile}"
+            ALL
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${output_dir}
+        )
+
+        # for each shader input directory
+        foreach(child ${children})
+            compile(${child} v ${profile} ${output_dir})
+            compile(${child} f ${profile} ${output_dir})
+            compile(${child} c ${profile} ${output_dir})
+        endforeach()
     endforeach()
 
-    # gathers all output files as dependents of blank target
+    # create custom target
     add_custom_target(
-      BGFXShader_target
-      DEPENDS ${depends}
+        BGFXShader_target
+        DEPENDS ${outputs}
     )
 endfunction()
