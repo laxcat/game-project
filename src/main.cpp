@@ -15,7 +15,7 @@
 
 
 static void glfw_errorCallback(int error, const char *description) {
-    fprintf(stderr, "GLFW error %d: %s\n", error, description);
+    print("GLFW error %d: %s\n", error, description);
 }
 
 static void glfw_keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
@@ -46,7 +46,7 @@ int main(int argc, char ** argv) {
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     GLFWwindow *window = glfwCreateWindow(mm.WindowSize.w, mm.WindowSize.h, "Window", nullptr, nullptr);
     if (!window) {
-        fprintf(stderr, "window creation failed\n");
+        print("window creation failed\n");
         return 1;
     }
     glfwSetKeyCallback(window, glfw_keyCallback);

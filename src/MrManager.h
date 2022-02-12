@@ -9,6 +9,7 @@
 #include "animation/Animator.h"
 #include "common/utils.h"
 #include "common/MemorySystem.h"
+#include "debug/print.h"
 #include "editor/Editor.h"
 #include "components/all.h"
 #include "render/RenderSystem.h"
@@ -23,9 +24,6 @@ public:
 // -------------------------------------------------------------------------- //
     size2 const WindowSize = {1280, 720};
     static constexpr char const * entitiesBinPath = "entities.bin";
-    using Clock = std::chrono::high_resolution_clock;
-    using TimePoint = Clock::time_point;
-    using Duration = std::chrono::duration<double>;
 
 
 // -------------------------------------------------------------------------- //
@@ -49,9 +47,6 @@ public:
     Editor editor;
 
     Tester tr;
-
-    TimePoint start;
-    TimePoint now;
 
 // -------------------------------------------------------------------------- //
 // LIFECYCLE
@@ -86,8 +81,6 @@ public:
         TestQuadSystem::init();
         // tr.init();
         // rendSys.createFromGLTF("box.glb");
-
-        start = Clock::now();
     }
 
     void shutdown() {
@@ -102,8 +95,7 @@ public:
     }
 
     void tick() {
-        now = Clock::now();
-        Animator::tick(Duration(now - start).count());
+        Animator::tick(thisTime);
 
         bgfx::setViewTransform(mainView, viewMat, projMat);
         bgfx::setViewRect(mainView, 0, 0, bgfx::BackbufferRatio::Equal);
