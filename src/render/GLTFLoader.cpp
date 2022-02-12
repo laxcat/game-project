@@ -1,6 +1,9 @@
 #include "GLTFLoader.h"
 #include "../MrManager.h"
+#include "../develop/print.h"
 
+
+static bool constexpr ShowPrintOutput = true;
 
 void GLTFLoader::load(char const * filename, size_t renderable) {
     using namespace tinygltf;
@@ -12,14 +15,14 @@ void GLTFLoader::load(char const * filename, size_t renderable) {
 
     // populate member variable `model`
     if (loader.LoadBinaryFromFile(&model, &err, &warn, filename)) {
-        printf("successfully loaded %s\n", filename);
+        printc(ShowPrintOutput, "successfully loaded %s\n", filename);
     }
     else {
-        printf("failed to load %s\n", filename);
+        printc(ShowPrintOutput, "failed to load %s\n", filename);
     }
 
     if (model.buffers.size() > 1) {
-        fprintf(stderr, "WARNING MORE THAN ONE BUFFER FOUND IN GLTF.\n");
+        printc(ShowPrintOutput, "WARNING MORE THAN ONE BUFFER FOUND IN GLTF.\n");
     }
     auto r = mm.rendSys.at(renderable);
     r->bufferSize = model.buffers[0].data.size();
@@ -39,7 +42,7 @@ void GLTFLoader::traverseNodes(size_t renderable, tinygltf::Model const & model,
     indent[level*4] = '\0';
     for (size_t i = 0; i < nodeCount; ++i) {
         Node const & node = model.nodes[nodes[i]];
-        printf("%snode(%s, child count: %zu, mesh: %d (%s))\n", 
+        printc(ShowPrintOutput, "%snode(%s, child count: %zu, mesh: %d (%s))\n", 
             indent, 
             node.name.c_str(), 
             node.children.size(), 
@@ -57,7 +60,7 @@ void GLTFLoader::traverseNodes(size_t renderable, tinygltf::Model const & model,
 }
 
 void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & model, tinygltf::Primitive const & primitive) {
-    fprintf(stderr, "PRIMITIVE!!!!!! %p\n", &primitive);
+    printc(ShowPrintOutput, "PRIMITIVE!!!!!! %p\n", &primitive);
 
     // make one "Mesh" for every primitive
     auto r = mm.rendSys.at(renderable);
@@ -67,21 +70,21 @@ void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & mod
 
     // check mode
     if (primitive.mode != TINYGLTF_MODE_TRIANGLES) {
-        fprintf(stderr, "WARNING UNRECOGNIZED MODE!: %d\n", primitive.mode);
+        printc(ShowPrintOutput, "WARNING UNRECOGNIZED MODE!: %d\n", primitive.mode);
     }
 
     // setup index buffer info
     tinygltf::Accessor const & indexAcc = model.accessors[primitive.indices];
     if (indexAcc.componentType != TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
-        fprintf(stderr, "WARNING UNRECOGNIZED INDEX COMPONENT TYPE!: %d\n", indexAcc.componentType);
+        printc(ShowPrintOutput, "WARNING UNRECOGNIZED INDEX COMPONENT TYPE!: %d\n", indexAcc.componentType);
     }
     tinygltf::BufferView const & indexBV = model.bufferViews[indexAcc.bufferView];
     // byte_t const * indexData = model.buffers[indexBV.buffer].data.data();
     auto indices_temp = (unsigned short *)(r->buffer + indexAcc.byteOffset + indexBV.byteOffset);
-    // fprintf(stderr, "TRIANGLES!!!!\n");
+    // printc(ShowPrintOutput, "TRIANGLES!!!!\n");
     // for (size_t i = 0; i < indexAcc.count / 3; ++i) {
     //     unsigned short * d = indices_temp + i * 3;
-    //     fprintf(stderr, "(%d, %d, %d)\n", d[0], d[1], d[2]);
+    //     printc(ShowPrintOutput, "(%d, %d, %d)\n", d[0], d[1], d[2]);
     // }
     auto indexRef = bgfx::makeRef(indices_temp, indexAcc.count * 2);
     mesh.ibuf = bgfx::createIndexBuffer(indexRef);
@@ -120,13 +123,13 @@ void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & mod
             (attribPair.first == "TEXCOORD_3")  ? bgfx::Attrib::TexCoord3   :
             bgfx::Attrib::Count;
         if (ai.type == bgfx::Attrib::Count) {
-            fprintf(stderr, "WARNING UNRECOGNIZED ATTRIBUTE!: %s\n", attribPair.first.c_str());
+            printc(ShowPrintOutput, "WARNING UNRECOGNIZED ATTRIBUTE!: %s\n", attribPair.first.c_str());
         }
         ai.typeString = attribPair.first;
 
         // only support floats for now. reasonable restriction for vbuffs?
         if (acc.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) {
-            fprintf(stderr, "WARNING UNRECOGNIZED VERTEX COMPONENT TYPE!: %d\n", acc.componentType);
+            printc(ShowPrintOutput, "WARNING UNRECOGNIZED VERTEX COMPONENT TYPE!: %d\n", acc.componentType);
         }
         ai.compType = bgfx::AttribType::Float;
 
@@ -136,7 +139,7 @@ void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & mod
             (acc.type == TINYGLTF_TYPE_VEC4) ? 4 :
             0;
         if (ai.compCount == 0) {
-            fprintf(stderr, "WARNING UNRECOGNIZED COMPONENT COUNT!: %d\n", acc.type);
+            printc(ShowPrintOutput, "WARNING UNRECOGNIZED COMPONENT COUNT!: %d\n", acc.type);
         }
 
         ai.bufViewId = acc.bufferView;
@@ -166,7 +169,7 @@ void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & mod
             auto & ai = info[i];
             // byte_t const * data = model.buffers[ai.bufId].data.data();
 
-            printf("ATTRIB INFO index:%zu type:%s (%d), bufViewId:%d, stride:%d, bufId:%d, offset:%d, count:%d, compCount: %d, size:%d\n", 
+            printc(ShowPrintOutput, "ATTRIB INFO index:%zu type:%s (%d), bufViewId:%d, stride:%d, bufId:%d, offset:%d, count:%d, compCount: %d, size:%d\n", 
                 i, ai.typeString.c_str(), ai.type, ai.bufViewId, ai.stride, ai.bufId, ai.offset, ai.count, ai.compCount, ai.byteSize);
 
             // create layout
@@ -181,10 +184,10 @@ void GLTFLoader::processPrimitive(size_t renderable, tinygltf::Model const & mod
             // add a vbuf
             mesh.vbufs.push_back(vbuf);
 
-            // fprintf(stderr, "VERTICES!!!!\n");
+            // printc(ShowPrintOutput, "VERTICES!!!!\n");
             // for (size_t i = 0; i < ai.count; ++i) {
             //     float const * d = (float *)(r->buffer + ai.offset + i * 12);
-            //     fprintf(stderr, "(%f, %f, %f)\n", d[0], d[1], d[2]);
+            //     printc(ShowPrintOutput, "(%f, %f, %f)\n", d[0], d[1], d[2]);
             // }
 
         }

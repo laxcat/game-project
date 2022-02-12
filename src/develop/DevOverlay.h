@@ -3,7 +3,7 @@
 #include "print.h"
 
 
-class DebugOverlay {
+class DevOverlay {
 public:
     enum States {
         None,
@@ -12,8 +12,8 @@ public:
         BGFXDebugText
     };
 
-    DebugOverlay(size2 charGridSize) : 
-        charGridSize(charGridSize) {
+    void init(size2 charGridSize) { 
+        this->charGridSize = charGridSize;
 
         cursorY = 0;
         totalLines = 0;
@@ -30,6 +30,11 @@ public:
         for (size_t i = 0; i < dbgTextBufferSize; i += charGridSize.w + 1) {
             dbgTextBuffer[i] = '\0';
         }
+    }
+
+    void shutdown() {
+        free(dbgTextBuffer);
+        dbgTextBuffer = nullptr;
     }
 
     void setState(int value) {
@@ -61,7 +66,7 @@ public:
     }
 
     void tick() {
-        if (state == DebugOverlay::BGFXDebugText) {
+        if (state == BGFXDebugText) {
             bgfx::dbgTextClear();
             for (int i = 0; i < charGridSize.h; ++i) {
                 char * c = dbgTextBuffer + (charGridSize.w + 1) * i;

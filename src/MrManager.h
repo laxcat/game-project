@@ -7,8 +7,10 @@
 #include <entt/entity/snapshot.hpp>
 #include <cereal/archives/binary.hpp>
 #include "animation/Animator.h"
+#include "common/glfw_extra.h"
 #include "common/utils.h"
 #include "common/MemorySystem.h"
+#include "develop/DevOverlay.h"
 #include "develop/Editor.h"
 #include "develop/print.h"
 #include "components/all.h"
@@ -31,8 +33,6 @@ public:
 // -------------------------------------------------------------------------- //
     bgfx::ViewId const mainView = 0;
     bgfx::ViewId const guiView  = 0xff;
-    bool showBGFXStats = false;
-    bool showImGUI = true;
     // glm::vec3 pos;
     entt::registry registry;
     double thisTime;
@@ -40,6 +40,7 @@ public:
 
     MemorySystem memSys;
     RenderSystem rendSys;
+    DevOverlay devOverlay;
 
     float viewMat[16];
     float projMat[16];
@@ -55,13 +56,12 @@ public:
         // Set view 0 to the same dimensions as the window and to clear the color buffer
 
         // bgfx::setDebug(BGFX_DEBUG_PROFILER);
-        updateBGFXDebug();
         thisTime = time;
         prevTime = time;
 
         memSys.init();
-
         rendSys.init();
+        devOverlay.init({WindowSize.w/8, WindowSize.h/16});
 
         const bx::Vec3 at  = { 0.0f, 0.0f,   0.0f };
         const bx::Vec3 eye = { 0.0f, 2.0f,  -2.0f };
@@ -71,11 +71,14 @@ public:
         float ratio = float(WindowSize.w)/float(WindowSize.h);
         bx::mtxProj(projMat, 60.0f, ratio, 0.1f, 100.0f, bgfx::getCaps()->homogeneousDepth);
 
-        loadAllEntities();
+        // loadAllEntities();
 
         for (int i = 0; i < componentCount; ++i) {
-            printf("type %s\n", allComponents[i]);
+            print("type %s\n", allComponents[i]);
         }
+
+        devOverlay.setState(DevOverlay::DearImGUI);
+        devOverlay.showKeyboardShortcuts();
 
         TestQuadSystem::init();
         // tr.init();
@@ -86,6 +89,7 @@ public:
         TestQuadSystem::shutdown();
         memSys.shutdown();
         rendSys.shutdown();
+        devOverlay.shutdown();
     }
 
     void gui() {
@@ -99,8 +103,10 @@ public:
         bgfx::setViewClear(mainView, BGFX_CLEAR_COLOR|BGFX_CLEAR_DEPTH, rendSys.colors.background);
         bgfx::setViewTransform(mainView, viewMat, projMat);
         bgfx::setViewRect(mainView, 0, 0, bgfx::BackbufferRatio::Equal);
-        bgfx::touch(mainView);
 
+        devOverlay.tick();
+
+        bgfx::touch(mainView);
         rendSys.draw();
     }
 
@@ -109,21 +115,14 @@ public:
 // EVENT
 // -------------------------------------------------------------------------- //
     void keyEvent(int key, int scancode, int action, int mods) {
-        if (key == GLFW_KEY_F1 && action == GLFW_PRESS) {
-            showBGFXStats = !showBGFXStats;
-            updateBGFXDebug();
+        int numKey = glfwNumberKey(key);
+        if (numKey != -1 && action == GLFW_PRESS) {
+            devOverlay.setState(numKey);
         }
-        if (key == GLFW_KEY_GRAVE_ACCENT && action == GLFW_PRESS) {
-            showImGUI = !showImGUI;
-            // auto old = debugState;
-            // debugState = DebugState(uint8_t(debugState) + 1);
-            // if (debugState == DebugState::_Count) debugState = DebugState::Off;
-            // updateBGFXDebug();
-        }
-        // save (cmd+S for mac. ctrl+s for others)
-        if (key == GLFW_KEY_S && action == GLFW_PRESS && mods == GLFW_MOD_SUPER) {
-            saveAllEntities();
-        }
+        // // save (cmd+S for mac. ctrl+s for others)
+        // if (key == GLFW_KEY_S && action == GLFW_PRESS && mods == GLFW_MOD_SUPER) {
+        //     saveAllEntities();
+        // }
     }
 
     void mousePosEvent(double x, double y) {
@@ -139,10 +138,6 @@ private:
 // -------------------------------------------------------------------------- //
 // UTIL
 // -------------------------------------------------------------------------- //
-    void updateBGFXDebug() {
-        bgfx::setDebug(showBGFXStats ? BGFX_DEBUG_STATS : BGFX_DEBUG_NONE);
-    }
-
     void saveAllEntities() {
         // std::stringstream storage;
         std::ofstream storage;
@@ -167,7 +162,7 @@ private:
                 // .component<NewMesh>(input);
         }
         catch (std::exception const & e) {
-            fprintf(stderr, "WARNING: DID NOT LOAD ENTITIES. %s\n", e.what());
+            print("WARNING: DID NOT LOAD ENTITIES. %s\n", e.what());
             return;
         }
     }

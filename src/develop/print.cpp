@@ -5,9 +5,7 @@
 
 void vprint(char const * formatString, va_list args) {
     vfprintf(stderr, formatString, args);
-    #if DEBUG_INTERFACE
-    mm.debugOverlay.vprint(formatString, args);
-    #endif // DEBUG_INTERFACE
+    mm.devOverlay.vprint(formatString, args);
 }
 
 void print(char const * formatString, ...) {

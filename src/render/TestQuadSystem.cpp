@@ -53,7 +53,7 @@ void TestQuadSystem::init() {
     memcpy(mesh.verts, init_verts, mesh.vertsTotalByteSize);
 
     for (int i = 0; i < 4; ++i) {
-        printf("vert %d: %08x\n", i, mesh.vertAt<PosColorVertex>(i)->abgr);
+        print("vert %d: %08x\n", i, mesh.vertAt<PosColorVertex>(i)->abgr);
     }
 
     bgfx::VertexLayout layout;

@@ -1,5 +1,6 @@
 #pragma once
 #include <bx/file.h>
+#include "../develop/print.h"
 
 
 class MemorySystem {
@@ -26,7 +27,7 @@ public:
             return mem;
         }
 
-        fprintf(stderr, "Failed to load %s.", _filePath);
+        print("Failed to load %s.", _filePath);
         return NULL;
     }
 
