@@ -77,6 +77,8 @@ public:
             for(auto const & entry : xyRegister) {
                 int16_t x = entry.first.a;
                 int16_t y = entry.first.b;
+                if (x < 0) x += charGridSize.w;
+                if (y < 0) y += charGridSize.h;
                 bgfx::dbgTextPrintf(x, y, 0x0f, "%s", entry.second.c_str());
             }
         }
