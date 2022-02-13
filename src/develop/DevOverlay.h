@@ -1,6 +1,7 @@
 #pragma once
 #include <bgfx/bgfx.h>
 #include "print.h"
+#include "../common/TwoIntKey.h"
 
 
 class DevOverlay {
@@ -72,6 +73,12 @@ public:
                 char * c = dbgTextBuffer + (charGridSize.w + 1) * i;
                 bgfx::dbgTextPrintf(0, (i + lineOffset) % charGridSize.h, 0x0f, "%s", c);
             }
+
+            for(auto const & entry : xyRegister) {
+                int16_t x = entry.first.a;
+                int16_t y = entry.first.b;
+                bgfx::dbgTextPrintf(x, y, 0x0f, "%s", entry.second.c_str());
+            }
         }
     }
 
@@ -102,6 +109,13 @@ public:
         }
     }
 
+    void vprintxy(int16_t x, int16_t y, char const * formatString, va_list args) {
+        char val[1024];
+        vsprintf(val, formatString, args);
+        TwoIntKey key{x, y};
+        xyRegister[key] = val;
+    }
+
     bool isShowingImGUI() { return state == DearImGUI; }
 
 private:
@@ -114,6 +128,7 @@ private:
 
     size_t dbgTextBufferSize = 0;
     char * dbgTextBuffer = nullptr;
+    std::unordered_map<TwoIntKey, std::string> xyRegister;
 
     // char * stderrBufferBegin = &dbgTextBuffer[0];
     // char * stderrBufferEnd = &dbgTextBuffer[stderrBufferSize];

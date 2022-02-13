@@ -38,3 +38,10 @@ void print16f(float const * f, char const * indent) {
 void print16fc(bool shouldPrint, float const * f, char const * indent) {
     if (shouldPrint) print16f(f, indent);
 }
+
+void printxy(int16_t x, int16_t y, char const * formatString, ...) {
+    va_list args;
+    va_start(args, formatString);
+    mm.devOverlay.vprintxy(x, y, formatString, args);
+    va_end(args);
+}
