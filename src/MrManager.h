@@ -1,24 +1,28 @@
 #pragma once
 #include <fstream>
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
+
 #include <bgfx/bgfx.h>
+#include <cereal/archives/binary.hpp>
 #include <entt/entity/registry.hpp>
 #include <entt/entity/snapshot.hpp>
-#include <cereal/archives/binary.hpp>
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+#include <glm/gtc/type_ptr.hpp>
+
 #include "animation/Animator.h"
 #include "common/glfw_extra.h"
 #include "common/InputSys.h"
-#include "common/utils.h"
+#include "common/KeyMap.h"
 #include "common/MemorySystem.h"
+#include "common/utils.h"
+#include "components/all.h"
 #include "develop/DevOverlay.h"
 #include "develop/Editor.h"
 #include "develop/print.h"
-#include "components/all.h"
 #include "render/Camera.h"
 #include "render/RenderSystem.h"
-#include "render/TestQuadSystem.h"
 #include "render/Tester.h"
+#include "render/TestQuadSystem.h"
 
 
 class MrManager {
@@ -45,10 +49,13 @@ public:
     DevOverlay devOverlay;
     Camera camera;
     InputSys input;
+    KeyMap keys;
 
     Editor editor;
 
     Tester tr;
+
+    GLFWwindow * window = nullptr;
 
 // -------------------------------------------------------------------------- //
 // LIFECYCLE
@@ -61,6 +68,7 @@ public:
         rendSys.init();
         devOverlay.init(WindowSize);
         camera.init(WindowSize);
+        keys.setDefaults();
 
         // loadAllEntities();
 
@@ -89,6 +97,7 @@ public:
     }
 
     void tick() {
+        input.tick();
         Animator::tick(thisTime);
 
         bgfx::setViewClear(mainView, BGFX_CLEAR_COLOR|BGFX_CLEAR_DEPTH, rendSys.colors.background);
@@ -115,6 +124,8 @@ public:
         // if (key == GLFW_KEY_S && action == GLFW_PRESS && mods == GLFW_MOD_SUPER) {
         //     saveAllEntities();
         // }
+
+        input.keyEvent(key, scancode, action, mods);
     }
 
     void mousePosEvent(double x, double y) {

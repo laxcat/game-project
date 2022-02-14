@@ -13,4 +13,6 @@ public:
     void mousePosEvent(double x, double y);
     void mouseButtonEvent(int button, int action, int mods);
     void scrollEvent(double x, double y);
+    void keyEvent(int key, int scancode, int action, int mods);
+    void tick();
 };

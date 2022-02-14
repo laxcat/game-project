@@ -57,7 +57,12 @@ void Editor::guiCamera() {
             mm.camera.updatePosFromDistancePitchYaw();
         }
         else if (mm.camera.controlType == Camera::Free) {
-            
+            Text("Click into game space to begin free camera motion. Press ESC to exit.");
+            SliderFloat("Distance", &mm.camera.distance, 0.1f, 50.0f, "%.3f");
+            SliderAngle("Pitch", &mm.camera.pitch, -80.0f, 80.0f, "%.3f");
+            SliderAngle("Yaw", &mm.camera.yaw);
+            SliderAngle("FOV", &mm.camera.fov, 1.f, 89.f);
+            Checkbox("Invert Y", &mm.camera.invertFreeY);
         }
 
     }
@@ -74,7 +79,7 @@ void Editor::guiCamera() {
 void Editor::guiDemoVertColorEditor() {
     float vertFloatColors[4*4];
 
-    if (CollapsingHeader("Vert Color", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (CollapsingHeader("Vert Color")) {
         PushItemWidth(GetWindowSize().x * 0.46f);
         int order[] = {3, 2, 0, 1};
         int i;

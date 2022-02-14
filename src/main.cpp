@@ -50,22 +50,22 @@ int main(int argc, char ** argv) {
         return 1;
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    GLFWwindow *window = glfwCreateWindow(mm.WindowSize.w, mm.WindowSize.h, "Window", nullptr, nullptr);
-    if (!window) {
+    mm.window = glfwCreateWindow(mm.WindowSize.w, mm.WindowSize.h, "Window", nullptr, nullptr);
+    if (!mm.window) {
         fprintf(stderr, "window creation failed\n");
         return 1;
     }
-    glfwSetKeyCallback(window, glfw_keyCallback);
-    glfwSetCursorPosCallback(window, glfw_mousePosCallback);
-    glfwSetMouseButtonCallback(window, glfw_mouseButtonCallback);
-    glfwSetScrollCallback(window, glfw_scrollCallback);
+    glfwSetKeyCallback(mm.window, glfw_keyCallback);
+    glfwSetCursorPosCallback(mm.window, glfw_mousePosCallback);
+    glfwSetMouseButtonCallback(mm.window, glfw_mouseButtonCallback);
+    glfwSetScrollCallback(mm.window, glfw_scrollCallback);
 
     // ensure SINGLE THREAD
     bgfx::renderFrame();
 
     // bgfx init
     bgfx::Init init;
-    init.platformData.nwh = glfwGetCocoaWindow(window);
+    init.platformData.nwh = glfwGetCocoaWindow(mm.window);
     init.resolution.width = (uint32_t)mm.WindowSize.w;
     init.resolution.height = (uint32_t)mm.WindowSize.h;
     init.resolution.reset = BGFX_RESET_VSYNC;
@@ -85,9 +85,9 @@ int main(int argc, char ** argv) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui_Implbgfx_Init(mm.guiView);
-    ImGui_ImplGlfw_InitForOther(window, true);
+    ImGui_ImplGlfw_InitForOther(mm.window, true);
 
-    while (!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(mm.window)) {
         mm.prevTime = mm.thisTime;
         mm.thisTime = glfwGetTime();
 
@@ -109,7 +109,7 @@ int main(int argc, char ** argv) {
 
     ImGui_ImplGlfw_Shutdown();
     mm.shutdown();
-    glfwDestroyWindow(window);
+    glfwDestroyWindow(mm.window);
     glfwTerminate();
     bgfx::shutdown();
     return 0;
