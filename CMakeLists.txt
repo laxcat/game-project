@@ -37,8 +37,8 @@ add_executable(GameProject
     src/main.cpp
     src/animation/Animator.cpp
     src/common/InputSys.cpp
-    src/develop/Editor.cpp
-    src/develop/print.cpp
+    src/dev/Editor.cpp
+    src/dev/print.cpp
     src/render/Camera.cpp
     src/render/GLTFLoader.cpp
     src/render/RenderSystem.cpp
