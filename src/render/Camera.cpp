@@ -38,6 +38,10 @@ void Camera::init(size2 windowSize) {
     uniform = bgfx::createUniform("u_cameraPos", bgfx::UniformType::Vec4);
 }
 
+void Camera::shutdown() {
+    bgfx::destroy(uniform);
+}
+
 void Camera::updateProjection() {
     projMat = glm::perspective(fov, windowRatio, 0.05f, 500.f);
 }

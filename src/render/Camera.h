@@ -53,4 +53,5 @@ public:
     void update();
     void preDraw();
     void setCursorMode(CursorMode mode);
+    void shutdown();
 };

@@ -18,6 +18,7 @@ void RenderSystem::shutdown()  {
         r->active = false;
     }
     colors.shutdown();
+    bgfx::destroy(gltfProgram);
 }
 
 void RenderSystem::draw() {

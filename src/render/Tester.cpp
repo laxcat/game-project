@@ -80,33 +80,33 @@ static PosVertex init_norms[] = {
 
 
 void Tester::init() {
-    renderable = mm.rendSys.create(mm.memSys.loadProgram("vs_tester", "fs_tester"), "tester");
-    Renderable * r = mm.rendSys.at(renderable);
+    // renderable = mm.rendSys.create(mm.memSys.loadProgram("vs_tester", "fs_tester"), "tester");
+    // Renderable * r = mm.rendSys.at(renderable);
 
-    r->meshes.push_back({});
-    auto & mesh = r->meshes.back();
+    // r->meshes.push_back({});
+    // auto & mesh = r->meshes.back();
 
-    {
-        bgfx::VertexLayout layout;
-        layout
-            .begin()
-            .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
-            .end();
-        auto ref = bgfx::makeRef(init_verts, sizeof(init_verts));
-        auto vbuf = bgfx::createVertexBuffer(ref, layout);
-        mesh.vbufs.push_back(vbuf);
-    }
+    // {
+    //     bgfx::VertexLayout layout;
+    //     layout
+    //         .begin()
+    //         .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
+    //         .end();
+    //     auto ref = bgfx::makeRef(init_verts, sizeof(init_verts));
+    //     auto vbuf = bgfx::createVertexBuffer(ref, layout);
+    //     mesh.vbufs.push_back(vbuf);
+    // }
 
-    {
-        bgfx::VertexLayout layout;
-        layout
-            .begin()
-            .add(bgfx::Attrib::Normal, 3, bgfx::AttribType::Float)
-            .end();
-        auto ref = bgfx::makeRef(init_norms, sizeof(init_norms));
-        auto vbuf = bgfx::createVertexBuffer(ref, layout);
-        mesh.vbufs.push_back(vbuf);
-    }
+    // {
+    //     bgfx::VertexLayout layout;
+    //     layout
+    //         .begin()
+    //         .add(bgfx::Attrib::Normal, 3, bgfx::AttribType::Float)
+    //         .end();
+    //     auto ref = bgfx::makeRef(init_norms, sizeof(init_norms));
+    //     auto vbuf = bgfx::createVertexBuffer(ref, layout);
+    //     mesh.vbufs.push_back(vbuf);
+    // }
 
-    mesh.ibuf = bgfx::createIndexBuffer(bgfx::makeRef(indices, sizeof(indices)));
+    // mesh.ibuf = bgfx::createIndexBuffer(bgfx::makeRef(indices, sizeof(indices)));
 }

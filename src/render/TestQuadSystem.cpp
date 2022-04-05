@@ -87,9 +87,13 @@ void TestQuadSystem::init() {
 
 void TestQuadSystem::shutdown() {
     if (renderable == -1) return;
-    auto & meshes = mm.rendSys.at(renderable)->meshes;
+    auto r = mm.rendSys.at(renderable);
+    auto & meshes = r->meshes;
     free(meshes[0].verts);
     meshes[0].verts = nullptr;
+    bgfx::destroy(meshes[0].dvbufs[0]);
+    bgfx::destroy(meshes[0].ibuf);
+    bgfx::destroy(r->program);
     renderable = -1;
 }
 

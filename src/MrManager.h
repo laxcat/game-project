@@ -53,7 +53,7 @@ public:
 
     Editor editor;
 
-    Tester tr;
+    // Tester tr;
 
     GLFWwindow * window = nullptr;
 
@@ -89,6 +89,7 @@ public:
         memSys.shutdown();
         rendSys.shutdown();
         devOverlay.shutdown();
+        camera.shutdown();
     }
 
     void gui() {

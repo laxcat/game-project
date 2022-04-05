@@ -7,7 +7,7 @@
 
 #include "bgfx/bgfx.h"
 #include "bgfx/platform.h"
-#include "bgfx-imgui/imgui_impl_bgfx.h"
+#include "imgui_impl_bgfx.h"
 
 #include <backends/imgui_impl_glfw.h>
 
@@ -108,6 +108,7 @@ int main(int argc, char ** argv) {
     }
 
     ImGui_ImplGlfw_Shutdown();
+    ImGui_Implbgfx_Shutdown();
     mm.shutdown();
     glfwDestroyWindow(mm.window);
     glfwTerminate();
