@@ -5,7 +5,7 @@
 # BGFXShader_target
 # Use this target to add the compiled shaders as dependencies of another target.
 #
-function(BGFXShader_compile
+function(BGFXCompileShaders
     shader_input_dir
     shader_output_dir
     shaderc
@@ -39,7 +39,7 @@ function(BGFXShader_compile
             # build shader
             add_custom_command(
                 OUTPUT  ${output}
-                DEPENDS ${shaderc} ${input} ${varying}
+                DEPENDS ${shaderc} ${input} ${varying} "create_directory_${profile}"
                 COMMAND ${shaderc}
                 ARGS    --platform osx -p ${profile} --type ${type} -f ${input} -o ${output} -i ${include_dir}
                 COMMENT "Compiling ${type} shader ${input_display} for ${profile} to ${output_display}"
@@ -47,17 +47,16 @@ function(BGFXShader_compile
             list(APPEND outputs ${output})
         endif()
     endmacro()
-    
+
     # loop through subdirectories
-    file(GLOB children RELATIVE "${shader_input_dir}" "${shader_input_dir}/*")
-
-    message(STATUS "children\n${children}")
-
+    file(GLOB shader_dirs RELATIVE "${shader_input_dir}" "${shader_input_dir}/*")
     # for each output profile
     foreach(profile ${profile_list})
         # determine output directory
         if ("${profile}" MATCHES "^(120|130|140|150|330|400|410|420|430|440)$")
             set(api_name "glsl")
+        elseif ("${profile}" MATCHES "^(100_es|300_es|310_es|320_es)$")
+            set(api_name "essl")
         elseif ("${profile}" MATCHES "metal")
             set(api_name "metal")
         # TODO: add direct3d detection for windows builds
@@ -76,10 +75,10 @@ function(BGFXShader_compile
         )
 
         # for each shader input directory
-        foreach(child ${children})
-            compile(${child} v ${profile} ${output_dir})
-            compile(${child} f ${profile} ${output_dir})
-            compile(${child} c ${profile} ${output_dir})
+        foreach(shader_dir ${shader_dirs})
+            compile(${shader_dir} v ${profile} ${output_dir})
+            compile(${shader_dir} f ${profile} ${output_dir})
+            compile(${shader_dir} c ${profile} ${output_dir})
         endforeach()
     endforeach()
 

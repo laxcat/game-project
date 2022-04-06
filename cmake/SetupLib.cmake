@@ -13,10 +13,10 @@ if (NOT DEFINED SetupLib_FILES_PATH)
 endif()
 
 # OUTPUT
-set(SetupLib_libs "${SetupLib_libs}") # append lib names to this list
-set(SetupLib_sources "${SetupLib_sources}") # append compile sources to this list
-set(SetupLib_flag "${SetupLib_flag}") # append additional compile flags to this list
-set(SetupLib_include_dirs "${SetupLib_include_dirs}") # append include_directories entries to this list
+set(SetupLib_libs "${SetupLib_libs}") # lib names get appended to this list
+set(SetupLib_sources "${SetupLib_sources}") # compile sources get appended to this list
+set(SetupLib_flag "${SetupLib_flag}") # additional compile flags get appended to this list
+set(SetupLib_include_dirs "${SetupLib_include_dirs}") # include_directories entries get appended to this list
 
 
 # ---------------------------------------------------------------------------- #
