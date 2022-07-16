@@ -32,11 +32,7 @@ Basic template for a game project.
 |3|Show bgfx debgug text output debug overlay|
 |4|Show wireframes|
 
-<<<<<<< HEAD
 ## Build Instructions
-=======
-## Library Build Instructions
->>>>>>> e2b5dabaeb06275d734109d5361952fa0b880c27
 
 Setting `DEV_INTERFACE` to 0 (or omitting) will cull all developer interfaces and user input.
 
