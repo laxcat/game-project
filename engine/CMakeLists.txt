@@ -78,7 +78,7 @@ BGFXCompileShaders(
     "${CMAKE_BINARY_DIR}/assets/shaders"            # shader output dir. will create folders for each api
     "${SetupLib_BGFX_shaderc_PATH}"                 # path to shaderc
     "${bgfx_content_SOURCE_DIR}/bgfx/src"           # path to bgfx shader includes
-    "150;100_es"                                    # list of ouput profiles. see shaderc help.
+    "metal"                                     # list of ouput profiles. see shaderc help.
 )
 
 # CONFIGURE MAIN BINARY

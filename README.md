@@ -17,7 +17,9 @@ Basic template for a game project.
 	* Control directional and point lights
 	* Control orbiting camera angle/target/fov
 	* Visual widget for origin/axis visualization
-	* Hot-swapable GLTF loading
+	* GLTF loading, hot-swappint
+		* Draw multiple instances
+		* Edit material base colors
 	* Adjust distance fog
 	* Adjust color of background
 * Mouse drag and scroll for orbit and zoom camera control
@@ -34,7 +36,7 @@ Basic template for a game project.
 
 ## Build Instructions
 
-Setting `DEV_INTERFACE` to 0 (or omitting) will cull all developer interfaces and user input.
+Setting `DEV_INTERFACE` to 0 (default) will cull the libraries only used for the developer interface.
 
 ```bash
 mkdir build
