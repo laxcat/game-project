@@ -34,7 +34,7 @@ public:
     uint64_t state = 0;
 
     void init(size2 windowSize) {
-        bgfxInit.type = bgfx::RendererType::OpenGL;
+        bgfxInit.type = bgfx::RendererType::Metal;
         bgfxInit.platformData.context = getGLContext();
         bgfxInit.resolution.width = (uint32_t)windowSize.w;
         bgfxInit.resolution.height = (uint32_t)windowSize.h;

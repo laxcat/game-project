@@ -5,7 +5,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # PROJECT
-project(blasternia_level_gen VERSION 0.1.0 LANGUAGES CXX C OBJCXX OBJC)
+project(game_project_example VERSION 0.1.0 LANGUAGES CXX C OBJCXX OBJC)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -22,7 +22,7 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/engine")
 
 # EXE
 include_directories(${SetupLib_include_dirs})
-set(EXE_NAME blastlg)
+set(EXE_NAME game_project)
 add_executable(${EXE_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
 target_compile_definitions(${EXE_NAME} PUBLIC DEV_INTERFACE=${DEV_INTERFACE})
 target_link_libraries(${EXE_NAME} "game_project_engine" ${SetupLib_libs})
