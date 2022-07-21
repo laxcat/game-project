@@ -32,7 +32,7 @@ void RenderSystem::init() {
         255,255,255,255,
         255,255,255,255
     };
-    whiteTexture.allocImageAndCreate(2, 2, 4, data);
+    whiteTexture.createImmutable(2, 2, 4, data);
 }
 
 void RenderSystem::draw() {
@@ -126,8 +126,13 @@ void RenderSystem::draw() {
                 }
 
                 // set buffers
-                for (size_t i = 0; i < mesh.vbufs.size(); ++i) {
-                    bgfx::setVertexBuffer(i, mesh.vbufs[i]);
+                if (isValid(mesh.dynvbuf)) {
+                    bgfx::setVertexBuffer(0, mesh.dynvbuf);
+                }
+                else {
+                    for (size_t i = 0; i < mesh.vbufs.size(); ++i) {
+                        bgfx::setVertexBuffer(i, mesh.vbufs[i]);
+                    }
                 }
                 bgfx::setIndexBuffer(mesh.ibuf);
                 bgfx::setState(mm.rendSys.settings.state);

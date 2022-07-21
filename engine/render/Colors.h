@@ -8,7 +8,7 @@
 // a place to put our colors, accessible by imgui, shaders, etc
 class Colors {
 public:
-    UniColor background     = 0x000000ff;
+    UniColor background     = 0x888888ff;
     UniColor roadMain       = 0x000000ff;
     UniColor roadLines      = 0xeeeeeeff;
 

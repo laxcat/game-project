@@ -16,6 +16,7 @@ public:
     char const * renderableKey = nullptr;
 
     std::vector<bgfx::VertexBufferHandle> vbufs;
+    bgfx::DynamicVertexBufferHandle dynvbuf = BGFX_INVALID_HANDLE;
     bgfx::IndexBufferHandle ibuf;
     Images images;
 

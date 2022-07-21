@@ -27,7 +27,7 @@ public:
 // -------------------------------------------------------------------------- //
 // STATE VARS
 // -------------------------------------------------------------------------- //
-    size2 windowSize = {1920, 720};
+    size2 windowSize = {1920, 1080};
     bgfx::ViewId mainView = 0;
     bgfx::ViewId guiView  = 0xff;
     double thisTime;

@@ -4,7 +4,7 @@
 #include "../common/utils.h"
 
 
-static bool constexpr ShowGLTFLoadDbg = true;
+static bool constexpr ShowGLTFLoadDbg = false;
 
 
 void GLTFLoader::load(char const * filename, Renderable & renderable) {
@@ -98,7 +98,8 @@ void GLTFLoader::load(char const * filename, Renderable & renderable) {
         auto & material = model.materials[i];
         // print("MATERIAL %s\n", material.name.c_str());
         Material mat;
-        mat.name[0] = '\0', strncat(mat.name, material.name.c_str(), 31);
+        setName(mat.name, material.name.c_str());
+        // mat.name[0] = '\0', strncat(mat.name, material.name.c_str(), 31);
         mat.baseColor = glmVec4(material.pbrMetallicRoughness.baseColorFactor);
         renderable.materials.push_back(mat);
     }

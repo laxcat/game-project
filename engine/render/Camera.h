@@ -2,7 +2,6 @@
 #include <glm/mat4x4.hpp>
 #include <glm/ext/matrix_clip_space.hpp>
 
-
 class Camera {
 public:
     // const
@@ -10,6 +9,7 @@ public:
 
     // set by ctor
     float windowRatio;
+    float windowInvRatio;
 
     // updated by user
     glm::vec3 target;
@@ -23,20 +23,56 @@ public:
     glm::mat4 projMat;
     glm::mat4 viewMat;
 
-    // Renderable * targetRenderable = nullptr;
-    // size_t targetRenderableIndex = 0;
+    enum class ProjType {
+        Persp,
+        Ortho,
+    };
+    ProjType projType = ProjType::Persp;
+    #if DEV_INTERFACE
+    char const * projTypeStr(int index = -1) {
+        if (index == -1) index = (int)projType;
+        static char const * strs[] = {"Persepctive", "Orthographic"};
+        return strs[index];
+    }
+    int projTypeCount() {
+        return 2;
+    }
+    #endif // DEV_INTERFACE
+
+    using reset_fn_t = void (*)(Camera &);
+    reset_fn_t perspResetFn = nullptr;
+    reset_fn_t orthoResetFn = nullptr;
 
     bgfx::UniformHandle uniform;
 
     void reset() {
-        target      = {0.f, 0.f, 0.f};
-        distance    = 27;
-        pitch       = 0;
-        yaw         = 0;
-        fov         = (float)M_PI/6.f;
-
-        updateProjection();
-        updatePosFromDistancePitchYaw();
+        if (projType == ProjType::Persp) {
+            if (perspResetFn) {
+                perspResetFn(*this);
+            }
+            else {
+                target      = {0.f, 0.f, 0.f};
+                distance    = 27;
+                pitch       = 0;
+                yaw         = 0;
+                fov         = (float)M_PI/6.f;
+            }
+            updateProjection();
+            updatePosFromDistancePitchYaw();
+        }
+        else if (projType == ProjType::Ortho) {
+            if (orthoResetFn) {
+                orthoResetFn(*this);
+            }
+            else {
+                target      = {0.f, 0.f, 0.f};
+                distance    = 34;
+                pitch       = 0;
+                yaw         = 0;
+                fov         = 0;
+            }
+            updateProjection();
+        }
     }
 
     void init(size2 windowSize) {
@@ -51,29 +87,32 @@ public:
     }
 
     void updateProjection() {
-        projMat = glm::perspective(fov, windowRatio, 0.05f, 500.f);
+        if (projType == ProjType::Persp) {
+            projMat = glm::perspective(fov, windowRatio, 0.05f, 1000.f);
+        }
+        else if (projType == ProjType::Ortho) {
+            float halfW = distance/2.f * windowRatio;
+            float halfH = distance/2.f;
+            projMat = glm::ortho(target.x-halfW, target.x+halfW, target.y-halfH, target.y+halfH, -1000.f, 1000.f);
+            viewMat = glm::mat4{1.f};
+        }
     }
 
     void updatePosFromDistancePitchYaw() {
-        // renderable target if set
-        glm::vec3 t = target;
-        // if (targetRenderable) t += glm::vec3(targetRenderable->model[targetRenderableIndex][3]);
-
         float xy = cosf(-pitch) * distance;
-        pos.x = t.x + sinf(yaw) * xy;
-        pos.y = t.y + sinf(-pitch) * distance;
-        pos.z = t.z + cosf(yaw) * xy;
-        // printf("POS %f %f %f\n", pos.x, pos.y, pos.z);
-        viewMat = glm::lookAt(pos, t, up);
+        pos.x = target.x + sinf(yaw) * xy;
+        pos.y = target.y + sinf(-pitch) * distance;
+        pos.z = target.z + cosf(yaw) * xy;
+        viewMat = glm::lookAt(pos, target, up);
     }
 
     void updateView() {
-        // printf("POS %f %f %f\n", pos.x, pos.y, pos.z);
         viewMat = glm::lookAt(pos, target, up);
     }
 
     void setRatio(size2 windowSize) {
         windowRatio = float(windowSize.w) / float(windowSize.h);
+        windowInvRatio = 1.f/windowRatio;
         updateProjection();
     }
 

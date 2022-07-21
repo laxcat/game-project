@@ -19,6 +19,13 @@ inline void printc(bool shouldPrint, char const * formatString, ...) {
     va_end(args);
 }
 
+inline void print4f(float const * f) {
+    print(
+        "%0.4f %0.4f %0.4f %0.4f\n",
+        f[ 0], f[ 1], f[ 2], f[ 3]
+    );
+}
+
 inline void print16f(float const * f, char const * indent) {
     print(
         "%s%0.4f %0.4f %0.4f %0.4f\n"

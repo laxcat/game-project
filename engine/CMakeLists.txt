@@ -71,14 +71,14 @@ if(DEV_INTERFACE)
     )
 endif()
 
-# # SHADERS
+# SHADERS
 include(BGFXCompileShaders)
 BGFXCompileShaders(
     "${CMAKE_CURRENT_SOURCE_DIR}/shader/shaders"    # root of shaders to compile. expects a subdir for each shader.
     "${CMAKE_BINARY_DIR}/assets/shaders"            # shader output dir. will create folders for each api
     "${SetupLib_BGFX_shaderc_PATH}"                 # path to shaderc
     "${bgfx_content_SOURCE_DIR}/bgfx/src"           # path to bgfx shader includes
-    "metal"                                     # list of ouput profiles. see shaderc help.
+    "150;100_es"                                    # list of ouput profiles. see shaderc help.
 )
 
 # CONFIGURE MAIN BINARY

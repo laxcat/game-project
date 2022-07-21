@@ -275,7 +275,7 @@ public:
             pointDataStrength[index].y,
             pointDataStrength[index].z,
             pointDataStrength[index].w,
-            colorVec4ToInt(pointDataColor[index]),
+            colorVec4ToUint((float *)&pointDataColor[index]),
             pointDataPosAndRadius[index].x,
             pointDataPosAndRadius[index].y,
             pointDataPosAndRadius[index].z,

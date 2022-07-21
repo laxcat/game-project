@@ -81,7 +81,7 @@ int main_desktop(EngineSetup const & setup) {
         return 1;
     }
     glfwSetWindowSizeCallback(window, glfw_windowSizeCallback);
-    glfwSetWindowAspectRatio(window, mm.windowSize.w, mm.windowSize.h);
+    // glfwSetWindowAspectRatio(window, mm.windowSize.w, mm.windowSize.h);
     glfwMakeContextCurrent(window);
 
     // input callbacks

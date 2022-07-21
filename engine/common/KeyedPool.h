@@ -137,7 +137,7 @@ public:
         return _keys.count(key);
     }
 
-    K toString() const {
+    std::string toString() const {
         std::stringstream s;
         s << "(";
         for (size_t i = 0; i < _end; ++i) {
