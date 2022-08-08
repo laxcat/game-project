@@ -42,10 +42,15 @@ public:
     }
 
     // val is int-color as 0xRRGGBBAA
-    void setPixel(size_t i, uint32_t val) {
+    void setPixelRGB(size_t i, uint32_t val) {
         data[i*comp+0] = ((byte_t *)&val)[3];
         data[i*comp+1] = ((byte_t *)&val)[2];
         data[i*comp+2] = ((byte_t *)&val)[1];
+    }
+
+    // val is int-color as 0xRRGGBBAA
+    void setPixel(size_t i, uint32_t val) {
+        setPixelRGB(i, val);
         data[i*comp+3] = ((byte_t *)&val)[0];
         // print("setting %zu to 0x%08x\n", i, val);
     }
