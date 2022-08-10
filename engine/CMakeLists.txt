@@ -10,8 +10,6 @@ if(NOT CMAKE_BUILD_TYPE)
     message(STATUS "CMAKE_BUILD_TYPE not set, defaulting to Release.")
 endif()
 
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/../cmake")
 
 # ---------------------------------------------------------------------------- #
@@ -34,7 +32,9 @@ project (game_project_engine
 # ---------------------------------------------------------------------------- #
 include(SetupLib)
 
-SetupLib_opengl()
+if(FORCE_OPENGL)
+    SetupLib_opengl()
+endif()
 SetupLib_bgfx()
 SetupLib_glm()
 SetupLib_tinygltf()
@@ -73,12 +73,16 @@ endif()
 
 # SHADERS
 include(BGFXCompileShaders)
+set(BGFXCompileShaders_OuputProfiles "metal")
+if(FORCE_OPENGL)
+    set(BGFXCompileShaders_OuputProfiles "150")
+endif()
 BGFXCompileShaders(
     "${CMAKE_CURRENT_SOURCE_DIR}/shader/shaders"    # root of shaders to compile. expects a subdir for each shader.
     "${CMAKE_BINARY_DIR}/assets/shaders"            # shader output dir. will create folders for each api
     "${SetupLib_BGFX_shaderc_PATH}"                 # path to shaderc
     "${bgfx_content_SOURCE_DIR}/bgfx/src"           # path to bgfx shader includes
-    "metal"                                         # list of ouput profiles. see shaderc help.
+    "${BGFXCompileShaders_OuputProfiles}"           # list of ouput profiles. see shaderc help.
 )
 
 # CONFIGURE MAIN BINARY

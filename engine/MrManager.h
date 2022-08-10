@@ -28,6 +28,7 @@ public:
 // STATE VARS
 // -------------------------------------------------------------------------- //
     size2 windowSize = {1920, 1080};
+    GLFWwindow * window = nullptr;
     bgfx::ViewId mainView = 0;
     bgfx::ViewId guiView  = 0xff;
     double thisTime;
@@ -53,7 +54,9 @@ public:
 // -------------------------------------------------------------------------- //
 // LIFECYCLE
 // -------------------------------------------------------------------------- //
-    void init(EngineSetup const & setup) {
+    int init(EngineSetup const & setup) {
+        assert(window && "set window");
+
         this->setup = setup;
 
         assetsPath = setup.assetsPath;
@@ -61,7 +64,9 @@ public:
         thisTime = setup.startTime;
         prevTime = setup.startTime;
 
-        if (setup.preInit) setup.preInit();
+        int err = 0;
+        if (setup.preInit) err = setup.preInit(setup.args);
+        if (err) return err;
 
         memSys.init();
         rendSys.init();
@@ -79,7 +84,10 @@ public:
         OriginWidget::setScale(5.f);
         #endif // DEV_INTERFACE
 
-        if (setup.postInit) setup.postInit();
+        if (setup.postInit) err = setup.postInit(setup.args);
+        if (err) return err;
+
+        return 0;
     }
 
     void shutdown() {

@@ -66,42 +66,48 @@ int main_desktop(EngineSetup const & setup) {
     glfwSetErrorCallback(glfw_errorCallback);
     if (!glfwInit())
         return 1;
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    if (setup.forceOpenGL) {
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    }
+    else {
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    }
     glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_FALSE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     if (setup.transparentFramebuffer) {
         glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE); // can be enabled to test transparent bg
     }
-    GLFWwindow * window = glfwCreateWindow(mm.windowSize.w, mm.windowSize.h, "3D IC, Desktop-prototype, BGFX", nullptr, nullptr);
-    if (!window) {
-        fprintf(stderr, "window creation failed\n");
+    mm.window = glfwCreateWindow(mm.windowSize.w, mm.windowSize.h, "Game Project Example", nullptr, nullptr);
+    if (!mm.window) {
+        fprintf(stderr, "mm.window creation failed\n");
         return 1;
     }
-    glfwSetWindowSizeCallback(window, glfw_windowSizeCallback);
-    // glfwSetWindowAspectRatio(window, mm.windowSize.w, mm.windowSize.h);
-    glfwMakeContextCurrent(window);
+    glfwSetWindowSizeCallback(mm.window, glfw_windowSizeCallback);
+    // glfwSetWindowAspectRatio(mm.window, mm.windowSize.w, mm.windowSize.h);
+    if (setup.forceOpenGL) glfwMakeContextCurrent(mm.window);
 
     // input callbacks
-    glfwSetKeyCallback(window, glfw_keyCallback);
-    glfwSetCursorPosCallback(window, glfw_mousePosCallback);
-    glfwSetMouseButtonCallback(window, glfw_mouseButtonCallback);
-    glfwSetScrollCallback(window, glfw_scrollCallback);
+    glfwSetKeyCallback(mm.window, glfw_keyCallback);
+    glfwSetCursorPosCallback(mm.window, glfw_mousePosCallback);
+    glfwSetMouseButtonCallback(mm.window, glfw_mouseButtonCallback);
+    glfwSetScrollCallback(mm.window, glfw_scrollCallback);
 
     // init
-    mm.init(setup);
+    int err = mm.init(setup);
+    if (err) return err;
 
     // setup ImGUI
     #if DEV_INTERFACE
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui_Implbgfx_Init(mm.guiView);
-    ImGui_ImplGlfw_InitForOther(window, true);
+    ImGui_ImplGlfw_InitForOther(mm.window, true);
     #endif // DEV_INTERFACE
 
-    while (!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(mm.window)) {
         // printf("wut %d\n", DEV_INTERFACE);
 
         glfwPollEvents();
@@ -135,7 +141,7 @@ int main_desktop(EngineSetup const & setup) {
     mm.devOverlay.shutdown();
     #endif // DEV_INTERFACE
 
-    glfwDestroyWindow(window);
+    glfwDestroyWindow(mm.window);
     glfwTerminate();
     return 0;
 }

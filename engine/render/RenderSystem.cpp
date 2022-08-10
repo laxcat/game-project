@@ -12,7 +12,7 @@ void RenderSystem::init() {
     // ensure single thread rendering
     bgfx::renderFrame();
 
-    settings.init(mm.windowSize);
+    settings.init(mm.window, mm.windowSize, mm.setup.forceOpenGL);
     if (!bgfx::init(settings.bgfxInit))
         return;
 

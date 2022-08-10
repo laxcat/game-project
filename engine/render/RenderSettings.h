@@ -33,9 +33,15 @@ public:
     bgfx::Init bgfxInit;
     uint64_t state = 0;
 
-    void init(size2 windowSize) {
-        bgfxInit.type = bgfx::RendererType::Metal;
-        bgfxInit.platformData.context = getGLContext();
+    void init(GLFWwindow * glfwWindow, size2 windowSize, bool forceOpenGL = false) {
+        if (forceOpenGL) {
+            bgfxInit.type = bgfx::RendererType::OpenGL;
+            bgfxInit.platformData.context = getGLContext();
+        }
+        else {
+            bgfxInit.type = bgfx::RendererType::Metal;
+            bgfxInit.platformData.nwh = getNativeWindow(glfwWindow);
+        }
         bgfxInit.resolution.width = (uint32_t)windowSize.w;
         bgfxInit.resolution.height = (uint32_t)windowSize.h;
         updateState();

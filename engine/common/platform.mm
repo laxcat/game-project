@@ -1,21 +1,30 @@
 #include "platform.h"
-#include "../dev/print.h"
+#include "glfw.h"
 
 #if PLATFORM_LINUX
     #include <EGL/egl.h>
 #elif PLATFORM_MAC
     #include <Cocoa/Cocoa.h>
+    #define GLFW_EXPOSE_NATIVE_COCOA
+    #define GLFW_NATIVE_INCLUDE_NONE
+    #include <GLFW/glfw3native.h>
 #endif
 
 
 void * getGLContext() {
     #if PLATFORM_LINUX
         // untested, but something like this.
-        void * ret = eglGetCurrentContext();
-        print("did this run, really? %p\n", ret);
-        return ret;
+        return eglGetCurrentContext();
     #elif PLATFORM_MAC
         return (void *)[NSOpenGLContext currentContext];
     #endif // PLATFORM_*
     return nullptr;
+}
+
+void * getNativeWindow(GLFWwindow * window) {
+#if PLATFORM_MAC
+    return glfwGetCocoaWindow(window);
+#elif
+    return NULL;
+#endif
 }

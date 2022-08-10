@@ -35,3 +35,6 @@
 
 
 void * getGLContext();
+
+typedef struct GLFWwindow GLFWwindow; // forward
+void * getNativeWindow(GLFWwindow * window);

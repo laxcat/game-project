@@ -14,8 +14,8 @@ void InputSys::mousePosEvent(double x, double y) {
             mm.camera.updatePosFromDistancePitchYaw();
         }
         else if (mm.camera.projType == Camera::ProjType::Ortho) {
-            mm.camera.target.x -= (x - prevPos.x) / mm.camera.distance;
-            mm.camera.target.y += (y - prevPos.y) / mm.camera.distance;
+            mm.camera.target.x -= ((x - prevPos.x) / mm.camera.distance) * orthoPanScale.x;
+            mm.camera.target.y += ((y - prevPos.y) / mm.camera.distance) * orthoPanScale.y;
             mm.camera.updateProjection();
         }
     }
@@ -32,11 +32,12 @@ void InputSys::mouseButtonEvent(int button, int action, int mods) {
 }
 
 void InputSys::scrollEvent(double x, double y) {
-    mm.camera.distance -= y;
     if (mm.camera.projType == Camera::ProjType::Persp) {
+        mm.camera.distance -= y;
         mm.camera.updatePosFromDistancePitchYaw();
     }
     else if (mm.camera.projType == Camera::ProjType::Ortho) {
+        mm.camera.distance -= y * orthoScrollScale;
         mm.camera.updateProjection();
     }
 }

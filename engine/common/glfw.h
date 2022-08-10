@@ -1,7 +1,6 @@
 #pragma once
-#include "platform.h"
 
-// #define GLFW_INCLUDE_NONE           // prevents including opengl header
+#define GLFW_INCLUDE_NONE           // prevents including opengl header
 #include <GLFW/glfw3.h>
 
 
