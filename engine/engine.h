@@ -33,6 +33,8 @@ struct EngineSetup {
 
     double startTime = 0.0;
     char const * assetsPath = "assets/";
+
+    char const * windowTitle = "Game Project Example";
 };
 
 int main_desktop(EngineSetup const & setup);

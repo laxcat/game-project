@@ -80,7 +80,7 @@ int main_desktop(EngineSetup const & setup) {
     if (setup.transparentFramebuffer) {
         glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE); // can be enabled to test transparent bg
     }
-    mm.window = glfwCreateWindow(mm.windowSize.w, mm.windowSize.h, "Game Project Example", nullptr, nullptr);
+    mm.window = glfwCreateWindow(mm.windowSize.w, mm.windowSize.h, setup.windowTitle, nullptr, nullptr);
     if (!mm.window) {
         fprintf(stderr, "mm.window creation failed\n");
         return 1;

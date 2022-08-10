@@ -1,5 +1,6 @@
 #include "InputSys.h"
 #include "../MrManager.h"
+#include "glfw.h"
 
 
 void InputSys::mousePosEvent(double x, double y) {
@@ -14,8 +15,9 @@ void InputSys::mousePosEvent(double x, double y) {
             mm.camera.updatePosFromDistancePitchYaw();
         }
         else if (mm.camera.projType == Camera::ProjType::Ortho) {
-            mm.camera.target.x -= ((x - prevPos.x) / mm.camera.distance) * orthoPanScale.x;
-            mm.camera.target.y += ((y - prevPos.y) / mm.camera.distance) * orthoPanScale.y;
+            float winDistRatio = mm.camera.distance / (float)mm.windowSize.h;
+            mm.camera.target.x -= (x - prevPos.x) * winDistRatio * orthoPanScale.x;
+            mm.camera.target.y += (y - prevPos.y) * winDistRatio * orthoPanScale.y;
             mm.camera.updateProjection();
         }
     }
@@ -24,6 +26,10 @@ void InputSys::mousePosEvent(double x, double y) {
 void InputSys::mouseButtonEvent(int button, int action, int mods) {
     isDown = action;
     if (isDown) {
+        double tx, ty;
+        glfwGetCursorPos(mm.window, &tx, &ty);
+        pos.x = tx;
+        pos.y = ty;
         downPos = pos;
     }
     else {
@@ -38,6 +44,7 @@ void InputSys::scrollEvent(double x, double y) {
     }
     else if (mm.camera.projType == Camera::ProjType::Ortho) {
         mm.camera.distance -= y * orthoScrollScale;
+        if (mm.camera.distance < 0.1f) mm.camera.distance = 0.1f;
         mm.camera.updateProjection();
     }
 }
