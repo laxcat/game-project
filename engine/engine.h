@@ -5,9 +5,20 @@ struct Args {
     char ** v = nullptr;
 };
 
+struct Event {
+    int key = 0;
+    int scancode = 0;
+    int button = 0;
+    int action = 0;
+    int mods = 0;
+    double x = 0.0;
+    double y = 0.0;
+};
+
 struct EngineSetup {
     using init_callback_t = int (*)(Args const & args);
     using callback_t = void (*)();
+    using input_callback_t = void (*)(Event const & event);
 
     init_callback_t preInit = nullptr;
     init_callback_t postInit = nullptr;
@@ -19,6 +30,10 @@ struct EngineSetup {
     callback_t postResize = nullptr;
     callback_t preShutdown = nullptr;
     callback_t postShutdown = nullptr;
+    input_callback_t keyEvent = nullptr;
+    input_callback_t mousePosEvent = nullptr;
+    input_callback_t mouseButtonEvent = nullptr;
+    input_callback_t scrollEvent = nullptr;
 
     Args args;
 
@@ -30,6 +45,8 @@ struct EngineSetup {
     #else
         false;
     #endif
+
+    bool cameraControl = true;
 
     double startTime = 0.0;
     char const * assetsPath = "assets/";

@@ -28,36 +28,36 @@ static void glfw_keyCallback(GLFWwindow *, int key, int scancode, int action, in
         return;
     }
     #endif // DEV_INTERFACE
-    mm.keyEvent(key, scancode, action, mods);
+    mm.keyEvent({.key=key, .scancode=scancode, .action=action, .mods=mods});
 }
 
 static void glfw_mousePosCallback(GLFWwindow *, double x, double y) {
     #if DEV_INTERFACE
     if (!ImGui::GetIO().WantCaptureMouse || !mm.devOverlay.isShowingImGUI()) {
-        mm.mousePosEvent(x, y);
+        mm.mousePosEvent({.x=x, .y=y});
     }
     #else
-    mm.mousePosEvent(x, y);
+    mm.mousePosEvent({.x=x, .y=y});
     #endif // DEV_INTERFACE
 }
 
 static void glfw_mouseButtonCallback(GLFWwindow *, int button, int action, int mods) {
     #if DEV_INTERFACE
     if (!ImGui::GetIO().WantCaptureMouse || !mm.devOverlay.isShowingImGUI()) {
-        mm.mouseButtonEvent(button, action, mods);
+        mm.mouseButtonEvent({.button=button, .action=action, .mods=mods});
     }
     #else
-    mm.mouseButtonEvent(button, action, mods);
+    mm.mouseButtonEvent({.button=button, .action=action, .mods=mods});
     #endif // DEV_INTERFACE
 }
 
 static void glfw_scrollCallback(GLFWwindow *, double x, double y) {
     #if DEV_INTERFACE
     if (!ImGui::GetIO().WantCaptureMouse || !mm.devOverlay.isShowingImGUI()) {
-        mm.scrollEvent(x, y);
+        mm.scrollEvent({.x=x, .y=y});
     }
     #else
-    mm.scrollEvent(x, y);
+    mm.scrollEvent({.x=x, .y=y});
     #endif // DEV_INTERFACE
 }
 

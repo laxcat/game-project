@@ -41,7 +41,7 @@ public:
     byte_t * buffer = nullptr;
     size_t bufferSize;
     std::vector<Mesh> meshes;
-    std::vector<Mesh> meshesWithAlpha;
+    std::vector<Mesh> meshesWithAlpha; // only used for loading. alpha meshes are at end of meshes.
     std::vector<Material> materials;
     bool isSafeToDraw = true;
 

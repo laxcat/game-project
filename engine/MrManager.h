@@ -5,10 +5,10 @@
 #include <glm/ext/matrix_transform.hpp>
 #include "engine.h"
 #include "common/glfw.h"
-#include "common/InputSys.h"
 #include "common/MemorySystem.h"
 #include "common/utils.h"
 #include "render/Camera.h"
+#include "render/CameraControl.h"
 #include "render/RenderSystem.h"
 
 #if DEV_INTERFACE
@@ -39,9 +39,15 @@ public:
 
     MemorySystem memSys;
     RenderSystem rendSys;
-    InputSys input;
+
+    bool mouseIsDown = false;
+    glm::vec2 mousePos;
+    glm::vec2 mousePrevPos;
+    glm::vec2 mouseDownPos;
+    glm::vec2 mouseUpPos;
 
     Camera camera;
+    CameraControl cameraControl;
 
     Renderable * originWidget;
 
@@ -74,7 +80,7 @@ public:
 
         #if DEV_INTERFACE
         devOverlay.init(windowSize);
-        devOverlay.setState(DevOverlay::DearImGUI);
+        devOverlay.setState(DevOverlay::None);
         devOverlay.showKeyboardShortcuts();
         #endif // DEV_INTERFACE
 
@@ -131,30 +137,44 @@ public:
 // EVENT
 // -------------------------------------------------------------------------- //
 
-    void keyEvent(int key, int scancode, int action, int mods) {
-        if (action == GLFW_PRESS) {
+    void keyEvent(Event const & e) {
+        if (e.action == GLFW_PRESS) {
             #if DEV_INTERFACE
-            int numKey = glfwNumberKey(key);
+            int numKey = glfwNumberKey(e.key);
             if (numKey != -1) {
                 devOverlay.setState(numKey);
             }
             #endif // DEV_INTERFACE
         }
+        if (setup.keyEvent) setup.keyEvent(e);
     }
 
-    void mousePosEvent(double x, double y) {
-        input.mousePosEvent(x, y);
-        // fprintf(stderr, "mouse pos event %f %f\n", x, y);
+    void mousePosEvent(Event const & e) {
+        mousePrevPos = mousePos;
+        mousePos.x = e.x;
+        mousePos.y = e.y;
+        if (setup.cameraControl) cameraControl.mousePosEvent(e);
+        if (setup.mousePosEvent) setup.mousePosEvent(e);
     }
 
-    void mouseButtonEvent(int button, int action, int mods) {
-        input.mouseButtonEvent(button, action, mods);
-        // fprintf(stderr, "mouse button event %d %d %d\n", button, action, mods);
+    void mouseButtonEvent(Event const & e) {
+        mouseIsDown = e.action;
+        if (mouseIsDown) {
+            double tx, ty;
+            glfwGetCursorPos(window, &tx, &ty);
+            mousePos.x = tx;
+            mousePos.y = ty;
+            mouseDownPos = mousePos;
+        }
+        else {
+            mouseUpPos = mousePos;
+        }
+        if (setup.mouseButtonEvent) setup.mouseButtonEvent(e);
     }
 
-    void scrollEvent(double x, double y) {
-        input.scrollEvent(x, y);
-        // fprintf(stderr, "scroll event %f %f\n", x, y);
+    void scrollEvent(Event const & e) {
+        if (setup.cameraControl) cameraControl.scrollEvent(e);
+        if (setup.scrollEvent) setup.scrollEvent(e);
     }
 };
 
