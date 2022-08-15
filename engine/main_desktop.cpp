@@ -61,11 +61,18 @@ static void glfw_scrollCallback(GLFWwindow *, double x, double y) {
     #endif // DEV_INTERFACE
 }
 
-int main_desktop(EngineSetup const & setup) {
-    // glfw init, no graphics context!
+int main_desktop(EngineSetup && setup) {
+    // glfw init
     glfwSetErrorCallback(glfw_errorCallback);
     if (!glfwInit())
         return 1;
+
+    // pre-window creation hook
+    int err = 0;
+    if (setup.preWindow) err = setup.preWindow(setup);
+    if (err) return err;
+
+    // create window
     if (setup.forceOpenGL) {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
@@ -80,13 +87,24 @@ int main_desktop(EngineSetup const & setup) {
     if (setup.transparentFramebuffer) {
         glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE); // can be enabled to test transparent bg
     }
-    mm.window = glfwCreateWindow(mm.windowSize.w, mm.windowSize.h, setup.windowTitle, nullptr, nullptr);
+    mm.window = glfwCreateWindow(
+        setup.requestWindowPosition.w,
+        setup.requestWindowPosition.h,
+        setup.windowTitle,
+        nullptr,
+        nullptr
+    );
     if (!mm.window) {
         fprintf(stderr, "mm.window creation failed\n");
         return 1;
     }
+    glfwGetWindowSize(mm.window, &mm.windowSize.w, &mm.windowSize.h);
+    if (setup.requestWindowPosition.x != GLFW_DONT_CARE && setup.requestWindowPosition.y != GLFW_DONT_CARE) {
+        glfwSetWindowPos(mm.window, setup.requestWindowPosition.x, setup.requestWindowPosition.y);
+    }
     glfwSetWindowSizeCallback(mm.window, glfw_windowSizeCallback);
-    // glfwSetWindowAspectRatio(mm.window, mm.windowSize.w, mm.windowSize.h);
+    glfwSetWindowAspectRatio(mm.window, setup.limits.ratioNumer, setup.limits.ratioDenom);
+    glfwSetWindowSizeLimits(mm.window, setup.limits.minw, setup.limits.minh, setup.limits.maxw, setup.limits.maxh);
     if (setup.forceOpenGL) glfwMakeContextCurrent(mm.window);
 
     // input callbacks
@@ -95,8 +113,8 @@ int main_desktop(EngineSetup const & setup) {
     glfwSetMouseButtonCallback(mm.window, glfw_mouseButtonCallback);
     glfwSetScrollCallback(mm.window, glfw_scrollCallback);
 
-    // init
-    int err = mm.init(setup);
+    // init MrManager
+    err = mm.init(setup);
     if (err) return err;
 
     // setup ImGUI
@@ -126,7 +144,6 @@ int main_desktop(EngineSetup const & setup) {
 
         mm.updateTime(glfwGetTime());
         mm.tick();
-        bgfx::frame();
     }
 
     #if DEV_INTERFACE

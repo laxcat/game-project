@@ -27,7 +27,7 @@ public:
 // -------------------------------------------------------------------------- //
 // STATE VARS
 // -------------------------------------------------------------------------- //
-    size2 windowSize = {1920, 1080};
+    size2 windowSize = {0, 0};
     GLFWwindow * window = nullptr;
     bgfx::ViewId mainView = 0;
     bgfx::ViewId guiView  = 0xff;
@@ -112,22 +112,24 @@ public:
 
     void tick() {
         if (setup.preDraw) setup.preDraw();
+        draw();
+        if (setup.postDraw) setup.postDraw();
+    }
 
-        // draw
+    void draw() {
         bgfx::setViewClear(mainView, BGFX_CLEAR_COLOR|BGFX_CLEAR_DEPTH, rendSys.colors.background);
         bgfx::setViewTransform(mainView, (float *)&camera.viewMat, (float *)&camera.projMat);
         bgfx::setViewRect(mainView, 0, 0, bgfx::BackbufferRatio::Equal);
         rendSys.draw();
-
-        if (setup.postDraw) setup.postDraw();
+        bgfx::frame();
     }
 
-    void updateSize(size2 window) {
+    void updateSize(size2 windowSize) {
         if (setup.preResize) setup.preResize();
 
-        windowSize = window;
-        rendSys.settings.updateSize(window);
-        camera.setRatio(window);
+        this->windowSize = windowSize;
+        rendSys.settings.updateSize(windowSize);
+        camera.setRatio(windowSize);
 
         if (setup.postResize) setup.postResize();
     }

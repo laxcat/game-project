@@ -71,6 +71,9 @@ inline void setName(char * dest, char const * name, size_t size = 32) {
     strncat(dest, name, size - 1);
 }
 
-// inline bool withinRange(float a, float b, float maxDiff = 0.05) {
-//     return (fabsf(a, b) <= maxDiff);
-// }
+// Recursive function to return gcd of a and b
+inline int gcd(int a, int b) {
+    if (a == 0)
+        return b;
+    return gcd(b % a, a);
+}

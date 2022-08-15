@@ -88,12 +88,27 @@ public:
 
     void updateProjection() {
         if (projType == ProjType::Persp) {
-            projMat = glm::perspective(fov, windowRatio, 0.05f, 1000.f);
+            projMat = glm::perspective(fov, windowRatio, 0.05f, 100000.f);
         }
         else if (projType == ProjType::Ortho) {
             float halfW = distance/2.f * windowRatio;
             float halfH = distance/2.f;
-            projMat = glm::ortho(target.x-halfW, target.x+halfW, target.y-halfH, target.y+halfH, -1000.f, 1000.f);
+
+            // This makes no sense. What i want is RH (y-up), which means +z should be "near".
+            // But it only works if we use orthoRH_ZO, and setup the near far "backwards", with -z "near".
+            // Other functions seem to clip all +z (or -z).
+            // Only with this setup could I get +/-z to not clip AND +z as "near",
+            //     but note near/far parameters are "backwards".
+            // Could be something to do w this?: https://stackoverflow.com/a/52887566/560384
+            projMat = glm::orthoRH_ZO(
+                // left         // right
+                target.x-halfW, target.x+halfW,
+                // bottom       // top
+                target.y-halfH, target.y+halfH,
+                // "near" (?)   // "far" (?)
+                -1000.f,        1000.f
+            );
+
             viewMat = glm::mat4{1.f};
         }
     }
