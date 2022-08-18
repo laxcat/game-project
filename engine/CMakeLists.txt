@@ -77,16 +77,17 @@ set(BGFXCompileShaders_OuputProfiles "metal")
 if(FORCE_OPENGL)
     set(BGFXCompileShaders_OuputProfiles "150")
 endif()
+file(GLOB shader_dirs RELATIVE "${shader_input_dir}" "${shader_input_dir}/*")
 BGFXCompileShaders(
-    "${CMAKE_CURRENT_SOURCE_DIR}/shader/shaders"    # root of shaders to compile. expects a subdir for each shader.
-    "${CMAKE_BINARY_DIR}/assets/shaders"            # shader output dir. will create folders for each api
-    "${SetupLib_BGFX_shaderc_PATH}"                 # path to shaderc
-    "${bgfx_content_SOURCE_DIR}/bgfx/src"           # path to bgfx shader includes
-    "${BGFXCompileShaders_OuputProfiles}"           # list of ouput profiles. see shaderc help.
+    embed
+    shader_dirs     "${CMAKE_CURRENT_SOURCE_DIR}/shader/shaders/gltf"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/shader/shaders/unlit"
+    profile_list    "${BGFXCompileShaders_OuputProfiles}"
+    target          BGFXShader_engine_target
 )
 
 # CONFIGURE MAIN BINARY
 set_property(TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY COMPILE_FLAGS ${SetupLib_flags})
 target_link_libraries(${PROJECT_NAME} ${SetupLib_libs})
 target_compile_definitions(${PROJECT_NAME} PUBLIC DEV_INTERFACE=${DEV_INTERFACE})
-add_dependencies(${PROJECT_NAME} BGFXShader_target)
+add_dependencies(${PROJECT_NAME} BGFXShader_engine_target)

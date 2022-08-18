@@ -61,7 +61,7 @@ static void glfw_scrollCallback(GLFWwindow *, double x, double y) {
     #endif // DEV_INTERFACE
 }
 
-int main_desktop(EngineSetup && setup) {
+int main_desktop(EngineSetup & setup) {
     // glfw init
     glfwSetErrorCallback(glfw_errorCallback);
     if (!glfwInit())
@@ -161,4 +161,8 @@ int main_desktop(EngineSetup && setup) {
     glfwDestroyWindow(mm.window);
     glfwTerminate();
     return 0;
+}
+
+int main_desktop(EngineSetup && setup) {
+    return main_desktop(setup);
 }

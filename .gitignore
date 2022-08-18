@@ -2,3 +2,4 @@ build/*
 !build/clearcache
 
 .DS_Store
+*.geninc

@@ -106,3 +106,4 @@ struct EngineSetup {
 };
 
 int main_desktop(EngineSetup && setup);
+int main_desktop(EngineSetup & setup);

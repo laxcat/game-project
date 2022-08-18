@@ -1,5 +1,18 @@
 #include "RenderSystem.h"
 #include "../MrManager.h"
+#include "../common/bgfx_extra.h"
+
+#if FORCE_OPENGL
+    #include "../shader/shaders/gltf/vs_gltf.150.bin.geninc"
+    #include "../shader/shaders/gltf/fs_gltf.150.bin.geninc"
+    #include "../shader/shaders/unlit/vs_unlit.150.bin.geninc"
+    #include "../shader/shaders/unlit/fs_unlit.150.bin.geninc"
+#else
+    #include "../shader/shaders/gltf/vs_gltf.metal.bin.geninc"
+    #include "../shader/shaders/gltf/fs_gltf.metal.bin.geninc"
+    #include "../shader/shaders/unlit/vs_unlit.metal.bin.geninc"
+    #include "../shader/shaders/unlit/fs_unlit.metal.bin.geninc"
+#endif
 
 static bool constexpr ShowRenderDbg = false;
 static bool constexpr ShowRenderDbgTick = ShowRenderDbg && false;
@@ -16,8 +29,8 @@ void RenderSystem::init() {
     if (!bgfx::init(settings.bgfxInit))
         return;
 
-    gltfProgram = mm.memSys.loadProgram(mm.assetsPath, "vs_gltf", "fs_gltf");
-    unlitProgram = mm.memSys.loadProgram(mm.assetsPath, "vs_unlit", "fs_unlit");
+    gltfProgram = createBGFXProgram(vs_gltf_bin, vs_gltf_bin_len, fs_gltf_bin, fs_gltf_bin_len);
+    unlitProgram = createBGFXProgram(vs_unlit_bin, vs_unlit_bin_len, fs_unlit_bin, fs_unlit_bin_len);
     samplers.init();
     lights.init();
     fog.init();
