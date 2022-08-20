@@ -19,6 +19,7 @@ if(NOT BUILD_NUMBER)
     set(BUILD_NUMBER 0)
 endif()
 
+
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 project (game_project_engine
@@ -77,7 +78,6 @@ set(BGFXCompileShaders_OuputProfiles "metal")
 if(FORCE_OPENGL)
     set(BGFXCompileShaders_OuputProfiles "150")
 endif()
-file(GLOB shader_dirs RELATIVE "${shader_input_dir}" "${shader_input_dir}/*")
 BGFXCompileShaders(
     embed
     shader_dirs     "${CMAKE_CURRENT_SOURCE_DIR}/shader/shaders/gltf"

@@ -56,7 +56,7 @@ macro(SetupLib_bgfx)
     FetchContent_Declare(
         bgfx_content
         GIT_REPOSITORY https://github.com/bkaradzic/bgfx.cmake
-        GIT_TAG        99b9c1e852462bf3b50ab0c698797180db8544e9 # arbitrary, captured March2022, https://github.com/bkaradzic/bgfx.cmake/releases/tag/v1.115.8087-99b9c1e
+        GIT_TAG        12b75cc0ad0078a700d4854db16e119ef4706347 # arbitrary, captured Aug2022, https://github.com/bkaradzic/bgfx.cmake/releases/tag/v1.115.8181-12b75cc
     )
     add_compile_definitions(BGFX_CONFIG_MULTITHREADED=1)
 
@@ -71,6 +71,7 @@ macro(SetupLib_bgfx)
     FetchContent_MakeAvailable(bgfx_content)
     include_directories(${BX_DIR}/include)
     # include_directories(${BIMG_DIR}/include)
+    list(APPEND SetupLib_include_dirs "${BIMG_DIR}/3rdparty")
     list(APPEND SetupLib_include_dirs "${BX_DIR}/include")
     target_compile_options(bgfx PUBLIC 
         -Wno-tautological-compare
@@ -83,6 +84,7 @@ macro(SetupLib_bgfx)
 
     # Force shaderc to always be release, and not to recompile if CMAKE_BUILD_TYPE changes
     set(SetupLib_BGFX_shaderc_PATH "${CMAKE_CURRENT_BINARY_DIR}/shaderc")
+    set(SetupLib_BGFX_shaderc_PATH "${SetupLib_BGFX_shaderc_PATH}" PARENT_SCOPE)
     if (NOT EXISTS "${SetupLib_BGFX_shaderc_PATH}")
         set(TEMP_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
         unset(CMAKE_BUILD_TYPE)
