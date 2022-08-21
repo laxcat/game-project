@@ -5,7 +5,6 @@
 #include <glm/ext/matrix_transform.hpp>
 #include "engine.h"
 #include "common/glfw.h"
-#include "common/MemorySystem.h"
 #include "common/utils.h"
 #include "render/Camera.h"
 #include "render/CameraControl.h"
@@ -37,7 +36,6 @@ public:
     char const * assetsPath = "";
     EngineSetup setup;
 
-    MemorySystem memSys;
     RenderSystem rendSys;
 
     bool mouseIsDown = false;
@@ -74,13 +72,12 @@ public:
         if (setup.preInit) err = setup.preInit(setup.args);
         if (err) return err;
 
-        memSys.init();
         rendSys.init();
         camera.init(windowSize);
 
         #if DEV_INTERFACE
         devOverlay.init(windowSize);
-        devOverlay.setState(DevOverlay::None);
+        devOverlay.setState(DevOverlay::DearImGUI);
         devOverlay.showKeyboardShortcuts();
         #endif // DEV_INTERFACE
 
@@ -98,7 +95,6 @@ public:
 
     void shutdown() {
         if (setup.preShutdown) setup.preShutdown();
-        memSys.shutdown();
         rendSys.shutdown();
         camera.shutdown();
         if (setup.postShutdown) setup.postShutdown();

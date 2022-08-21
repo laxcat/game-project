@@ -202,8 +202,8 @@ void RenderSystem::shutdown() {
     while (it != renderablePool.end()) {
         it = destroy(it->key);
     }
-    mm.memSys.destroyProgram(gltfProgram);
-    mm.memSys.destroyProgram(unlitProgram);
+    bgfx::destroy(gltfProgram);
+    bgfx::destroy(unlitProgram);
     for (auto & t : loadingThreads) {
         t.second.join();
     }
