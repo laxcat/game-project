@@ -103,8 +103,12 @@ int main_desktop(EngineSetup & setup) {
         glfwSetWindowPos(mm.window, setup.requestWindowPosition.x, setup.requestWindowPosition.y);
     }
     glfwSetWindowSizeCallback(mm.window, glfw_windowSizeCallback);
-    glfwSetWindowAspectRatio(mm.window, setup.limits.ratioNumer, setup.limits.ratioDenom);
-    glfwSetWindowSizeLimits(mm.window, setup.limits.minw, setup.limits.minh, setup.limits.maxw, setup.limits.maxh);
+    glfwSetWindowAspectRatio(mm.window, setup.windowLimits.ratioNumer, setup.windowLimits.ratioDenom);
+    glfwSetWindowSizeLimits(
+        mm.window,
+        setup.windowLimits.minw, setup.windowLimits.minh,
+        setup.windowLimits.maxw, setup.windowLimits.maxh
+    );
     if (setup.forceOpenGL) glfwMakeContextCurrent(mm.window);
 
     // input callbacks

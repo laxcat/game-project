@@ -5,6 +5,7 @@
 #include <glm/ext/matrix_transform.hpp>
 #include "engine.h"
 #include "common/glfw.h"
+#include "common/MemSys.h"
 #include "common/utils.h"
 #include "render/Camera.h"
 #include "render/CameraControl.h"
@@ -36,6 +37,8 @@ public:
     char const * assetsPath = "";
     EngineSetup setup;
 
+    MemSys memSys;
+    MemSys::Allocator * stringFrameAllocator = nullptr;
     RenderSystem rendSys;
 
     bool mouseIsDown = false;
@@ -72,6 +75,10 @@ public:
         if (setup.preInit) err = setup.preInit(setup.args);
         if (err) return err;
 
+        memSys.init(setup.memSysSize);
+        if (setup.stringFrameAllocatorSize) {
+            stringFrameAllocator = memSys.createAllocator(setup.stringFrameAllocatorSize, 1);
+        }
         rendSys.init();
         camera.init(windowSize);
 
@@ -110,6 +117,7 @@ public:
         if (setup.preDraw) setup.preDraw();
         draw();
         if (setup.postDraw) setup.postDraw();
+        if (stringFrameAllocator) stringFrameAllocator->reset();
     }
 
     void draw() {
@@ -128,6 +136,30 @@ public:
         camera.setRatio(windowSize);
 
         if (setup.postResize) setup.postResize();
+    }
+
+// -------------------------------------------------------------------------- //
+// TEMP STRING
+// -------------------------------------------------------------------------- //
+
+    // char * tempStr(char const * fmt ...) {
+    //     va_list args;
+    //     va_start(args, formatString);
+    //     vprint(formatString, args);
+    //     vsnprintf(fmt, args);
+    //     va_end(args);
+
+    //     assert(stringFrameAllocator && "String frame allocator not initialized.");
+    //     char * ret = stringFrameAllocator->claim<char>(size);
+    //     assert(ret && "Could not claim temp string.");
+    //     return ret;
+    // }
+
+    char * tempStr(size_t size) {
+        assert(stringFrameAllocator && "String frame allocator not initialized.");
+        char * ret = stringFrameAllocator->claim<char>(size);
+        assert(ret && "Could not claim temp string.");
+        return ret;
     }
 
 

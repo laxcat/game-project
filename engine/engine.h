@@ -1,4 +1,5 @@
 #pragma once
+#include <stddef.h>
 
 /*
 Engine entry point.
@@ -23,9 +24,7 @@ int main(int argc, char ** argv) {
     });
 }
 ```
-
 */
-
 
 struct Args {
     int c = 0;
@@ -84,7 +83,10 @@ struct EngineSetup {
 
     Args args;
 
-    Limits limits;
+    Limits windowLimits;
+
+    size_t memSysSize = 1024*1024;
+    size_t stringFrameAllocatorSize = 1024*2;
 
     bool transparentFramebuffer = false;
 
