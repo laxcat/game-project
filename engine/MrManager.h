@@ -38,7 +38,7 @@ public:
     EngineSetup setup;
 
     MemSys memSys;
-    MemSys::Allocator * stringFrameAllocator = nullptr;
+    MemSys::Pool * stringFramePool = nullptr;
     RenderSystem rendSys;
 
     bool mouseIsDown = false;
@@ -77,7 +77,7 @@ public:
 
         memSys.init(setup.memSysSize);
         if (setup.stringFrameAllocatorSize) {
-            stringFrameAllocator = memSys.createAllocator(setup.stringFrameAllocatorSize, 1);
+            stringFramePool = memSys.createPool(setup.stringFrameAllocatorSize, 1);
         }
         rendSys.init();
         camera.init(windowSize);
@@ -117,7 +117,7 @@ public:
         if (setup.preDraw) setup.preDraw();
         draw();
         if (setup.postDraw) setup.postDraw();
-        if (stringFrameAllocator) stringFrameAllocator->reset();
+        if (stringFramePool) stringFramePool->reset();
     }
 
     void draw() {
@@ -149,15 +149,15 @@ public:
     //     vsnprintf(fmt, args);
     //     va_end(args);
 
-    //     assert(stringFrameAllocator && "String frame allocator not initialized.");
-    //     char * ret = stringFrameAllocator->claim<char>(size);
+    //     assert(stringFramePool && "String frame allocator not initialized.");
+    //     char * ret = stringFramePool->claim<char>(size);
     //     assert(ret && "Could not claim temp string.");
     //     return ret;
     // }
 
     char * tempStr(size_t size) {
-        assert(stringFrameAllocator && "String frame allocator not initialized.");
-        char * ret = stringFrameAllocator->claim<char>(size);
+        assert(stringFramePool && "String frame allocator not initialized.");
+        char * ret = stringFramePool->claim<char>(size);
         assert(ret && "Could not claim temp string.");
         return ret;
     }

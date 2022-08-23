@@ -3,91 +3,136 @@
 
 class MemSys {
 public:
-    // types
-    class Allocator {
+    // types ---------------------------------------------------------------- //
+
+    enum Type {
+        FREE,
+        POOL,
+    };
+
+    // Block, basic unit of all sub sections of the memory space.
+    //
+    // Each block will be placed in the large memory space, with an instance
+    // placed at the start of the block, with "size" bytes available directly
+    // after in memory. Member "size" represents this data space size, so the
+    // block actually takes up size + BlockInfoSize in MemSys data block.
+    class Block {
     public:
         friend class MemSys;
 
-        size_t size() const { return _objMaxCount * _objSize; }
+
+        size_t dataSize() const { return size; }
+        size_t totalSize()  const { return BlockInfoSize + size; }
+        byte_t * data() { return (byte_t *)this + BlockInfoSize; }
+
+    private:
+        size_t size = 0; // this is data size, not total size!
+        Block * prev = nullptr;
+        Block * next = nullptr;
+        Type type = FREE;
+        Block() {}
+
+        // split block A into block A (with requested data size) and block B with what remains.
+        Block * split(size_t blockANewSize) {
+            // block a (this) is not big enough.
+            // equal data size also rejected because new block would have
+            // 0 bytes for data.
+            if (dataSize() <= blockANewSize + BlockInfoSize) return nullptr;
+
+            // where to put the new block?
+            byte_t * newLoc = data() + blockANewSize;
+            // write it to data with defaults
+            Block * b = new (newLoc) Block();
+            // block b gets remaining space
+            b->size = dataSize() - BlockInfoSize - blockANewSize;
+
+            // set this size
+            size = blockANewSize;
+
+            // link up
+            b->next = next;
+            b->prev = this;
+            next = b;
+
+            return b;
+        }
+
+        // merge this block with next block IF both are free
+        Block * mergeWithNext() {
+            if (type != FREE || !next || next->type != FREE) return nullptr;
+            size += next->totalSize();
+            next = next->next;
+            return this;
+        }
+    };
+    constexpr static size_t BlockInfoSize = sizeof(Block);
+
+    // block types (things we put into the blocks) -------------------------- //
+
+    class Pool {
+    public:
+        friend class MemSys;
+
+        size_t size() const { return objMaxCount * objSize; }
 
         template <typename T>
         T * claimTo(size_t index) {
-            assert(sizeof(T) == _objSize);
-            if (index >= _objMaxCount) return nullptr;
-            _freeIndex = index;
-            return &((T *)_ptr)[_freeIndex];
+            assert(sizeof(T) == objSize);
+            if (index >= objMaxCount) return nullptr;
+            freeIndex = index;
+            return &((T *)ptr)[freeIndex];
         }
 
         template <typename T>
         T * claim(size_t count) {
-            assert(sizeof(T) == _objSize);
-            if (_freeIndex + count >= _objMaxCount) return nullptr;
-            _freeIndex += count;
-            return &((T *)_ptr)[_freeIndex];
+            assert(sizeof(T) == objSize);
+            if (freeIndex + count >= objMaxCount) return nullptr;
+            freeIndex += count;
+            return &((T *)ptr)[freeIndex];
         }
 
-        void reset() { _freeIndex = 0; }
+        void reset() { freeIndex = 0; }
 
     private:
-        byte_t * _ptr = nullptr;
-        size_t _objMaxCount = 0;
-        size_t _objSize = 0;
-        Allocator * _next = nullptr;
-        Allocator * _prev = nullptr;
-        size_t _freeIndex = 0;
+        byte_t * ptr = nullptr;
+        size_t objMaxCount = 0;
+        size_t objSize = 0;
+        size_t freeIndex = 0;
 
-        Allocator(byte_t * ptr, size_t objCount, size_t objSize) {
-            _ptr = ptr;
-            _objMaxCount = objCount;
-            _objSize = objSize;
+        Pool(byte_t * ptr, size_t objCount, size_t objSize) {
+            this->ptr = ptr;
+            this->objMaxCount = objCount;
+            this->objSize = objSize;
         }
     };
 
-    // public
-    // Allocator stringFrameAllocator;
+    // Allocator
+    // Stack
 
-    // lifecycle
+    // lifecycle ------------------------------------------------------------ //
+
     void init(size_t size) {
         _data = (byte_t *)malloc(size);
         _size = size;
-        _free = 0;
-        auto fi = getFreeInfoFromData();
-        fi->size = size;
-        fi->prev = InvalidLoc;
-        fi->next = InvalidLoc;
+        Block * b = new (_data) Block();
+        b->size = size - BlockInfoSize;
     }
 
-    Allocator * createAllocator(size_t objCount, size_t objSize) {
-        printf("createAllocator\n");
-
-        byte_t * ptr = request(objCount * objSize + sizeof(Allocator));
-        if (!ptr) return nullptr;
-
-        printf("ptr for new allocator %p (_data = %p, loc = %zu)\n", ptr, _data, ptr - _data);
-
-        auto a = new (ptr) Allocator{ptr + sizeof(Allocator), objCount, objSize};
-
-        Allocator * prev = nullptr;
-        for (auto p = _allocatorListHead; p; p = p->_next) {
-            auto loc = (byte_t *)p;
-            if (loc < ptr && loc + p->size() >= ptr) {
-                prev = p;
-                break;
-            }
-        }
-        if (prev) {
-            a->_prev = prev;
-            a->_next = prev->_next;
-            prev->_next = a;
-        }
-
-        return a;
+    void shutdown() {
+        if (_data) free(_data), _data = nullptr;
     }
 
-    void destroyAllocator(Allocator * a) {
-        // check
-        size_t aloc = (byte_t *)a - _data;
-        if (aloc > _size) {
+    // create/destroy for block types --------------------------------------- //
+
+    Pool * createPool(size_t objCount, size_t objSize) {
+        Block * block = requestFreeBlock(objCount * objSize + sizeof(Pool));
+        if (!block) return nullptr;
+        block->type = POOL;
+        return new (block->data()) Pool{block->data() + sizeof(Pool), objCount, objSize};
+    }
+
+    void destroyPool(Pool * a) {
+        if (!isWithinData((byte_t *)a)) {
             fprintf(
                 stderr,
                 "Unexpected location for allocator. Expected mem range %p-%p, recieved %p",
@@ -96,143 +141,37 @@ public:
             assert(false);
         }
 
-        // amount of space to freeing up
-        size_t asize = sizeof(Allocator) + a->size();
+        Block * block = (Block *)((byte_t *)a - BlockInfoSize);
+        block->type = FREE;
+        block->mergeWithNext();
+        if (block->prev) block->prev->mergeWithNext();
 
-        // link up prev/next allocators
-        if (a->_prev) a->_prev->_next = a->_next;
-        if (a->_next) a->_next->_prev = a->_prev;
-
-        // run dtor
-        a->~Allocator();
-
-        // find prev free space
-        FreeInfo * prevfi = nullptr;
-        size_t floc = _free;
-        while (floc != InvalidLoc) {
-            FreeInfo * fi = getFreeInfoFromData(floc);
-            if (!fi) break;
-            if (floc < aloc && (fi->next == InvalidLoc || fi->next >= aloc)) {
-                prevfi = fi;
-                break;
-            }
-            floc = fi->next;
-        }
-        // find next free space
-        FreeInfo * nextfi = getFreeInfoFromData((prevfi) ? prevfi->next : _free);
-        // locations relative to _data
-        size_t prevloc = (prevfi) ? (byte_t *)prevfi - _data : InvalidLoc;
-        size_t nextloc = (nextfi) ? (byte_t *)nextfi - _data : InvalidLoc;
-
-        // merge two free spaces on either side
-        if (
-            prevfi && // free space exists before
-            nextfi && // free space exists after
-            prevloc + prevfi->size == aloc && // prev space abuts target allocator
-            aloc + asize == nextloc // target allocator abuts next space
-        ) {
-            prevfi->size += asize + nextfi->size;
-            prevfi->next = nextfi->next;
-            if (prevfi->next != InvalidLoc) getFreeInfoFromData(prevfi->next)->prev = prevloc;
-        }
-        // merge with prev
-        else if (
-            prevfi && // free space exists before
-            prevloc + prevfi->size == aloc // prev space abuts target allocator
-        ) {
-            prevfi->size += asize;
-        }
-        // merge with next
-        else if (
-            nextfi && // free space exists after
-            aloc + sizeof(Allocator) + a->size() == nextloc // target allocator abuts next space
-        ) {
-            FreeInfo * fi = getFreeInfoFromData(aloc);
-            fi->size = asize + nextfi->size;
-            fi->prev = (prevfi) ? prevloc : InvalidLoc;
-            fi->next = nextfi->next;
-            if (nextfi->next) getFreeInfoFromData(nextfi->next)->prev = aloc;
-            if (prevfi) getFreeInfoFromData(prevloc)->next = aloc;
-        }
-        // create new free space
-        else {
-            FreeInfo * fi = getFreeInfoFromData(aloc);
-            fi->size = asize;
-            fi->prev = InvalidLoc;
-            fi->next = InvalidLoc;
-            if (prevfi) {
-                fi->prev = prevloc;
-                prevfi->next = aloc;
-            }
-            if (nextfi) {
-                fi->next = nextloc;
-                nextfi->prev = aloc;
-            }
-        }
     }
 
-    void shutdown() {
-        if (_data) free(_data), _data = nullptr;
-        _free = 0;
-    }
 private:
     byte_t * _data = nullptr;
-    Allocator * _allocatorListHead = nullptr;
+    Block * _blockHead = nullptr;
     size_t _size = 0;
-    size_t _free = InvalidLoc; // location of first FreeInfo written into the data
 
-    struct FreeInfo {
-        size_t size;
-        size_t prev;
-        size_t next;
-    };
-
-    static constexpr size_t MinFreeSpace = sizeof(FreeInfo);
-    static constexpr size_t InvalidLoc = SIZE_MAX;
-
-    // if requested space found:
-    //     • updates _free and free info
-    //     • returns pointer to requested free space
-    // if requested space not found:
-    //     • does not modify _free / free info
-    //     • returns nullptr
-    byte_t * request(size_t size) {
-        FreeInfo * fi = getFreeInfoFromData();
-        while(fi && fi->size < size) {
-            fi = getFreeInfoFromData(fi->next);
+    // find block with enough free space, split it to size, and return it
+    Block * requestFreeBlock(size_t size) {
+        Block * block = nullptr;
+        for (block = _blockHead; block; block = block->next) {
+            if (block->type == FREE && block->dataSize() >= size) {
+                break;
+            }
         }
-        if (!fi) {
-            return nullptr;
-        }
+        if (!block) return nullptr;
 
-        auto claimed = (byte_t *)fi;
+        // we don't care if the split actually happens or not
+        block->split(size);
 
-        // shrink this free space
-        if (fi->size - size > MinFreeSpace) {
-            // write new info in new location
-            size_t newFree = (claimed - _data) + fi->size;
-            auto nfi = getFreeInfoFromData(newFree);
-            nfi->size = fi->size - size;
-            nfi->prev = fi->prev;
-            nfi->next = fi->next;
-        }
-        // consume this free space
-        else {
-            FreeInfo * prev = getFreeInfoFromData(fi->prev);
-            FreeInfo * next = getFreeInfoFromData(fi->next);
-            prev->next = fi->next;
-            next->prev = fi->prev;
-        }
-
-        return claimed;
+        // the old block gets returned. it was (probably) shrunk to fit by split
+        return block;
     }
 
-    FreeInfo * getFreeInfoFromData(size_t loc = InvalidLoc) {
-        // default to _free
-        if (loc == InvalidLoc) loc = _free;
-        // no free space
-        if (loc == InvalidLoc) return nullptr;
-        // return info written into data
-        return (FreeInfo *)(_data + loc);
+    // check if random pointer is within
+    bool isWithinData(byte_t * ptr, size_t size = 0) {
+        return (ptr >= _data && ptr + size <= _data + _size);
     }
 };
