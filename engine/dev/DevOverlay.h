@@ -81,9 +81,10 @@ public:
     }
 
     void vprint(char const * formatString, va_list args) {
+        assert(false && "Don't use this. Buffer overflow problems. The whole on-screen debug buffer concept needs to be rethought.");
         // write msg to temp buffer
         static char temp[1024];
-        vsprintf(temp, formatString, args);
+        vsnprintf(temp, 1024, formatString, args);
         // copy temp buffer to main buffer, converting \n to cursor
         int cursorX = 0;
         size_t size = strlen(temp);

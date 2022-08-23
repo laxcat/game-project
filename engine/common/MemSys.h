@@ -20,7 +20,6 @@ public:
     public:
         friend class MemSys;
 
-
         size_t dataSize() const { return size; }
         size_t totalSize()  const { return BlockInfoSize + size; }
         byte_t * data() { return (byte_t *)this + BlockInfoSize; }
@@ -30,6 +29,7 @@ public:
         Block * prev = nullptr;
         Block * next = nullptr;
         Type type = FREE;
+        byte_t info[4];
         Block() {}
 
         // split block A into block A (with requested data size) and block B with what remains.
@@ -107,6 +107,7 @@ public:
     };
 
     // Allocator
+
     // Stack
 
     // lifecycle ------------------------------------------------------------ //
@@ -114,8 +115,8 @@ public:
     void init(size_t size) {
         _data = (byte_t *)malloc(size);
         _size = size;
-        Block * b = new (_data) Block();
-        b->size = size - BlockInfoSize;
+        _blockHead = new (_data) Block();
+        _blockHead->size = size - BlockInfoSize;
     }
 
     void shutdown() {
@@ -141,8 +142,12 @@ public:
             assert(false);
         }
 
+        // we verified the pool is in our expected memory space,
+        // so it's safe to extract the block info just prior to it
         Block * block = (Block *)((byte_t *)a - BlockInfoSize);
+        // set to free
         block->type = FREE;
+        // try to merge with neighboring blocks
         block->mergeWithNext();
         if (block->prev) block->prev->mergeWithNext();
 
@@ -173,5 +178,49 @@ private:
     // check if random pointer is within
     bool isWithinData(byte_t * ptr, size_t size = 0) {
         return (ptr >= _data && ptr + size <= _data + _size);
+    }
+
+public:
+    void getInfo(char * buf, int bufSize) {
+        int blockCount = 0;
+        for (Block * b = _blockHead; b; b = b->next) {
+            ++blockCount;
+        }
+
+        int wrote = 0;
+        wrote += snprintf(
+            buf + wrote,
+            bufSize - wrote,
+            "MemSys\n"
+            "================================================================================\n"
+            "Data: %p, Size: %zu, Block count: %d\n"
+            ,
+            _data,
+            _size,
+            blockCount
+        );
+
+        int i = 0;
+        for (Block * b = _blockHead; b != nullptr; b = b->next) {
+            wrote += snprintf(
+                buf + wrote,
+                bufSize - wrote,
+                "--------------------------------------------------------------------------------\n"
+                "Block %d, %s\n"
+                "--------------------\n"
+                "Base: %p, Data: %p, Data size: %zu\n"
+                "--------------------------------------------------------------------------------\n"
+                ,
+                i,
+                    (b->type == FREE) ? "FREE" :
+                    (b->type == POOL) ? "POOL" :
+                    "(unknown type)"
+                ,
+                b,
+                b->data(),
+                b->dataSize()
+            );
+            ++i;
+        }
     }
 };

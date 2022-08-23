@@ -104,6 +104,7 @@ public:
         if (setup.preShutdown) setup.preShutdown();
         rendSys.shutdown();
         camera.shutdown();
+        memSys.shutdown();
         if (setup.postShutdown) setup.postShutdown();
     }
 
@@ -141,19 +142,6 @@ public:
 // -------------------------------------------------------------------------- //
 // TEMP STRING
 // -------------------------------------------------------------------------- //
-
-    // char * tempStr(char const * fmt ...) {
-    //     va_list args;
-    //     va_start(args, formatString);
-    //     vprint(formatString, args);
-    //     vsnprintf(fmt, args);
-    //     va_end(args);
-
-    //     assert(stringFramePool && "String frame allocator not initialized.");
-    //     char * ret = stringFramePool->claim<char>(size);
-    //     assert(ret && "Could not claim temp string.");
-    //     return ret;
-    // }
 
     char * tempStr(size_t size) {
         assert(stringFramePool && "String frame allocator not initialized.");

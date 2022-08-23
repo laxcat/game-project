@@ -11,6 +11,7 @@
 // Objects inserted sequentialy, but new objects will use old free slots if
 // objects have been erased, so should be only used if object order is 
 // unimportant.
+// In other words, iteration happens on memory order, not insertion order.
 
 template <typename K, typename T, size_t MAX=16>
 class KeyedPool {

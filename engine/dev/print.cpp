@@ -7,6 +7,7 @@
 void vprint(char const * formatString, va_list args) {
     vfprintf(stdout, formatString, args);
     #if DEV_INTERFACE
-    mm.devOverlay.vprint(formatString, args);
+    // see devOverlay.vprint. needs rethinking.
+    // mm.devOverlay.vprint(formatString, args);
     #endif
 }
