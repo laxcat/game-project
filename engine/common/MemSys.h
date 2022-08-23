@@ -201,7 +201,7 @@ public:
         );
 
         int i = 0;
-        for (Block * b = _blockHead; b != nullptr; b = b->next) {
+        for (Block * b = _blockHead; b != nullptr; b = b->next, ++i) {
             wrote += snprintf(
                 buf + wrote,
                 bufSize - wrote,
@@ -220,7 +220,6 @@ public:
                 b->data(),
                 b->dataSize()
             );
-            ++i;
         }
     }
 };
