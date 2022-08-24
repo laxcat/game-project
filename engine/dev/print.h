@@ -1,7 +1,6 @@
 #pragma once
 #include <stdarg.h>
 
-
 void vprint(char const * formatString, va_list args);
 
 inline void print(char const * formatString, ...) {
@@ -9,6 +8,17 @@ inline void print(char const * formatString, ...) {
     va_start(args, formatString);
     vprint(formatString, args);
     va_end(args);
+}
+
+inline void printl(char const * formatString, ...) {
+    va_list args;
+    va_start(args, formatString);
+    vprint(formatString, args);
+    vprint("\n", nullptr);
+    va_end(args);
+}
+inline void printl() {
+    vprint("\n", nullptr);
 }
 
 inline void printc(bool shouldPrint, char const * formatString, ...) {
