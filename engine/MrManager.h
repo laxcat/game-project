@@ -18,6 +18,9 @@
 #endif // DEV_INTERFACE
 
 
+
+#include "common/Path.h"
+
 // Central app manager. Unenforced singleton.
 // Access through mm, an inline global variable found in this header. (inline var requires C++17)
 // https://www.youtube.com/watch?v=ZdGrC9S4PYA
@@ -96,6 +99,8 @@ public:
 
         if (setup.postInit) err = setup.postInit(setup.args);
         if (err) return err;
+
+        testMemSys();
 
         return 0;
     }
@@ -193,6 +198,70 @@ public:
     void scrollEvent(Event const & e) {
         if (setup.cameraControl) cameraControl.scrollEvent(e);
         if (setup.scrollEvent) setup.scrollEvent(e);
+    }
+
+
+
+    void testMemSys() {
+        int bufSize = 4096;
+        char * buf = tempStr(bufSize);
+        memSys.getInfo(buf, bufSize);
+        print("%s\n", buf);
+
+        printl("!!! creating 2 pools");
+        printl();
+        MemSys::Pool * temp1 = memSys.createPool(1024, 16);
+        MemSys::Pool * temp2 = memSys.createPool(16, 16);
+
+        memSys.getInfo(buf, bufSize);
+        print("%s\n", buf);
+
+        printl("!!! destroying pool 1");
+        printl();
+        memSys.destroyPool(temp1);
+
+        memSys.getInfo(buf, bufSize);
+        print("%s\n", buf);
+
+        printl("!!! destroying pool 2");
+        printl();
+        memSys.destroyPool(temp2);
+
+        memSys.getInfo(buf, bufSize);
+        print("%s\n", buf);
+
+        printl("!!! testing frameStack->formatStr");
+        printl();
+        char * temp = frameStack->formatStr("hello this is %d\n", 47);
+        print("%s", temp);
+
+        printl("!!! testing external allocation");
+        printl();
+        Path * p = memSys.create<Path>(0, "fart");
+
+        memSys.getInfo(buf, bufSize);
+        print("%s\n", buf);
+
+        printl("!!! creating 1 pool");
+        printl();
+        MemSys::Pool * temp3 = memSys.createPool(64, 64);
+
+        memSys.getInfo(buf, bufSize);
+        print("%s\n", buf);
+
+        printl("!!! destroying external allocation");
+        printl();
+        memSys.destroy(p);
+
+        memSys.getInfo(buf, bufSize);
+        print("%s\n", buf);
+
+        printl("!!! destroying pool 3");
+        printl();
+        memSys.destroyPool(temp3);
+
+        memSys.getInfo(buf, bufSize);
+        print("%s\n", buf);
     }
 };
 
