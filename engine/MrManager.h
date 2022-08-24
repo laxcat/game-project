@@ -38,7 +38,7 @@ public:
     EngineSetup setup;
 
     MemSys memSys;
-    MemSys::Pool * stringFramePool = nullptr;
+    MemSys::Stack * frameStack = nullptr;
     RenderSystem rendSys;
 
     bool mouseIsDown = false;
@@ -76,8 +76,8 @@ public:
         if (err) return err;
 
         memSys.init(setup.memSysSize);
-        if (setup.stringFrameAllocatorSize) {
-            stringFramePool = memSys.createPool(setup.stringFrameAllocatorSize, 1);
+        if (setup.frameStackSize) {
+            frameStack = memSys.createStack(setup.frameStackSize);
         }
         rendSys.init();
         camera.init(windowSize);
@@ -118,7 +118,7 @@ public:
         if (setup.preDraw) setup.preDraw();
         draw();
         if (setup.postDraw) setup.postDraw();
-        if (stringFramePool) stringFramePool->reset();
+        if (frameStack) frameStack->reset();
     }
 
     void draw() {
@@ -144,9 +144,9 @@ public:
 // -------------------------------------------------------------------------- //
 
     char * tempStr(size_t size) {
-        assert(stringFramePool && "String frame allocator not initialized.");
-        char * ret = stringFramePool->claim<char>(size);
-        assert(ret && "Could not claim temp string.");
+        assert(frameStack && "Frame stack not initialized.");
+        char * ret = frameStack->alloc<char>(size);
+        assert(ret && "Could not allocate temp string.");
         return ret;
     }
 

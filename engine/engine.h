@@ -85,8 +85,8 @@ struct EngineSetup {
 
     Limits windowLimits;
 
-    size_t memSysSize = 1024*1024;
-    size_t stringFrameAllocatorSize = 1024*2;
+    size_t memSysSize = 1024*1024*20;
+    size_t frameStackSize = 1024*1024*1;
 
     bool transparentFramebuffer = false;
 

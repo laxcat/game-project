@@ -8,6 +8,7 @@ public:
     enum Type {
         FREE,
         POOL,
+        STACK,
     };
 
     // Block, basic unit of all sub sections of the memory space.
@@ -106,9 +107,51 @@ public:
         }
     };
 
-    // Allocator
-
     // Stack
+    class Stack {
+    public:
+        friend class MemSys;
+
+        size_t size() const { return _size; }
+        byte_t * dataHead() const { return _ptr + _head; }
+
+        template <typename T>
+        T * alloc(size_t count = 1) {
+            if (_head + sizeof(T) * count > _size) return nullptr;
+            T * ret = (T *)(_ptr + _head);
+            _head += sizeof(T) * count;
+            return ret;
+        }
+
+        byte_t * alloc(size_t size) {
+            return alloc<byte_t>(size);
+        }
+
+        char * formatStr(char const * fmt, ...) {
+            char * str = (char *)dataHead();
+            va_list args;
+            va_start(args, fmt);
+            _head += vsnprintf(str, _size - _head, fmt, args);
+            va_end(args);
+            if (_head > _size) _head = _size;
+            return str;
+        }
+
+        void reset() { _head = 0; }
+
+    private:
+        byte_t * _ptr = nullptr;
+        size_t _size = 0;
+        size_t _head = 0;
+
+        Stack(byte_t * ptr, size_t size) :
+            _ptr(ptr),
+            _size(size)
+        {
+        }
+    };
+
+    // Allocator
 
     // lifecycle ------------------------------------------------------------ //
 
@@ -133,24 +176,38 @@ public:
     }
 
     void destroyPool(Pool * a) {
-        if (!isWithinData((byte_t *)a)) {
+        destroyBlockContents(a);
+    }
+
+    Stack * createStack(size_t size) {
+        Block * block = requestFreeBlock(size + sizeof(Stack));
+        if (!block) return nullptr;
+        block->type = STACK;
+        return new (block->data()) Stack{block->data() + sizeof(Stack), size};
+    }
+
+    void destroyStack(Stack * s) {
+        destroyBlockContents(s);
+    }
+
+    void destroyBlockContents(void * ptr) {
+        if (!isWithinData((byte_t *)ptr)) {
             fprintf(
                 stderr,
-                "Unexpected location for allocator. Expected mem range %p-%p, recieved %p",
-                _data, _data + _size, a
+                "Unexpected location for pointer. Expected mem range %p-%p, recieved %p",
+                _data, _data + _size, ptr
             );
             assert(false);
         }
 
         // we verified the pool is in our expected memory space,
         // so it's safe to extract the block info just prior to it
-        Block * block = (Block *)((byte_t *)a - BlockInfoSize);
+        Block * block = (Block *)((byte_t *)ptr - BlockInfoSize);
         // set to free
         block->type = FREE;
         // try to merge with neighboring blocks
         block->mergeWithNext();
         if (block->prev) block->prev->mergeWithNext();
-
     }
 
 private:
@@ -212,8 +269,9 @@ public:
                 "--------------------------------------------------------------------------------\n"
                 ,
                 i,
-                    (b->type == FREE) ? "FREE" :
-                    (b->type == POOL) ? "POOL" :
+                    (b->type == FREE)  ? "FREE"  :
+                    (b->type == POOL)  ? "POOL"  :
+                    (b->type == STACK) ? "STACK" :
                     "(unknown type)"
                 ,
                 b,
