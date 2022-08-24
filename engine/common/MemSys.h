@@ -6,9 +6,10 @@ public:
     // types ---------------------------------------------------------------- //
 
     enum Type {
-        FREE,
-        POOL,
-        STACK,
+        FREE,       // empty space to be claimed
+        POOL,       // a pool, an internal type with special treament
+        STACK,      // a stack, an internal type with special treament
+        EXTERNAL    // externally requested
     };
 
     // Block, basic unit of all sub sections of the memory space.
@@ -166,7 +167,7 @@ public:
         if (_data) free(_data), _data = nullptr;
     }
 
-    // create/destroy for block types --------------------------------------- //
+    // create/destroy for internal types ------------------------------------ //
 
     Pool * createPool(size_t objCount, size_t objSize) {
         Block * block = requestFreeBlock(objCount * objSize + sizeof(Pool));
@@ -176,7 +177,7 @@ public:
     }
 
     void destroyPool(Pool * a) {
-        destroyBlockContents(a);
+        destroy(a);
     }
 
     Stack * createStack(size_t size) {
@@ -187,10 +188,18 @@ public:
     }
 
     void destroyStack(Stack * s) {
-        destroyBlockContents(s);
+        destroy(s);
     }
 
-    void destroyBlockContents(void * ptr) {
+    template <typename T, typename ... TP>
+    T * create(size_t size, TP && ... params) {
+        Block * block = requestFreeBlock(size + sizeof(T));
+        if (!block) return nullptr;
+        block->type = EXTERNAL;
+        return new (block->data()) T{static_cast<TP &&>(params)...};
+    }
+
+    void destroy(void * ptr) {
         if (!isWithinData((byte_t *)ptr)) {
             fprintf(
                 stderr,
@@ -200,20 +209,17 @@ public:
             assert(false);
         }
 
-        // we verified the pool is in our expected memory space,
-        // so it's safe to extract the block info just prior to it
+        // we verified the ptr is in our expected memory space,
+        // so we expect block info just prior to it
         Block * block = (Block *)((byte_t *)ptr - BlockInfoSize);
-        // set to free
+        // set block to free
         block->type = FREE;
         // try to merge with neighboring blocks
         block->mergeWithNext();
         if (block->prev) block->prev->mergeWithNext();
     }
 
-private:
-    byte_t * _data = nullptr;
-    Block * _blockHead = nullptr;
-    size_t _size = 0;
+    // block handling ------------------------------------------------------- //
 
     // find block with enough free space, split it to size, and return it
     Block * requestFreeBlock(size_t size) {
@@ -225,12 +231,21 @@ private:
         }
         if (!block) return nullptr;
 
-        // we don't care if the split actually happens or not
+        // We don't care if the split actually happens or not.
+        // If it happened, we still return the first block and the 2nd is of no
+        // concern.
+        // If it didn't, it was the rare case where the block is big enough to
+        // hold our data, but with not enough room to create a new block.
         block->split(size);
 
         // the old block gets returned. it was (probably) shrunk to fit by split
         return block;
     }
+
+private:
+    byte_t * _data = nullptr;
+    Block * _blockHead = nullptr;
+    size_t _size = 0;
 
     // check if random pointer is within
     bool isWithinData(byte_t * ptr, size_t size = 0) {
@@ -269,9 +284,10 @@ public:
                 "--------------------------------------------------------------------------------\n"
                 ,
                 i,
-                    (b->type == FREE)  ? "FREE"  :
-                    (b->type == POOL)  ? "POOL"  :
-                    (b->type == STACK) ? "STACK" :
+                    (b->type == FREE)     ? "FREE"  :
+                    (b->type == POOL)     ? "POOL"  :
+                    (b->type == STACK)    ? "STACK" :
+                    (b->type == EXTERNAL) ? "EXTERNAL" :
                     "(unknown type)"
                 ,
                 b,
