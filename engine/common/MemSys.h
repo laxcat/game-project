@@ -1,15 +1,20 @@
 #pragma once
 #include "types.h"
+#include <stdio.h>
 
 class MemSys {
 public:
     // types ---------------------------------------------------------------- //
 
     enum Type {
-        FREE,       // empty space to be claimed
-        POOL,       // a pool, an internal type with special treament
-        STACK,      // a stack, an internal type with special treament
-        EXTERNAL    // externally requested
+        // empty space to be claimed
+        TYPE_FREE,
+        // internal types, with special treatment
+        TYPE_POOL,
+        TYPE_STACK,
+        TYPE_FILE,
+        // externally requested of any type
+        TYPE_EXTERNAL
     };
 
     // Block, basic unit of all sub sections of the memory space.
@@ -30,7 +35,7 @@ public:
         size_t size = 0; // this is data size, not total size!
         Block * prev = nullptr;
         Block * next = nullptr;
-        Type type = FREE;
+        Type type = TYPE_FREE;
 
         // "info" could maybe be a magic string (for safety checks). or maybe additional info.
         // 8-byte allignment on current machine is forcing this Block to always be 32 bytes anyway
@@ -67,7 +72,7 @@ public:
 
         // merge this block with next block IF both are free
         Block * mergeWithNext() {
-            if (type != FREE || !next || next->type != FREE) return nullptr;
+            if (type != TYPE_FREE || !next || next->type != TYPE_FREE) return nullptr;
             size += next->totalSize();
             next = next->next;
             return this;
@@ -82,6 +87,9 @@ public:
         friend class MemSys;
 
         size_t size() const { return _objMaxCount * _objSize; }
+        size_t objMaxCount() const { return _objMaxCount; }
+        size_t objSize() const { return _objSize; }
+        size_t freeIndex() const { return _freeIndex; }
         byte_t * data() const { return (byte_t *)this + sizeof(Pool); }
 
         template <typename T>
@@ -119,6 +127,7 @@ public:
         friend class MemSys;
 
         size_t size() const { return _size; }
+        size_t head() const { return _head; }
         byte_t * data() const { return (byte_t *)this + sizeof(Stack); }
         byte_t * dataHead() const { return data() + _head; }
 
@@ -156,7 +165,77 @@ public:
         }
     };
 
-    // Allocator
+    // read only for now
+    class File {
+    public:
+        friend class MemSys;
+
+        // data size is one bigger than actual file size. 0x00 byte written at end.
+        size_t size() const { return _size; }
+        size_t head() const { return _head; }
+        size_t fileSize() const { return _size - 1; }
+        byte_t * data() const { return (byte_t *)this + sizeof(File); }
+        byte_t * dataHead() const { return data() + _head; }
+        bool loaded() const { return _loaded; }
+        char const * path() const { return _path; }
+
+        bool load(FILE * externalFP = nullptr) {
+            FILE * fp;
+
+            // if file was already open, user might have passed in a file pointer
+            // to save from reopening it
+            if (externalFP) {
+                fp = externalFP;
+                int fseekError = fseek(fp, 0L, 0);
+                if (fseekError) {
+                    fprintf(stderr, "Error seeking to begining of file \"%s\" for load: %d\n", _path, fseekError);
+                    return false;
+                }
+            }
+            else {
+                errno = 0;
+                fp = fopen(_path, "r");
+                if (!fp) {
+                    fprintf(stderr, "Error opening file \"%s\" for loading: %d\n", _path, errno);
+                    return false;
+                }
+            }
+
+            size_t readSize = fread(data(), 1, fileSize(), fp);
+            if (readSize != fileSize()) {
+                fprintf(stderr, "Error reading file \"%s\" contents: read %zu, expecting %zu\n",
+                    _path, readSize, fileSize());
+                return false;
+            }
+
+            if (!externalFP) {
+                fclose(fp);
+                int fe = ferror(fp);
+                if (fe) {
+                    fprintf(stderr, "Error closing file \"%s\" after load: %d\n", _path, fe);
+                    return false;
+                }
+            }
+
+            //0x00 byte written after file contents
+            data()[_size-1] = '\0';
+
+            _loaded = true;
+            return true;
+        }
+
+    private:
+        size_t _size = 0;
+        size_t _head = 0;
+        char const * _path = "";
+        bool _loaded = false;
+
+        File(size_t size, char const * path) :
+            _size(size),
+            _path(path)
+        {
+        }
+    };
 
     // lifecycle ------------------------------------------------------------ //
 
@@ -176,7 +255,7 @@ public:
     Pool * createPool(size_t objCount, size_t objSize) {
         Block * block = requestFreeBlock(objCount * objSize + sizeof(Pool));
         if (!block) return nullptr;
-        block->type = POOL;
+        block->type = TYPE_POOL;
         return new (block->data()) Pool{objCount, objSize};
     }
 
@@ -187,7 +266,7 @@ public:
     Stack * createStack(size_t size) {
         Block * block = requestFreeBlock(size + sizeof(Stack));
         if (!block) return nullptr;
-        block->type = STACK;
+        block->type = TYPE_STACK;
         return new (block->data()) Stack{size};
     }
 
@@ -195,11 +274,60 @@ public:
         destroy(s);
     }
 
+    File * createFileHandle(char const * path, bool loadNow = false) {
+        // open to deternmine size, and also maybe load
+        errno = 0;
+        FILE * fp = fopen(path, "r");
+        if (!fp) {
+            fprintf(stderr, "Error loading file \"%s\": %d\n", path, errno);
+            return nullptr;
+        }
+        int fseekError = fseek(fp, 0L, SEEK_END);
+        if (fseekError) {
+            fprintf(stderr, "Error seeking in file \"%s\": %d\n", path, fseekError);
+            return nullptr;
+        }
+        errno = 0;
+        long fileSize = ftell(fp);
+        if (fileSize == -1) {
+            fprintf(stderr, "Error reading seek position in file \"%s\": %d\n", path, errno);
+            return nullptr;
+        }
+
+        // make size one bigger. load process will write 0x00 in the last byte
+        // after file contents so contents can be printed as string in place.
+        size_t size = (size_t)fileSize + 1;
+
+        Block * block = requestFreeBlock(size + sizeof(File));
+        if (!block) return nullptr;
+        block->type = TYPE_FILE;
+        File * f = new (block->data()) File{size, path};
+
+        // load now if request. send fp to avoid opening twice
+        if (loadNow) {
+            bool success = f->load(fp);
+            // not sure what to do here. block successfully created but error in load...
+            // keep block creation or cancel the whole thing?
+            // File::load should report actual error.
+            if (!success) {
+            }
+        }
+
+        // close fp
+        fclose(fp);
+
+        return f;
+    }
+
+    void destroyFileHandle(File * f) {
+        destroy(f);
+    }
+
     template <typename T, typename ... TP>
     T * create(size_t size, TP && ... params) {
         Block * block = requestFreeBlock(size + sizeof(T));
         if (!block) return nullptr;
-        block->type = EXTERNAL;
+        block->type = TYPE_EXTERNAL;
         return new (block->data()) T{static_cast<TP &&>(params)...};
     }
 
@@ -217,7 +345,7 @@ public:
         // so we expect block info just prior to it
         Block * block = (Block *)((byte_t *)ptr - BlockInfoSize);
         // set block to free
-        block->type = FREE;
+        block->type = TYPE_FREE;
         // try to merge with neighboring blocks
         block->mergeWithNext();
         if (block->prev) block->prev->mergeWithNext();
@@ -229,7 +357,7 @@ public:
     Block * requestFreeBlock(size_t size) {
         Block * block = nullptr;
         for (block = _blockHead; block; block = block->next) {
-            if (block->type == FREE && block->dataSize() >= size) {
+            if (block->type == TYPE_FREE && block->dataSize() >= size) {
                 break;
             }
         }
@@ -284,19 +412,72 @@ public:
                 "--------------------------------------------------------------------------------\n"
                 "Block %d, %s\n"
                 "--------------------\n"
-                "Base: %p, Data: %p, Data size: %zu\n"
-                "--------------------------------------------------------------------------------\n"
+                "Base: %p, Data: %p, BlockDataSize: %zu\n"
                 ,
                 i,
-                    (b->type == FREE)     ? "FREE"  :
-                    (b->type == POOL)     ? "POOL"  :
-                    (b->type == STACK)    ? "STACK" :
-                    (b->type == EXTERNAL) ? "EXTERNAL" :
+                    (b->type == TYPE_FREE)     ? "FREE"  :
+                    (b->type == TYPE_POOL)     ? "POOL"  :
+                    (b->type == TYPE_STACK)    ? "STACK" :
+                    (b->type == TYPE_FILE)     ? "FILE" :
+                    (b->type == TYPE_EXTERNAL) ? "EXTERNAL" :
                     "(unknown type)"
                 ,
                 b,
                 b->data(),
                 b->dataSize()
+            );
+
+            if (b->type == TYPE_FREE) {
+            }
+            else if (b->type == TYPE_POOL) {
+                Pool * pool = (Pool *)b->data();
+                wrote += snprintf(
+                    buf + wrote,
+                    bufSize - wrote,
+                    "PoolInfoSize: %zu, ObjSize: %zu, MaxCount/DataSize: *%zu=%zu, FirstFree: %zu\n"
+                    ,
+                    sizeof(Pool),
+                    pool->objSize(),
+                    pool->objMaxCount(),
+                    pool->size(),
+                    pool->freeIndex()
+                );
+            }
+            else if (b->type == TYPE_STACK) {
+                Stack * stack = (Stack *)b->data();
+                wrote += snprintf(
+                    buf + wrote,
+                    bufSize - wrote,
+                    "StackInfoSize: %zu, DataSize: %zu, Head: %zu\n"
+                    ,
+                    sizeof(Stack),
+                    stack->size(),
+                    stack->head()
+                );
+            }
+            else if (b->type == TYPE_FILE) {
+                File * file = (File *)b->data();
+                wrote += snprintf(
+                    buf + wrote,
+                    bufSize - wrote,
+                    "FileInfoSize: %zu, FileSize: %zu, DataSize: %zu, Head: %zu, Loaded: %s\n"
+                    "Path: %s\n"
+                    ,
+                    sizeof(File),
+                    file->fileSize(),
+                    file->size(),
+                    file->head(),
+                    file->loaded()?"yes":"no",
+                    file->path()
+                );
+            }
+            else if (b->type == TYPE_EXTERNAL) {
+            }
+
+            wrote += snprintf(
+                buf + wrote,
+                bufSize - wrote,
+                "--------------------------------------------------------------------------------\n"
             );
         }
     }

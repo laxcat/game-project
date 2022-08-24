@@ -18,8 +18,9 @@
 #endif // DEV_INTERFACE
 
 
-
+// TESTING AND DEBUG ONLY, REMOVE THESE
 #include "common/Path.h"
+
 
 // Central app manager. Unenforced singleton.
 // Access through mm, an inline global variable found in this header. (inline var requires C++17)
@@ -99,8 +100,6 @@ public:
 
         if (setup.postInit) err = setup.postInit(setup.args);
         if (err) return err;
-
-        testMemSys();
 
         return 0;
     }
@@ -259,6 +258,21 @@ public:
         printl("!!! destroying pool 3");
         printl();
         memSys.destroyPool(temp3);
+
+        memSys.getInfo(buf, bufSize);
+        print("%s\n", buf);
+
+        printl("loading file");
+        printl();
+        MemSys::File * f = memSys.createFileHandle("testFile.txt", true);
+        if (f) {
+            if (f->loaded()) {
+                printl("file loaded. found %zu bytes. last byte: 0x%02x", f->size(), f->data()[f->size()-1]);
+            }
+            else {
+                printl("file read but not loaded. found %zu bytes.", f->size());
+            }
+        }
 
         memSys.getInfo(buf, bufSize);
         print("%s\n", buf);
