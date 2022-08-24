@@ -31,7 +31,13 @@ public:
         Block * prev = nullptr;
         Block * next = nullptr;
         Type type = FREE;
+
+        // "info" could maybe be a magic string (for safety checks). or maybe additional info.
+        // 8-byte allignment on current machine is forcing this Block to always be 32 bytes anyway
+        // so this is here to make that explicit. We could even take more space from type, which
+        // could easily be only 1 or 2 bytes.
         byte_t info[4];
+
         Block() {}
 
         // split block A into block A (with requested data size) and block B with what remains.
@@ -43,7 +49,7 @@ public:
 
             // where to put the new block?
             byte_t * newLoc = data() + blockANewSize;
-            // write it to data with defaults
+            // write block info into data space with defaults
             Block * b = new (newLoc) Block();
             // block b gets remaining space
             b->size = dataSize() - BlockInfoSize - blockANewSize;
@@ -69,57 +75,57 @@ public:
     };
     constexpr static size_t BlockInfoSize = sizeof(Block);
 
-    // block types (things we put into the blocks) -------------------------- //
+    // internal block content types ----------------------------------------- //
 
     class Pool {
     public:
         friend class MemSys;
 
-        size_t size() const { return objMaxCount * objSize; }
+        size_t size() const { return _objMaxCount * _objSize; }
+        byte_t * data() const { return (byte_t *)this + sizeof(Pool); }
 
         template <typename T>
         T * claimTo(size_t index) {
-            assert(sizeof(T) == objSize);
-            if (index >= objMaxCount) return nullptr;
-            freeIndex = index;
-            return &((T *)ptr)[freeIndex];
+            assert(sizeof(T) == _objSize);
+            if (index >= _objMaxCount) return nullptr;
+            _freeIndex = index;
+            return &((T *)data())[_freeIndex];
         }
 
         template <typename T>
         T * claim(size_t count) {
-            assert(sizeof(T) == objSize);
-            if (freeIndex + count >= objMaxCount) return nullptr;
-            freeIndex += count;
-            return &((T *)ptr)[freeIndex];
+            assert(sizeof(T) == _objSize);
+            if (_freeIndex + count >= _objMaxCount) return nullptr;
+            _freeIndex += count;
+            return &((T *)data())[_freeIndex];
         }
 
-        void reset() { freeIndex = 0; }
+        void reset() { _freeIndex = 0; }
 
     private:
-        byte_t * ptr = nullptr;
-        size_t objMaxCount = 0;
-        size_t objSize = 0;
-        size_t freeIndex = 0;
+        size_t _objMaxCount = 0;
+        size_t _objSize = 0;
+        size_t _freeIndex = 0;
 
-        Pool(byte_t * ptr, size_t objCount, size_t objSize) {
-            this->ptr = ptr;
-            this->objMaxCount = objCount;
-            this->objSize = objSize;
+        Pool(size_t objCount, size_t objSize) :
+            _objMaxCount(objCount),
+            _objSize(objSize)
+        {
         }
     };
 
-    // Stack
     class Stack {
     public:
         friend class MemSys;
 
         size_t size() const { return _size; }
-        byte_t * dataHead() const { return _ptr + _head; }
+        byte_t * data() const { return (byte_t *)this + sizeof(Stack); }
+        byte_t * dataHead() const { return data() + _head; }
 
         template <typename T>
         T * alloc(size_t count = 1) {
             if (_head + sizeof(T) * count > _size) return nullptr;
-            T * ret = (T *)(_ptr + _head);
+            T * ret = (T *)dataHead();
             _head += sizeof(T) * count;
             return ret;
         }
@@ -141,12 +147,10 @@ public:
         void reset() { _head = 0; }
 
     private:
-        byte_t * _ptr = nullptr;
         size_t _size = 0;
         size_t _head = 0;
 
-        Stack(byte_t * ptr, size_t size) :
-            _ptr(ptr),
+        Stack(size_t size) :
             _size(size)
         {
         }
@@ -173,7 +177,7 @@ public:
         Block * block = requestFreeBlock(objCount * objSize + sizeof(Pool));
         if (!block) return nullptr;
         block->type = POOL;
-        return new (block->data()) Pool{block->data() + sizeof(Pool), objCount, objSize};
+        return new (block->data()) Pool{objCount, objSize};
     }
 
     void destroyPool(Pool * a) {
@@ -184,7 +188,7 @@ public:
         Block * block = requestFreeBlock(size + sizeof(Stack));
         if (!block) return nullptr;
         block->type = STACK;
-        return new (block->data()) Stack{block->data() + sizeof(Stack), size};
+        return new (block->data()) Stack{size};
     }
 
     void destroyStack(Stack * s) {
