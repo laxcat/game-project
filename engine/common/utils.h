@@ -1,26 +1,20 @@
 #pragma once
 #include <stdio.h>
 #include <filesystem>
-#include <vector>
 #include <glm/mat4x4.hpp>
 #include "types.h"
 
 
-// convert vector of doubles to glm::mat4 type
-inline void glmMat4(glm::mat4 m, std::vector<double> const & v) {
-    if (v.size() == 16) {
-        for (int i = 0; i < 16; ++i) {
-            m[i/4][i%4] = (float)v[i];
-        }
+inline glm::mat4 glmMat4(double const * v) {
+    glm::mat4 m;
+    float * f = (float *)&m;
+    for (int i = 0; i < 16; ++i) {
+        f[i] = (float)v[i];
     }
-}
-inline glm::mat4 glmMat4(std::vector<double> const & v) {
-    glm::mat4 m{1.f};
-    glmMat4(m, v);
     return m;
 }
 
-inline glm::vec4 glmVec4(std::vector<double> const & v) {
+inline glm::vec4 glmVec4(double const * v) {
     return glm::vec4{v[0], v[1], v[2], v[3]};
 }
 
@@ -66,11 +60,10 @@ inline float lerp(float x0, float x1, float v) {
 
 inline void setName(char * dest, char const * name, size_t size = 32) {
     if (size == 0) return;
-    dest[0] = '\0';
-    strncat(dest, name, size - 1);
+    snprintf(dest, size, "%s", name);
 }
 
-// Recursive function to return gcd of a and b
+// greatest common denominator
 inline int gcd(int a, int b) {
     if (a == 0)
         return b;

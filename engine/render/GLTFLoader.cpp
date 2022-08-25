@@ -100,7 +100,7 @@ void GLTFLoader::load(char const * filename, Renderable & renderable) {
         Material mat;
         setName(mat.name, material.name.c_str());
         // mat.name[0] = '\0', strncat(mat.name, material.name.c_str(), 31);
-        mat.baseColor = glmVec4(material.pbrMetallicRoughness.baseColorFactor);
+        mat.baseColor = glmVec4(material.pbrMetallicRoughness.baseColorFactor.data());
         renderable.materials.push_back(mat);
     }
 
@@ -145,7 +145,7 @@ void GLTFLoader::traverseNodes(
 
         // if matrix exists use that
         if (node.matrix.size() == 16) {
-            nodeMat = glmMat4(node.matrix);
+            nodeMat = glmMat4(node.matrix.data());
 
             // printf("Node %s MAT:\n", node.name.size()?node.name.c_str():"");
             // print16f((float *)&nodeMat);
@@ -469,7 +469,7 @@ void GLTFLoader::printModel(bool shouldPrint, tinygltf::Model const & model) {
             }
             if (node.matrix.size()) {
                 print("%sMATRIX: \n", indentNext);
-                glm::mat4 m = glmMat4(node.matrix);
+                glm::mat4 m = glmMat4(node.matrix.data());
                 print16f((float *)&m, indentNext);
             }
     
