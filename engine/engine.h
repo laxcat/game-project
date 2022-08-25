@@ -41,7 +41,7 @@ struct Event {
     double y = 0.0;
 };
 
-struct Limits {
+struct WindowLimits {
     // always passed directly into glfwSetWindowSizeLimits
     // these defaults match GLFW_DONT_CARE, which effectively means no constraints are set
     int minw = -1;
@@ -83,7 +83,7 @@ struct EngineSetup {
 
     Args args;
 
-    Limits windowLimits;
+    WindowLimits windowLimits;
 
     size_t memSysSize = 1024*1024*20;
     size_t frameStackSize = 1024*1024*1;

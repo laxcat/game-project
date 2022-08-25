@@ -1,6 +1,9 @@
 #pragma once
 #include "types.h"
 #include <stdio.h>
+#include <errno.h>
+#include <assert.h>
+#include <new>
 
 class MemSys {
 public:
@@ -240,8 +243,12 @@ public:
             char * str = (char *)dataHead();
             va_list args;
             va_start(args, fmt);
-            _head += vsnprintf(str, _size - _head, fmt, args);
+            int written = vsnprintf(str, _size - _head, fmt, args);
             va_end(args);
+
+            // vsnprintf writes '\0' to buffer but doesn't count it in return value
+            if (written) _head += written + 1;
+
             if (_head > _size) _head = _size;
             return str;
         }

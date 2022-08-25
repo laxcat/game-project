@@ -1,4 +1,5 @@
 #include "RenderSystem.h"
+#include <bgfx/platform.h>
 #include "../MrManager.h"
 #include "../common/bgfx_extra.h"
 #include "../common/string_utils.h"

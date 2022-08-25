@@ -55,8 +55,10 @@ set(SetupLib_include_dirs ${SetupLib_include_dirs} PARENT_SCOPE)
 add_library(${PROJECT_NAME})
 target_sources(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/main_desktop.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MrManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/animation/Animator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/platform.mm
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/string_utils.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/dev/print.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/render/CameraControl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/render/GLTFLoader.cpp
