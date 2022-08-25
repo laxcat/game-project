@@ -80,6 +80,59 @@ public:
     };
     constexpr static size_t BlockInfoSize = sizeof(Block);
 
+    // reference objects to internal memory --------------------------------- //
+
+    // assumed to be uninitialized. has reserved space, but also has head (count)
+    template <typename T>
+    class Array {
+    public:
+        Array() : _ptr(nullptr), _max(0) {}
+        Array(T * ptr, size_t max) : _ptr(ptr), _max(max) {}
+
+        T * claimTo(size_t i) {
+            assert(i > _count && "Index must be greated than count");
+            T * r = &_ptr[_count];
+            _count = i;
+            return r;
+        }
+
+        T * claim(size_t i = 1) { return claimTo(_count + i); }
+
+        // TODO: copy assignment or memcpy?
+        void append(T const & obj) {
+            *claim() = obj;
+            // memcpy(claim(), &obj, sizeof(T));
+        }
+
+        size_t count() const { return _count; }
+        size_t max() const { return _max; }
+        bool isValid() const { return _ptr != nullptr; }
+
+        T & operator[](size_t i) { assert(_ptr && i < _count); return _ptr[i]; }
+        T const & operator[](size_t i) const { assert(_ptr && i < _count); return _ptr[i]; }
+
+    private:
+        T * _ptr;
+        size_t _max;
+        size_t _count = 0;
+    };
+
+    // assumed to be initalized, fixed size. no head.
+    template <typename T>
+    class View {
+    public:
+        View() : _ptr(nullptr), _count(0) {}
+        View(T * ptr, size_t count) : _ptr(ptr), _count(count) {}
+        size_t count() const { return _count; }
+        bool isValid() const { return _ptr != nullptr && _count > 0; }
+        T & operator[](size_t i) { assert(_ptr && i < _count); return _ptr[i]; }
+        T const & operator[](size_t i) const { assert(_ptr && i < _count); return _ptr[i]; }
+
+    private:
+        T * _ptr;
+        size_t _count;
+    };
+
     // internal block content types ----------------------------------------- //
 
     class Pool {
@@ -92,10 +145,10 @@ public:
         size_t freeIndex() const { return _freeIndex; }
         byte_t * data() const { return (byte_t *)this + sizeof(Pool); }
 
-        // claim up to (but not including) index from current head and return array
-        // do a placement new in each newly claimed slot
+        // reserve up to (but not including) index from current head and return array.
+        // doesn't write anything into the space. (TODO: zero init space?)
         template <typename T, typename ... TP>
-        T * claimTo(size_t index, TP && ... params) {
+        Array<T> reserveTo(size_t index, TP && ... params) {
             // checks
             if (sizeof(T) != _objSize) {
                 fprintf(stderr, "Could not claim, size of T (%zu) does not match _objSize (%zu).",
@@ -105,29 +158,39 @@ public:
             if (index >= _objMaxCount) {
                 fprintf(stderr, "Could not claim, index (%zu) out of range (max: %zu).",
                     index, _objMaxCount);
-                return nullptr;
+                return Array<T>{};
             }
             if (index <= _freeIndex) {
                 fprintf(stderr, "Could not claim, freeIndex (%zu) already greater than requested index (%zu).",
                     _freeIndex, index);
-                return nullptr;
+                return Array<T>{};
             }
 
             // return start of array, at current head
             T * ptr = at<T>(_freeIndex);
 
-            // do a placement new for all newly claimed
-            // move head to new index
-            for (; _freeIndex < index; ++_freeIndex) {
-                new (at<T>()) T{static_cast<TP&&>(params)...};
-            }
-            return ptr;
+            // calc count and move head
+            size_t reserveCount = index - _freeIndex;
+            _freeIndex = index;
 
+            return Array{ptr, reserveCount};
+        }
+
+        // claim up to (but not including) index from current head and return view
+        // do a placement new in each newly claimed slot
+        template <typename T, typename ... TP>
+        View<T> claimTo(size_t index, TP && ... params) {
+            Array<T> a = reserveTo<T>(index);
+            if (!a.isValid()) return View<T>{};
+            while (a.count() < a.max()) {
+                new (a.claim()) T{static_cast<TP&&>(params)...};
+            }
+            return View<T>{&a[0], a.max()};
         }
 
         // claim count number of objects and return start of array
         template <typename T, typename ... TP>
-        T * claim(size_t count = 1, TP && ... params) {
+        View<T> claim(size_t count = 1, TP && ... params) {
             return claimTo<T>(_freeIndex + count, static_cast<TP&&>(params)...);
         }
 
