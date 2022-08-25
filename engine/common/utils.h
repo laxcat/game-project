@@ -27,10 +27,9 @@ inline glm::vec4 glmVec4(std::vector<double> const & v) {
 inline char const * relPath(char const * path) {
     auto rel = std::filesystem::relative(path);
     static char ret[1024];
-    strcpy(ret, rel.c_str());
+    snprintf(ret, 1024, "%s", rel.c_str());
     return ret;
 }
-
 
 inline void colorUintToVec4(uint32_t c, glm::vec4 & out) {
     out[0] = ((c >> 24)       ) / 255.f;
