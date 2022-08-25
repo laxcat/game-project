@@ -1,6 +1,5 @@
 #pragma once
 #include <stdio.h>
-#include <filesystem>
 #include <glm/mat4x4.hpp>
 #include "types.h"
 
@@ -16,13 +15,6 @@ inline glm::mat4 glmMat4(double const * v) {
 
 inline glm::vec4 glmVec4(double const * v) {
     return glm::vec4{v[0], v[1], v[2], v[3]};
-}
-
-inline char const * relPath(char const * path) {
-    auto rel = std::filesystem::relative(path);
-    static char ret[1024];
-    snprintf(ret, 1024, "%s", rel.c_str());
-    return ret;
 }
 
 inline void colorUintToVec4(uint32_t c, glm::vec4 & out) {
@@ -56,11 +48,6 @@ inline float remapValue(float value, float min1, float max1, float min2, float m
 
 inline float lerp(float x0, float x1, float v) {
     return x0 + (x1 - x0) * v;
-}
-
-inline void setName(char * dest, char const * name, size_t size = 32) {
-    if (size == 0) return;
-    snprintf(dest, size, "%s", name);
 }
 
 // greatest common denominator

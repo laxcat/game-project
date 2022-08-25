@@ -1,6 +1,7 @@
 #include "RenderSystem.h"
 #include "../MrManager.h"
 #include "../common/bgfx_extra.h"
+#include "../common/string_utils.h"
 
 #if FORCE_OPENGL
     #include "../shader/shaders/gltf/vs_gltf.150.bin.geninc"

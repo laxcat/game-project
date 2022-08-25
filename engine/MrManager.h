@@ -264,10 +264,10 @@ public:
 
         printl("loading file");
         printl();
-        MemSys::File * f = memSys.createFileHandle("testFile.txt", true);
+        MemSys::File * f = memSys.createFileHandle("BoxTextured.glb", true);
         if (f) {
             if (f->loaded()) {
-                printl("file loaded. found %zu bytes. last byte: 0x%02x", f->size(), f->data()[f->size()-1]);
+                printl("file loaded. found %zu bytes. last byte: 0x%02x", f->fileSize(), f->data()[f->size()-1]);
             }
             else {
                 printl("file read but not loaded. found %zu bytes.", f->size());

@@ -2,6 +2,7 @@
 #include "GLTFLoader.h"
 #include "../MrManager.h"
 #include "../common/utils.h"
+#include "../common/string_utils.h"
 
 
 static bool constexpr ShowGLTFLoadDbg = false;
