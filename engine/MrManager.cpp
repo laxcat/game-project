@@ -69,7 +69,7 @@ void MrManager::tick() {
 }
 
 void MrManager::draw() {
-    bgfx::setViewClear(mainView, BGFX_CLEAR_COLOR|BGFX_CLEAR_DEPTH, rendSys.colors.background);
+    bgfx::setViewClear(mainView, BGFX_CLEAR_COLOR|BGFX_CLEAR_DEPTH, rendSys.colors.background.asRGBAInt());
     bgfx::setViewTransform(mainView, (float *)&camera.viewMat, (float *)&camera.projMat);
     bgfx::setViewRect(mainView, 0, 0, bgfx::BackbufferRatio::Equal);
     rendSys.draw();

@@ -9,6 +9,10 @@ inline bgfx::ProgramHandle createBGFXProgram(
     return bgfx::createProgram(vh, fh, true);
 }
 
+// call createBGFXProgram with the usual name pattern
+#define CREATE_BGFX_PROGRAM(_shader_name) createBGFXProgram( \
+    vs_##_shader_name##_bin, vs_##_shader_name##_bin_len, \
+    fs_##_shader_name##_bin, fs_##_shader_name##_bin_len)
 
 // template<class Archive>
 // void serialize(Archive & archive, bgfx::VertexBufferHandle & m) { archive(m.idx); }

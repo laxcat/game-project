@@ -9,8 +9,6 @@
 class Colors {
 public:
     UniColor background     = 0x888888ff;
-    UniColor roadMain       = 0x000000ff;
-    UniColor roadLines      = 0xeeeeeeff;
 
     void init() {
         background.handle = bgfx::createUniform("u_bgColor", bgfx::UniformType::Vec4);

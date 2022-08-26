@@ -10,6 +10,8 @@ struct Rect {
     glm::vec2 pos() const { return {x, y}; }
     glm::vec2 size() const { return {w, h}; }
     float ratio() const { return w / h; }
+    float right() const { return x + w; }
+    float top() const { return y + h; }
 
     void zoom(float z, glm::vec2 const & center = {.5f, .5f}) {
         float addw = w * z - w;

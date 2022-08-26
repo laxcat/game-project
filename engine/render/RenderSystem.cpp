@@ -31,8 +31,8 @@ void RenderSystem::init() {
     if (!bgfx::init(settings.bgfxInit))
         return;
 
-    gltfProgram = createBGFXProgram(vs_gltf_bin, vs_gltf_bin_len, fs_gltf_bin, fs_gltf_bin_len);
-    unlitProgram = createBGFXProgram(vs_unlit_bin, vs_unlit_bin_len, fs_unlit_bin, fs_unlit_bin_len);
+    gltfProgram = CREATE_BGFX_PROGRAM(gltf);
+    unlitProgram = CREATE_BGFX_PROGRAM(unlit);
     samplers.init();
     lights.init();
     fog.init();
