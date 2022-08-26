@@ -44,8 +44,6 @@ int MrManager::init(EngineSetup const & setup) {
     if (setup.postInit) err = setup.postInit(setup.args);
     if (err) return err;
 
-    test();
-
     return 0;
 }
 
