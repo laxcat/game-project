@@ -4,10 +4,10 @@
 #include <bgfx/bgfx.h>
 #include <bgfx/platform.h>
 
-#if DEV_INTERFACE
+#if ENABLE_IMGUI
 #include "imgui_impl_bgfx.h"
 #include <backends/imgui_impl_glfw.h>
-#endif // DEV_INTERFACE
+#endif // ENABLE_IMGUI
 
 #include "MrManager.h"
 #include "engine.h"
@@ -21,44 +21,38 @@ static void glfw_windowSizeCallback(GLFWwindow *, int width, int height) {
     mm.updateSize({width, height});
 }
 
+// dev interface enabled, so imgui will be also
+#if DEV_INTERFACE
+    #define SHOULD_IMGUI_CAPTURE_KEYBOARD (mm.devOverlay.isShowingImGUI() && ImGui::GetIO().WantCaptureKeyboard)
+    #define SHOULD_IMGUI_CAPTURE_MOUSE    (mm.devOverlay.isShowingImGUI() && ImGui::GetIO().WantCaptureMouse)
+// just imgui but not dev interface (using imgui in some other way)
+#elif ENABLE_IMGUI
+    #define SHOULD_IMGUI_CAPTURE_KEYBOARD (ImGui::GetIO().WantCaptureKeyboard)
+    #define SHOULD_IMGUI_CAPTURE_MOUSE    (ImGui::GetIO().WantCaptureMouse)
+// no imgui at all
+#else
+    #define SHOULD_IMGUI_CAPTURE_KEYBOARD (false)
+    #define SHOULD_IMGUI_CAPTURE_MOUSE    (false)
+#endif // DEV_INTERFACE
 
 static void glfw_keyCallback(GLFWwindow *, int key, int scancode, int action, int mods) {
-    #if DEV_INTERFACE
-    if (mm.devOverlay.isShowingImGUI() && ImGui::GetIO().WantCaptureKeyboard) {
-        return;
-    }
-    #endif // DEV_INTERFACE
+    if (SHOULD_IMGUI_CAPTURE_KEYBOARD) return;
     mm.keyEvent({.key=key, .scancode=scancode, .action=action, .mods=mods});
 }
 
 static void glfw_mousePosCallback(GLFWwindow *, double x, double y) {
-    #if DEV_INTERFACE
-    if (!ImGui::GetIO().WantCaptureMouse || !mm.devOverlay.isShowingImGUI()) {
-        mm.mousePosEvent({.x=x, .y=y});
-    }
-    #else
+    if (SHOULD_IMGUI_CAPTURE_MOUSE) return;
     mm.mousePosEvent({.x=x, .y=y});
-    #endif // DEV_INTERFACE
 }
 
 static void glfw_mouseButtonCallback(GLFWwindow *, int button, int action, int mods) {
-    #if DEV_INTERFACE
-    if (!ImGui::GetIO().WantCaptureMouse || !mm.devOverlay.isShowingImGUI()) {
-        mm.mouseButtonEvent({.button=button, .action=action, .mods=mods});
-    }
-    #else
+    if (SHOULD_IMGUI_CAPTURE_MOUSE) return;
     mm.mouseButtonEvent({.button=button, .action=action, .mods=mods});
-    #endif // DEV_INTERFACE
 }
 
 static void glfw_scrollCallback(GLFWwindow *, double x, double y) {
-    #if DEV_INTERFACE
-    if (!ImGui::GetIO().WantCaptureMouse || !mm.devOverlay.isShowingImGUI()) {
-        mm.scrollEvent({.x=x, .y=y});
-    }
-    #else
+    if (SHOULD_IMGUI_CAPTURE_MOUSE) return;
     mm.scrollEvent({.x=x, .y=y});
-    #endif // DEV_INTERFACE
 }
 
 int main_desktop(EngineSetup & setup) {
@@ -117,34 +111,55 @@ int main_desktop(EngineSetup & setup) {
     glfwSetMouseButtonCallback(mm.window, glfw_mouseButtonCallback);
     glfwSetScrollCallback(mm.window, glfw_scrollCallback);
 
+    // pre init
+    err = 0;
+    if (setup.preInit) err = setup.preInit(setup.args);
+    if (err) return err;
+
     // init MrManager
     err = mm.init(setup);
     if (err) return err;
 
     // setup ImGUI
-    #if DEV_INTERFACE
+    #if ENABLE_IMGUI
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui_Implbgfx_Init(mm.guiView);
     ImGui_ImplGlfw_InitForOther(mm.window, true);
-    #endif // DEV_INTERFACE
+    #endif // ENABLE_IMGUI
+
+    err = 0;
+    if (setup.postInit) err = setup.postInit(setup.args);
+    if (err) return err;
 
     while (!glfwWindowShouldClose(mm.window)) {
         // printf("wut %d\n", DEV_INTERFACE);
 
         glfwPollEvents();
 
-        #if DEV_INTERFACE
-        if (mm.devOverlay.isShowingImGUI()) {
-            ImGui_Implbgfx_NewFrame();
-            ImGui_ImplGlfw_NewFrame();
-            ImGui::NewFrame();
-            mm.editor.tick();
-            ImGui::Render();
-            ImGui_Implbgfx_RenderDrawLists(ImGui::GetDrawData());
-        }
-        mm.devOverlay.tick();
-        #endif // DEV_INTERFACE
+        #if ENABLE_IMGUI
+            #if DEV_INTERFACE
+            if (mm.devOverlay.isShowingImGUI()) {
+            #endif // DEV_INTERFACE
+
+                ImGui_Implbgfx_NewFrame();
+                ImGui_ImplGlfw_NewFrame();
+                ImGui::NewFrame();
+                if (mm.setup.preEditor) mm.setup.preEditor();
+
+                #if DEV_INTERFACE
+                mm.editor.tick();
+                #endif // DEV_INTERFACE
+
+                if (mm.setup.postEditor) mm.setup.postEditor();
+                ImGui::Render();
+                ImGui_Implbgfx_RenderDrawLists(ImGui::GetDrawData());
+
+            #if DEV_INTERFACE
+            }
+            mm.devOverlay.tick();
+            #endif // DEV_INTERFACE
+        #endif // ENABLE_IMGUI
 
         mm.updateTime(glfwGetTime());
         mm.tick();

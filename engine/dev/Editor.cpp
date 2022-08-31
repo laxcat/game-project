@@ -57,7 +57,7 @@ void Editor::tick() {
     SetNextWindowSizeConstraints(min, max);
     Begin("Editor", NULL, ImGuiWindowFlags_NoTitleBar);
 
-    if (mm.setup.preEditor) mm.setup.preEditor();
+    if (mm.setup.prepandInsideEditor) mm.setup.prepandInsideEditor();
     guiRendering();
     guiLighting();
     guiCamera();
@@ -65,7 +65,7 @@ void Editor::tick() {
     guiGLTFs();
     guiFog();
     guiColors();
-    if (mm.setup.postEditor) mm.setup.postEditor();
+    if (mm.setup.appendInsideEditor) mm.setup.appendInsideEditor();
 
     End();
 }

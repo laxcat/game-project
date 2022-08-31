@@ -69,6 +69,8 @@ struct EngineSetup {
     init_callback_t preInit = nullptr;
     init_callback_t postInit = nullptr;
     callback_t preEditor = nullptr;
+    callback_t prependInsideEditor = nullptr;
+    callback_t appendInsideEditor = nullptr;
     callback_t postEditor = nullptr;
     callback_t preDraw = nullptr;
     callback_t postDraw = nullptr;

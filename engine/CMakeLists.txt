@@ -19,6 +19,9 @@ if(NOT BUILD_NUMBER)
     set(BUILD_NUMBER 0)
 endif()
 
+if(DEV_INTERFACE)
+    set(ENABLE_IMGUI 1)
+endif()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -40,8 +43,10 @@ SetupLib_bgfx()
 SetupLib_glm()
 SetupLib_tinygltf()
 SetupLib_glfw()
-if(DEV_INTERFACE)
+if(ENABLE_IMGUI)
     SetupLib_imgui()
+endif()
+if(DEV_INTERFACE)
     SetupLib_nativefiledialog()
 endif()
 
@@ -91,5 +96,7 @@ BGFXCompileShaders(
 # CONFIGURE MAIN BINARY
 set_property(TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY COMPILE_FLAGS ${SetupLib_flags})
 target_link_libraries(${PROJECT_NAME} ${SetupLib_libs})
+target_compile_definitions(${PROJECT_NAME} PUBLIC ENABLE_IMGUI=${ENABLE_IMGUI})
 target_compile_definitions(${PROJECT_NAME} PUBLIC DEV_INTERFACE=${DEV_INTERFACE})
+target_compile_definitions(${PROJECT_NAME} PUBLIC FORCE_OPENGL=${FORCE_OPENGL})
 add_dependencies(${PROJECT_NAME} BGFXShader_engine_target)

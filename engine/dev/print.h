@@ -29,6 +29,16 @@ inline void printc(bool shouldPrint, char const * formatString, ...) {
     va_end(args);
 }
 
+// UNTESTED
+template <bool SHOULD_PRINT>
+inline void printc(char const * formatString, ...) {
+    if constexpr (!SHOULD_PRINT) return;
+    va_list args;
+    va_start(args, formatString);
+    vprint(formatString, args);
+    va_end(args);
+}
+
 inline void print4f(float const * f) {
     print(
         "%0.4f %0.4f %0.4f %0.4f\n",

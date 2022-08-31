@@ -18,10 +18,6 @@ int MrManager::init(EngineSetup const & setup) {
     thisTime = setup.startTime;
     prevTime = setup.startTime;
 
-    int err = 0;
-    if (setup.preInit) err = setup.preInit(setup.args);
-    if (err) return err;
-
     memSys.init(setup.memSysSize);
     if (setup.frameStackSize) {
         frameStack = memSys.createStack(setup.frameStackSize);
@@ -40,9 +36,6 @@ int MrManager::init(EngineSetup const & setup) {
     originWidget->instances[0].active = false;
     OriginWidget::setScale(5.f);
     #endif // DEV_INTERFACE
-
-    if (setup.postInit) err = setup.postInit(setup.args);
-    if (err) return err;
 
     return 0;
 }
