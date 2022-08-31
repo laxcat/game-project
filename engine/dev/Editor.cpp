@@ -57,7 +57,7 @@ void Editor::tick() {
     SetNextWindowSizeConstraints(min, max);
     Begin("Editor", NULL, ImGuiWindowFlags_NoTitleBar);
 
-    if (mm.setup.prepandInsideEditor) mm.setup.prepandInsideEditor();
+    if (mm.setup.prependInsideEditor) mm.setup.prependInsideEditor();
     guiRendering();
     guiLighting();
     guiCamera();
