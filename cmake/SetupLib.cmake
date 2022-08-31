@@ -230,3 +230,25 @@ macro(SetupLib_nativefiledialog)
 endmacro()
 
 
+# ---------------------------------------------------------------------------- #
+# RAPID JSON
+# ---------------------------------------------------------------------------- #
+macro(SetupLib_rapidjson)
+    message(STATUS "SETUP RAPID JSON")
+    FetchContent_Declare(
+        rapidjason_content
+        GIT_REPOSITORY https://github.com/Tencent/rapidjson
+        GIT_TAG        f54b0e47a08782a6131cc3d60f94d038fa6e0a51 # arbitrary, captured Aug.2022, https://github.com/Tencent/rapidjson/releases/tag/v1.1.0
+    )
+    set(RAPIDJSON_BUILD_DOC                 OFF CACHE BOOL "" FORCE)
+    set(RAPIDJSON_BUILD_EXAMPLES            OFF CACHE BOOL "" FORCE)
+    set(RAPIDJSON_BUILD_TESTS               OFF CACHE BOOL "" FORCE)
+    set(RAPIDJSON_BUILD_THIRDPARTY_GTEST    OFF CACHE BOOL "" FORCE)
+    set(RAPIDJSON_BUILD_CXX11               ON  CACHE BOOL "" FORCE)
+    set(RAPIDJSON_BUILD_CXX17               ON  CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(rapidjason_content)
+    include_directories(${rapidjason_content_SOURCE_DIR}/include)
+    list(APPEND SetupLib_include_dirs "${rapidjason_content_SOURCE_DIR}/include")
+endmacro()
+
+

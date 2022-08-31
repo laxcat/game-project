@@ -43,6 +43,7 @@ SetupLib_bgfx()
 SetupLib_glm()
 SetupLib_tinygltf()
 SetupLib_glfw()
+SetupLib_rapidjson()
 if(ENABLE_IMGUI)
     SetupLib_imgui()
 endif()
@@ -65,6 +66,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/common/platform.mm
     ${CMAKE_CURRENT_SOURCE_DIR}/common/string_utils.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/dev/print.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemSys.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/render/CameraControl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/render/GLTFLoader.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/render/Mesh.cpp

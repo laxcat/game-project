@@ -1,7 +1,7 @@
 #pragma once
 #include <bgfx/bgfx.h>
 #include "engine.h"
-#include "common/MemSys.h"
+#include "memory/MemSys.h"
 #include "render/Camera.h"
 #include "render/CameraControl.h"
 #include "render/RenderSystem.h"
