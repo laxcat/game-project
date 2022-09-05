@@ -14,8 +14,9 @@ void preShutdown()  { print("preShutdown\n"); }
 void postShutdown() { print("postShutdown\n"); }
 
 
-int main() {
+int main(int argc, char ** argv) {
     return main_desktop({
+        .args = {argc, argv},
         // .preInit = preInit,
         // .postInit = postInit,
         // .preEditor = preEditor,

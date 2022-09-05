@@ -20,6 +20,10 @@ inline void printl(char const * formatString, ...) {
 inline void printl() {
     vprint("\n", nullptr);
 }
+inline void vprintl(char const * formatString, va_list args) {
+    vprint(formatString, args);
+    vprint("\n", nullptr);
+}
 
 inline void printc(bool shouldPrint, char const * formatString, ...) {
     if (!shouldPrint) return;

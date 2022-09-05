@@ -37,6 +37,10 @@ int MrManager::init(EngineSetup const & setup) {
     OriginWidget::setScale(5.f);
     #endif // DEV_INTERFACE
 
+    if (setup.args.c > 1) {
+        memSys.createEntity(setup.args.v[1], true);
+    }
+
     return 0;
 }
 

@@ -17,6 +17,7 @@ public:
         TYPE_POOL,
         TYPE_STACK,
         TYPE_FILE,
+        TYPE_ENTITY,
         // externally requested of any type
         TYPE_EXTERNAL
     };
@@ -43,6 +44,7 @@ public:
     #include "MemSys_Stack.inc.h"
     // read only for now
     #include "MemSys_File.inc.h"
+    #include "MemSys_Entity.inc.h"
 
 
     // lifecycle ------------------------------------------------------------ //
@@ -58,6 +60,8 @@ public:
     void destroyStack(Stack * s);
     File * createFileHandle(char const * path, bool loadNow = false);
     void destroyFileHandle(File * f);
+    Entity * createEntity(char const * path, bool loadNow = false);
+    void destroyEntity(Entity * f);
     template <typename T, typename ... TP>
         T * create(size_t size, TP && ... params);
     void destroy(void * ptr);
