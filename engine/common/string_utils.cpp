@@ -12,3 +12,7 @@ void setName(char * dest, char const * name, int size) {
     if (size == 0) return;
     snprintf(dest, size, "%s", name);
 }
+
+bool strEqu(char const * strA, char const * strB) {
+    return (strcmp(strA, strB) == 0);
+}
