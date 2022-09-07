@@ -11,15 +11,18 @@
 size_t MemSys::Entity::getMemorySize(FILE * externalFP) {
     using namespace rapidjson;
 
-    JSONPrinter scanner;
+    GLTFSizeFinder scanner;
+    // JSONPrinter scanner;
     Reader reader;
-    static constexpr size_t BufSize = 1024;
+    static constexpr size_t BufSize = 1024*2;
     char buf[BufSize];
     auto fs = FileReadStream(externalFP, buf, BufSize);
     reader.Parse(fs, scanner);
 
+    scanner.printStats();
 
-    return 999;
+    return scanner.totalSize();
+    // return 0;
 }
 
 bool MemSys::Entity::readJSON(FILE * externalFP) {
