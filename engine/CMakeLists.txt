@@ -65,6 +65,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/animation/Animator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/platform.mm
     ${CMAKE_CURRENT_SOURCE_DIR}/common/string_utils.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/modp_b64.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/dev/print.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemSys.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemSys_Entity.cpp
