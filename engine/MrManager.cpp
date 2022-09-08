@@ -7,7 +7,6 @@
 #include "common/Path.h"
 #include "common/string_utils.h"
 
-
 MrManager mm;
 
 int MrManager::init(EngineSetup const & setup) {

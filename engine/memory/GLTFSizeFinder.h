@@ -7,7 +7,7 @@ struct GLTFSizeFinder {
 
     static constexpr size_t MaxDepth = 8;
     static constexpr size_t MaxConditions = 16;
-    static constexpr size_t MaxKeyLen = 16;
+    static constexpr size_t MaxKeyLen = 256;
 
     using Action = std::function<void(void *)>;
 
@@ -18,7 +18,8 @@ struct GLTFSizeFinder {
             UNKNOWN,
             OBJ,
             ARR,
-            STR
+            STR,
+            INT
         };
 
         ObjType objType = UNKNOWN;
@@ -45,6 +46,7 @@ struct GLTFSizeFinder {
                 (objType == OBJ) ? "OBJ" :
                 (objType == ARR) ? "ARR" :
                 (objType == STR) ? "STR" :
+                (objType == INT) ? "INT" :
                 "UNKNOWN";
         }
 
@@ -73,14 +75,21 @@ struct GLTFSizeFinder {
         }
     };
 
+    struct FixedStr {
+        char const * str;
+        size_t length;
+    };
+
     // forms path back to root. array count is `depth`
     Crumb crumbs[MaxDepth];
     size_t depth = 0;
-
     char key[MaxKeyLen] = {'\0'};
-    char temp[MaxKeyLen] = {'\0'};
-    ConditionGroup stringConds;
-    ConditionGroup endArrayConds;
+
+    static constexpr int nFindStrConds = 2;
+    ConditionGroup strCountConds[nFindStrConds];
+    ConditionGroup objCountConds;
+    ConditionGroup byteCountConds;
+    ConditionGroup imageSizeConds;
 
     uint16_t nAccessors = 0;
     uint16_t nAnimations = 0;
@@ -98,27 +107,50 @@ struct GLTFSizeFinder {
 
     uint32_t allStrLen = 0;
 
-    GLTFSizeFinder() {
-        endArrayConds.push(0, Crumb::ARR, "accessors", [this](void * ud){ nAccessors = (size_t)ud; });
-        endArrayConds.push(0, Crumb::ARR, "animations", [this](void * ud){ nAnimations = (size_t)ud; });
-        endArrayConds.push(0, Crumb::ARR, "buffers", [this](void * ud){ nBuffers = (size_t)ud; });
-        endArrayConds.push(0, Crumb::ARR, "bufferViews", [this](void * ud){ nBufferViews = (size_t)ud; });
-        endArrayConds.push(0, Crumb::ARR, "cameras", [this](void * ud){ nCameras = (size_t)ud; });
-        endArrayConds.push(0, Crumb::ARR, "images", [this](void * ud){ nImages = (size_t)ud; });
-        endArrayConds.push(0, Crumb::ARR, "materials", [this](void * ud){ nMaterials = (size_t)ud; });
-        endArrayConds.push(0, Crumb::ARR, "meshes", [this](void * ud){ nMeshes = (size_t)ud; });
-        endArrayConds.push(0, Crumb::ARR, "nodes", [this](void * ud){ nNodes = (size_t)ud; });
-        endArrayConds.push(0, Crumb::ARR, "samplers", [this](void * ud){ nSamplers = (size_t)ud; });
-        endArrayConds.push(0, Crumb::ARR, "scenes", [this](void * ud){ nScenes = (size_t)ud; });
-        endArrayConds.push(0, Crumb::ARR, "skins", [this](void * ud){ nSkins = (size_t)ud; });
-        endArrayConds.push(0, Crumb::ARR, "textures", [this](void * ud){ nTextures = (size_t)ud; });
+    uint32_t buffersLen = 0;
 
-        stringConds.allAction = [this](void * ud){
-            allStrLen += (size_t)ud;
-            printl("allStrLen %zu (added %zu)", allStrLen, (size_t)ud);
+    GLTFSizeFinder() {
+        objCountConds.push(0, Crumb::ARR, "accessors", [this](void * ud){ nAccessors = (size_t)ud; });
+        objCountConds.push(0, Crumb::ARR, "animations", [this](void * ud){ nAnimations = (size_t)ud; });
+        objCountConds.push(0, Crumb::ARR, "buffers", [this](void * ud){ nBuffers = (size_t)ud; });
+        objCountConds.push(0, Crumb::ARR, "bufferViews", [this](void * ud){ nBufferViews = (size_t)ud; });
+        objCountConds.push(0, Crumb::ARR, "cameras", [this](void * ud){ nCameras = (size_t)ud; });
+        objCountConds.push(0, Crumb::ARR, "images", [this](void * ud){ nImages = (size_t)ud; });
+        objCountConds.push(0, Crumb::ARR, "materials", [this](void * ud){ nMaterials = (size_t)ud; });
+        objCountConds.push(0, Crumb::ARR, "meshes", [this](void * ud){ nMeshes = (size_t)ud; });
+        objCountConds.push(0, Crumb::ARR, "nodes", [this](void * ud){ nNodes = (size_t)ud; });
+        objCountConds.push(0, Crumb::ARR, "samplers", [this](void * ud){ nSamplers = (size_t)ud; });
+        objCountConds.push(0, Crumb::ARR, "scenes", [this](void * ud){ nScenes = (size_t)ud; });
+        objCountConds.push(0, Crumb::ARR, "skins", [this](void * ud){ nSkins = (size_t)ud; });
+        objCountConds.push(0, Crumb::ARR, "textures", [this](void * ud){ nTextures = (size_t)ud; });
+
+        // find name strings
+        // find main object names
+        strCountConds[0].allAction = [this](void * ud) { allStrLen += (size_t)ud; };
+        strCountConds[0].push(0, Crumb::STR, "name");
+        strCountConds[0].push(
+            -2,
+            Crumb::ARR,
+            "accessors|animations|buffers|bufferViews|cameras|images|nodes|scenes"
+        );
+        // find asset names
+        strCountConds[1].allAction = strCountConds[0].allAction;
+        strCountConds[1].push(0, Crumb::STR, "copyright|generator|version|minVersion");
+        strCountConds[1].push(-1, Crumb::OBJ, "asset");
+
+        // find buffer sizes
+        byteCountConds.allAction = [this](void * ud) { buffersLen += (size_t)ud; };
+        byteCountConds.push(0, Crumb::INT, "byteLength");
+        byteCountConds.push(-2, Crumb::ARR, "buffers");
+
+        // find image sizes
+        imageSizeConds.push(0, Crumb::STR, "uri");
+        imageSizeConds.push(-2, Crumb::ARR, "images");
+        imageSizeConds.allAction = [this](void * ud) {
+            auto fs = (FixedStr *)ud;
+            auto id = loadImageBase64(fs->str, fs->length);
+            printl("image data: %dx%d, %d = %zu", id.width, id.height, id.nChannels, id.dataSize());
         };
-        stringConds.push(0, Crumb::STR, "name");
-        stringConds.push(-2, Crumb::ARR, "scenes");
     }
 
     // push crumb onto bread crumb stack
@@ -144,12 +176,12 @@ struct GLTFSizeFinder {
         // offset relative to last (most recent) crumb in stack
         auto & actualCrumb  = crumbs[depth-1+con.offset];
 
-        printl("check %s against %s", con.crumb.objTypeStr(), actualCrumb.objTypeStr());
+        // printl("check %s against %s", con.crumb.objTypeStr(), actualCrumb.objTypeStr());
         if (con.crumb.objType != actualCrumb.objType) return false;
-        printl("check (%s) against (%s)", con.crumb.key, actualCrumb.key);
-        if (con.crumb.hasKey() && !strEqu(con.crumb.key, actualCrumb.key)) return false;
+        // printl("check (%s) against (%s)", con.crumb.key, actualCrumb.key);
+        if (con.crumb.hasKey() && !strWithin(actualCrumb.key, con.crumb.key, '|')) return false;
         if (con.action) con.action(userData);
-        printl("TRUE!");
+        // printl("TRUE!");
         return true;
     }
 
@@ -166,7 +198,7 @@ struct GLTFSizeFinder {
     // checks combination of all conditions in group (short circuts at first false).
     // returns true only if ALL conditions were true.
     bool checkAll(ConditionGroup const & group, void * userData = nullptr) {
-        printl("check all user data: %zu", (size_t)userData);
+        // printl("check all user data: %zu", (size_t)userData);
         for (int i = 0; i < group.count; ++i) {
             if (!check(group.all[i], userData)) return false;
         }
@@ -182,7 +214,8 @@ struct GLTFSizeFinder {
             sizeof(gltf::Animation)  * nAnimations +
             sizeof(gltf::Buffer)     * nBuffers +
             sizeof(gltf::BufferView) * nBufferViews +
-            sizeof(gltf::Camera)     * nCameras +
+            // persp or ortho camera adds some floats. always 4 for now.
+            sizeof(gltf::Camera)     * nCameras + sizeof(float) * 4 +
             sizeof(gltf::Image)      * nImages +
             sizeof(gltf::Material)   * nMaterials +
             sizeof(gltf::Mesh)       * nMeshes +
@@ -191,22 +224,37 @@ struct GLTFSizeFinder {
             sizeof(gltf::Scene)      * nScenes +
             sizeof(gltf::Skin)       * nSkins +
             sizeof(gltf::Texture)    * nTextures +
-            allStrLen
+            allStrLen +
+            buffersLen
         ;
     }
 
     bool Null  ()           { return true; }
     bool Bool  (bool b)     { return true; }
     bool Int   (int i)      { return true; }
-    bool Uint  (unsigned u) { return true; }
     bool Int64 (int64_t  i) { return true; }
     bool Uint64(uint64_t u) { return true; }
     bool Double(double   d) { return true; }
     bool RawNumber(char const * str, size_t length, bool copy) { return true; }
 
+    bool Uint(unsigned u) {
+        push(Crumb::INT);
+        checkAll(byteCountConds, (void *)(size_t)u);
+        pop();
+        return true;
+    }
+
     bool String(char const * str, size_t length, bool copy) {
         push(Crumb::STR);
-        checkAll(stringConds, (void *)(length + 1));
+
+        for (int i = 0; i < nFindStrConds; ++i) {
+            checkAll(strCountConds[i], (void *)(length + 1));
+        }
+
+        // special check for image size
+        auto fs = FixedStr{str, length};
+        checkAll(imageSizeConds, (void *)&fs);
+
         pop();
         return true;
     }
@@ -218,26 +266,26 @@ struct GLTFSizeFinder {
 
     bool StartObject() {
         push(Crumb::OBJ);
-        printBreadcrumb();
+        // printBreadcrumb();
         return true;
     }
 
     bool StartArray () {
         push(Crumb::ARR);
-        printBreadcrumb();
+        // printBreadcrumb();
         return true;
     }
 
     bool EndObject(size_t  memberCount) {
         pop();
-        printBreadcrumb();
+        // printBreadcrumb();
         return true;
     }
 
     bool EndArray (size_t elementCount) {
-        checkEach(endArrayConds, (void *)elementCount);
+        checkEach(objCountConds, (void *)elementCount);
         pop();
-        printBreadcrumb();
+        // printBreadcrumb();
         return true;
     }
 
@@ -250,21 +298,22 @@ struct GLTFSizeFinder {
     }
 
     void printStats() const {
-        printl("Accessors:   %6u", nAccessors);
-        printl("Animations:  %6u", nAnimations);
-        printl("Buffers:     %6u", nBuffers);
-        printl("BufferViews: %6u", nBufferViews);
-        printl("Cameras:     %6u", nCameras);
-        printl("Images:      %6u", nImages);
-        printl("Materials:   %6u", nMaterials);
-        printl("Meshes:      %6u", nMeshes);
-        printl("Nodes:       %6u", nNodes);
-        printl("Samplers:    %6u", nSamplers);
-        printl("Scenes:      %6u", nScenes);
-        printl("Skins:       %6u", nSkins);
-        printl("Textures:    %6u", nTextures);
-        printl("Strings len: %6u", allStrLen);
-        printl("Total Size:%8zu", totalSize());
+        printl("Accessors:   %8u", nAccessors);
+        printl("Animations:  %8u", nAnimations);
+        printl("Buffers:     %8u", nBuffers);
+        printl("BufferViews: %8u", nBufferViews);
+        printl("Cameras:     %8u", nCameras);
+        printl("Images:      %8u", nImages);
+        printl("Materials:   %8u", nMaterials);
+        printl("Meshes:      %8u", nMeshes);
+        printl("Nodes:       %8u", nNodes);
+        printl("Samplers:    %8u", nSamplers);
+        printl("Scenes:      %8u", nScenes);
+        printl("Skins:       %8u", nSkins);
+        printl("Textures:    %8u", nTextures);
+        printl("Strings len: %8u", allStrLen);
+        printl("Buffers len: %8u", buffersLen);
+        printl("Total Size:  %8zu", totalSize());
     }
 
 };
