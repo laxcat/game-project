@@ -6,15 +6,15 @@ public:
     size_t size() const { return _size; }
     size_t head() const { return _head; }
     size_t fileSize() const { return _size - 1; }
-    byte_t * data() const { return (byte_t *)this + sizeof(File); }
+    byte_t * data() const { return (byte_t *)this + sizeof(Entity); }
+    gltf::GLTF * gltf() const { return (gltf::GLTF *)data(); }
     byte_t * dataHead() const { return data() + _head; }
     bool loaded() const { return _loaded; }
     char const * path() const { return _path; }
 
     size_t static getMemorySize(FILE * externalFP);
 
-    bool load();
-    bool readJSON(FILE * externalFP);
+    bool load(FILE * externalFP, byte_t * dst, size_t dstSize);
 
 private:
     size_t _size = 0;

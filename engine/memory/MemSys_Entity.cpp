@@ -1,68 +1,41 @@
 #include "MemSys.h"
 #include <rapidjson/reader.h>
 #include <rapidjson/filereadstream.h>
+#include "../common/code_timer.h"
 #include "../dev/print.h"
+#include "../MrManager.h"
 #include "GLTF.h"
 #include "JSONPrinter.h"
 #include "GLTFSizeFinder.h"
+#include "GLTFLoader2.h"
 
 // using namespace rapidjson;
 
 size_t MemSys::Entity::getMemorySize(FILE * externalFP) {
-    using namespace rapidjson;
-
+    code_timer_start();
     GLTFSizeFinder scanner;
-    // JSONPrinter scanner;
-    Reader reader;
-    static constexpr size_t BufSize = 1024*2;
-    char buf[BufSize];
-    auto fs = FileReadStream(externalFP, buf, BufSize);
+    rapidjson::Reader reader;
+    size_t bufSize = 1024*256;
+    char * buf = (char *)mm.frameStack->alloc(bufSize);
+    if (!buf) return 0;
+    auto fs = rapidjson::FileReadStream(externalFP, buf, bufSize);
     reader.Parse(fs, scanner);
-
-    scanner.printStats();
-
+    // scanner.printStats();
+    printl("read gltf size in %d µ", code_timer_end());
     return scanner.totalSize();
-    // return 0;
 }
 
-bool MemSys::Entity::readJSON(FILE * externalFP) {
-    using namespace rapidjson;
-
-    FILE * fp;
-
-    // if file was already open, user might have passed in a file pointer
-    // to save from reopening it
-    if (externalFP) {
-        fp = externalFP;
-    }
-    else {
-        errno = 0;
-        fp = fopen(_path, "r");
-        if (!fp) {
-            fprintf(stderr, "Error opening file \"%s\" for loading: %d\n", _path, errno);
-            return false;
-        }
-    }
-
-    size_t readSize = fread(data(), 1, fileSize(), fp);
-    if (readSize != fileSize()) {
-        fprintf(stderr, "Error reading file \"%s\" contents: read %zu, expecting %zu\n",
-            _path, readSize, fileSize());
-        return false;
-    }
-
-    if (!externalFP) {
-        fclose(fp);
-        int fe = ferror(fp);
-        if (fe) {
-            fprintf(stderr, "Error closing file \"%s\" after load: %d\n", _path, fe);
-            return false;
-        }
-    }
-
-    //0x00 byte written after file contents
-    data()[_size-1] = '\0';
-
+bool MemSys::Entity::load(FILE * externalFP, byte_t * dst, size_t dstSize) {
+    _loaded = false;
+    code_timer_start();
+    GLTFLoader2 scanner;
+    rapidjson::Reader reader;
+    size_t bufSize = 1024*256;
+    char * buf = (char *)mm.frameStack->alloc(bufSize);
+    if (!buf) return 0;
+    auto fs = rapidjson::FileReadStream(externalFP, buf, bufSize);
+    reader.Parse(fs, scanner);
+    printl("loaded gltf size in %d µ", code_timer_end());
     _loaded = true;
-    return true;
+    return _loaded;
 }

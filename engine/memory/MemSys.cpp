@@ -95,44 +95,26 @@ MemSys::Entity * MemSys::createEntity(char const * path, bool loadNow) {
         fprintf(stderr, "Error loading file \"%s\": %d\n", path, errno);
         return nullptr;
     }
-    int fseekError = fseek(fp, 0L, SEEK_END);
+
+    // calc size
+    size_t gltfSize = Entity::getMemorySize(fp);
+    printl("gltf %s memory size %zu", path, gltfSize);
+
+    // create block from size
+    Block * block = requestFreeBlock(gltfSize + sizeof(Entity));
+    if (!block) return nullptr;
+    block->type = TYPE_ENTITY;
+    Entity * entity = new (block->data()) Entity{path};
+
+    // seek back to start of file
+    int fseekError = fseek(fp, 0L, 0);
     if (fseekError) {
         fprintf(stderr, "Error seeking in file \"%s\": %d\n", path, fseekError);
         return nullptr;
     }
-    errno = 0;
-    long fileSize = ftell(fp);
-    if (fileSize == -1) {
-        fprintf(stderr, "Error reading seek position in file \"%s\": %d\n", path, errno);
-        return nullptr;
-    }
 
-    fseekError = fseek(fp, 0L, 0);
-    if (fseekError) {
-        fprintf(stderr, "Error seeking in file \"%s\": %d\n", path, fseekError);
-        return nullptr;
-    }
-    size_t size = Entity::getMemorySize(fp);
-    printl("gltf %s memory size %zu", path, size);
-
-    // // make size one bigger. load process will write 0x00 in the last byte
-    // // after file contents so contents can be printed as string in place.
-    // size_t size = (size_t)fileSize + 1;
-
-    // Block * block = requestFreeBlock(size + sizeof(Entity));
-    // if (!block) return nullptr;
-    // block->type = TYPE_Entity;
-    // Entity * f = new (block->data()) Entity{size, path};
-
-    // // load now if request. send fp to avoid opening twice
-    // if (loadNow) {
-    //     bool success = f->load(fp);
-    //     // not sure what to do here. block successfully created but error in load...
-    //     // keep block creation or cancel the whole thing?
-    //     // Entity::load should report actual error.
-    //     if (!success) {
-    //     }
-    // }
+    // load it into memory
+    entity->load(fp, entity->data(), gltfSize);
 
     // close fp
     fclose(fp);

@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <new>
+#include "GLTF.h"
 
 class MemSys {
 public:
