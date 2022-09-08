@@ -88,17 +88,25 @@ struct GLTFSizeFinder {
     static constexpr int nFindStrConds = 2;
     ConditionGroup strCountConds[nFindStrConds];
     ConditionGroup objCountConds;
+    ConditionGroup animChannelCountConds;
+    ConditionGroup animSamplerCountConds;
+    ConditionGroup meshPrimCountConds;
+    ConditionGroup meshAttrCountConds;
     ConditionGroup byteCountConds;
     ConditionGroup imageSizeConds;
 
     uint16_t nAccessors = 0;
     uint16_t nAnimations = 0;
+    uint16_t nAnimationChannels = 0;
+    uint16_t nAnimationSamplers = 0;
     uint16_t nBuffers = 0;
     uint16_t nBufferViews = 0;
     uint16_t nCameras = 0;
     uint16_t nImages = 0;
     uint16_t nMaterials = 0;
     uint16_t nMeshes = 0;
+    uint16_t nMeshPrimatives = 0;
+    uint16_t nMeshAttributes = 0; // combined count of nAttributes and nTargets for all primatives
     uint16_t nNodes = 0;
     uint16_t nSamplers = 0;
     uint16_t nScenes = 0;
@@ -108,6 +116,8 @@ struct GLTFSizeFinder {
     uint32_t allStrLen = 0;
 
     uint32_t buffersLen = 0;
+
+    int stringCounter = 0;
 
     GLTFSizeFinder() {
         objCountConds.push(0, Crumb::ARR, "accessors", [this](void * ud){ nAccessors = (size_t)ud; });
@@ -124,14 +134,33 @@ struct GLTFSizeFinder {
         objCountConds.push(0, Crumb::ARR, "skins", [this](void * ud){ nSkins = (size_t)ud; });
         objCountConds.push(0, Crumb::ARR, "textures", [this](void * ud){ nTextures = (size_t)ud; });
 
+        // animation sub objects
+        animChannelCountConds.allAction = [this](void * ud) { nAnimationChannels += (size_t)ud; };
+        animChannelCountConds.push( 0, Crumb::ARR, "channels");
+        animChannelCountConds.push(-2, Crumb::ARR, "animations");
+        animSamplerCountConds.allAction = [this](void * ud) { nAnimationSamplers += (size_t)ud; };
+        animSamplerCountConds.push( 0, Crumb::ARR, "samplers");
+        animSamplerCountConds.push(-2, Crumb::ARR, "animations");
+
+        // mesh sub objects
+        meshPrimCountConds.allAction = [this](void * ud) { nMeshPrimatives += (size_t)ud; };
+        meshPrimCountConds.push( 0, Crumb::ARR, "primitives");
+        meshPrimCountConds.push(-2, Crumb::ARR, "meshes");
+        // TODO: add morph targets to same nMeshAttributes count
+        meshAttrCountConds.allAction = [this](void * ud) { nMeshAttributes += (size_t)ud; };
+        meshAttrCountConds.push( 0, Crumb::OBJ, "attributes");
+        meshAttrCountConds.push(-2, Crumb::ARR, "primitives");
+        meshAttrCountConds.push(-4, Crumb::ARR, "meshes");
+
         // find name strings
         // find main object names
-        strCountConds[0].allAction = [this](void * ud) { allStrLen += (size_t)ud; };
+        strCountConds[0].allAction = [this](void * ud) { ++stringCounter; allStrLen += (size_t)ud; };
         strCountConds[0].push(0, Crumb::STR, "name");
         strCountConds[0].push(
             -2,
             Crumb::ARR,
-            "accessors|animations|buffers|bufferViews|cameras|images|nodes|scenes"
+            "accessors|animations|buffers|bufferViews|cameras|images|materials|meshes|"
+            "nodes|samplers|scenes|skins|textures"
         );
         // find asset names
         strCountConds[1].allAction = strCountConds[0].allAction;
@@ -141,16 +170,18 @@ struct GLTFSizeFinder {
         // find buffer sizes
         byteCountConds.allAction = [this](void * ud) { buffersLen += (size_t)ud; };
         byteCountConds.push(0, Crumb::INT, "byteLength");
-        byteCountConds.push(-2, Crumb::ARR, "buffers");
+        byteCountConds.push(-2, Crumb::ARR, "buffers");\
+
 
         // find image sizes
-        imageSizeConds.push(0, Crumb::STR, "uri");
-        imageSizeConds.push(-2, Crumb::ARR, "images");
-        imageSizeConds.allAction = [this](void * ud) {
-            auto fs = (FixedStr *)ud;
-            auto id = loadImageBase64(fs->str, fs->length);
-            printl("image data: %dx%d, %d = %zu", id.width, id.height, id.nChannels, id.dataSize());
-        };
+        // (unnecessary)
+        // imageSizeConds.push(0, Crumb::STR, "uri");
+        // imageSizeConds.push(-2, Crumb::ARR, "images");
+        // imageSizeConds.allAction = [this](void * ud) {
+        //     auto fs = (FixedStr *)ud;
+        //     auto id = loadImageBase64(fs->str, fs->length);
+        //     printl("image data: %dx%d, %d = %zu", id.width, id.height, id.nChannels, id.dataSize());
+        // };
     }
 
     // push crumb onto bread crumb stack
@@ -209,21 +240,25 @@ struct GLTFSizeFinder {
     size_t totalSize() const {
         return
             sizeof(gltf::GLTF) +
-            sizeof(gltf::Accessor)   * nAccessors +
-            sizeof(gltf::Accessor)   * nAccessors +
-            sizeof(gltf::Animation)  * nAnimations +
-            sizeof(gltf::Buffer)     * nBuffers +
+            sizeof(gltf::Accessor) * nAccessors +
+            sizeof(gltf::Accessor) * nAccessors +
+            sizeof(gltf::Animation) * nAnimations +
+            sizeof(gltf::AnimationChannel) * nAnimationChannels +
+            sizeof(gltf::AnimationSampler) * nAnimationSamplers +
+            sizeof(gltf::Buffer) * nBuffers +
             sizeof(gltf::BufferView) * nBufferViews +
             // persp or ortho camera adds some floats. always 4 for now.
-            sizeof(gltf::Camera)     * nCameras + sizeof(float) * 4 +
-            sizeof(gltf::Image)      * nImages +
-            sizeof(gltf::Material)   * nMaterials +
-            sizeof(gltf::Mesh)       * nMeshes +
-            sizeof(gltf::Node)       * nNodes +
-            sizeof(gltf::Sampler)    * nSamplers +
-            sizeof(gltf::Scene)      * nScenes +
-            sizeof(gltf::Skin)       * nSkins +
-            sizeof(gltf::Texture)    * nTextures +
+            sizeof(gltf::Camera) * nCameras + sizeof(float) * 4 +
+            sizeof(gltf::Image) * nImages +
+            sizeof(gltf::Material) * nMaterials +
+            sizeof(gltf::Mesh) * nMeshes +
+            sizeof(gltf::MeshPrimative) * nMeshPrimatives +
+            sizeof(gltf::MeshAttribute) * nMeshAttributes +
+            sizeof(gltf::Node) * nNodes +
+            sizeof(gltf::Sampler) * nSamplers +
+            sizeof(gltf::Scene) * nScenes +
+            sizeof(gltf::Skin) * nSkins +
+            sizeof(gltf::Texture) * nTextures +
             allStrLen +
             buffersLen
         ;
@@ -276,14 +311,17 @@ struct GLTFSizeFinder {
         return true;
     }
 
-    bool EndObject(size_t  memberCount) {
+    bool EndObject(size_t memberCount) {
+        checkAll(meshAttrCountConds, (void *)memberCount);
         pop();
-        // printBreadcrumb();
         return true;
     }
 
     bool EndArray (size_t elementCount) {
         checkEach(objCountConds, (void *)elementCount);
+        checkAll(animChannelCountConds, (void *)elementCount);
+        checkAll(animSamplerCountConds, (void *)elementCount);
+        checkAll(meshPrimCountConds, (void *)elementCount);
         pop();
         // printBreadcrumb();
         return true;
@@ -298,22 +336,27 @@ struct GLTFSizeFinder {
     }
 
     void printStats() const {
-        printl("Accessors:   %8u", nAccessors);
-        printl("Animations:  %8u", nAnimations);
-        printl("Buffers:     %8u", nBuffers);
-        printl("BufferViews: %8u", nBufferViews);
-        printl("Cameras:     %8u", nCameras);
-        printl("Images:      %8u", nImages);
-        printl("Materials:   %8u", nMaterials);
-        printl("Meshes:      %8u", nMeshes);
-        printl("Nodes:       %8u", nNodes);
-        printl("Samplers:    %8u", nSamplers);
-        printl("Scenes:      %8u", nScenes);
-        printl("Skins:       %8u", nSkins);
-        printl("Textures:    %8u", nTextures);
-        printl("Strings len: %8u", allStrLen);
-        printl("Buffers len: %8u", buffersLen);
-        printl("Total Size:  %8zu", totalSize());
+        printl("Accessors:    %8u", nAccessors);
+        printl("Animations:   %8u", nAnimations);
+        printl("Anim Channels:%8u", nAnimationChannels);
+        printl("Anim Samplers:%8u", nAnimationSamplers);
+        printl("Buffers:      %8u", nBuffers);
+        printl("BufferViews:  %8u", nBufferViews);
+        printl("Cameras:      %8u", nCameras);
+        printl("Images:       %8u", nImages);
+        printl("Materials:    %8u", nMaterials);
+        printl("Meshes:       %8u", nMeshes);
+        printl("Mesh prims:   %8u", nMeshPrimatives);
+        printl("Mesh attrs:   %8u", nMeshAttributes);
+        printl("Nodes:        %8u", nNodes);
+        printl("Samplers:     %8u", nSamplers);
+        printl("Scenes:       %8u", nScenes);
+        printl("Skins:        %8u", nSkins);
+        printl("Textures:     %8u", nTextures);
+        printl("Strings len:  %8u", allStrLen);
+        printl("String count: %8u", stringCounter);
+        printl("Buffers len:  %8u", buffersLen);
+        printl("Total Size:   %8zu", totalSize());
     }
 
 };
