@@ -35,7 +35,7 @@ bool strWithin(char const * str, char const * strGroup, char sep) {
     char * gp = (char *)strGroup;
 
     // while there are characters in the group pointer
-    // for each "substr" in group
+    // each pass of this outer loop looks at one substr in the group
     while(*gp) {
         // special check for empty string
         if (!*sp && *gp == sep) return true;
