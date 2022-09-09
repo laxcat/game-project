@@ -1,5 +1,4 @@
 #include "string_utils.h"
-#include <stdio.h>
 #include <filesystem>
 #include <stb_image.h>
 #include "../MrManager.h"
