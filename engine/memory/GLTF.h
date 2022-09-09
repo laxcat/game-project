@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include "../common/types.h"
 
 namespace gltf {
     // Philosophy: basically mirror the spec
@@ -15,15 +16,57 @@ namespace gltf {
     // • expect 4GB limit for buffers (for now), so favor uint32_t for buffer sizes/offsets
 
     // forward
-    struct BufferView;
-    struct Skin;
+    struct Accessor;
+    struct Animation;
     struct AnimationChannel;
     struct AnimationSampler;
+    struct Asset;
+    struct Buffer;
+    struct BufferView;
+    struct Camera;
+    struct CameraOrthographic;
+    struct CameraPerspective;
+    struct GLTF;
+    struct Image;
+    struct Material;
     struct MatieralNormalTexture;
     struct MatieralOcclusionTexture;
+    struct Material;
+    struct Mesh;
+    struct MeshAttribute;
+    struct MeshPrimative;
     struct Node;
     struct Sampler;
+    struct Scene;
+    struct Skin;
+    struct Texture;
     struct TextureInfo;
+
+    // enums, types
+
+    // matches bgfx, TODO: compare to "official" gltf supported list
+    enum Attr {
+        ATTR_POSITION,
+        ATTR_NORMAL,
+        ATTR_TANGENT,
+        ATTR_BITANGENT,
+        ATTR_COLOR0,
+        ATTR_COLOR1,
+        ATTR_COLOR2,
+        ATTR_COLOR3,
+        ATTR_INDICES,
+        ATTR_WEIGHT,
+        ATTR_TEXCOORD0,
+        ATTR_TEXCOORD1,
+        ATTR_TEXCOORD2,
+        ATTR_TEXCOORD3,
+        ATTR_TEXCOORD4,
+        ATTR_TEXCOORD5,
+        ATTR_TEXCOORD6,
+        ATTR_TEXCOORD7,
+    };
+
+    // structs
 
     struct Accessor {
         BufferView * bufferView;
@@ -53,24 +96,19 @@ namespace gltf {
         AnimationSampler * samplers;
         int nSamplers;
         char const * name;
-    };
-
-    enum AnimationTarget {
-        ANIM_TAR_UNDEFINED,
-        ANIM_TAR_WEIGHTS,
-        ANIM_TAR_TRANSLATION,
-        ANIM_TAR_ROTATION,
-        ANIM_TAR_SCALE,
-    };
-
-    struct AnimationChannelTarget {
-        Node * node;
-        AnimationTarget path;
+        enum Target {
+            ANIM_TAR_UNDEFINED,
+            ANIM_TAR_WEIGHTS,
+            ANIM_TAR_TRANSLATION,
+            ANIM_TAR_ROTATION,
+            ANIM_TAR_SCALE,
+        };
     };
 
     struct AnimationChannel {
         Sampler * sampler;
-        AnimationChannelTarget target;
+        Node * node;
+        Animation::Target path;
     };
 
     struct AnimationSampler {
@@ -110,6 +148,17 @@ namespace gltf {
         char const * name;
     };
 
+    struct Camera {
+        CameraOrthographic * orthographic;
+        CameraPerspective * perspective;
+        enum Type {
+            TYPE_ORTHO,
+            TYPE_PERSP,
+        };
+        Type type;
+        char const * name;
+    };
+
     struct CameraOrthographic {
         float xmag;
         float ymag;
@@ -124,15 +173,38 @@ namespace gltf {
         float znear;
     };
 
-    struct Camera {
-        CameraOrthographic * orthographic;
-        CameraPerspective * perspective;
-        enum Type {
-            TYPE_ORTHO,
-            TYPE_PERSP,
-        };
-        Type type;
-        char const * name;
+    struct GLTF {
+        Accessor    * accessors;
+        Animation   * animations;
+        Asset         asset;
+        Buffer      * buffers;
+        BufferView  * bufferViews;
+        Camera      * cameras;
+        Image       * images;
+        Material    * materials;
+        Mesh        * meshes;
+        Node        * nodes;
+        Sampler     * samplers;
+        Scene       * scenes;
+        Skin        * skins;
+        Texture     * textures;
+
+        int16_t scene = -1;
+
+        uint16_t nAccessors;
+        uint16_t nAnimations;
+        uint16_t nBuffers;
+        uint16_t nBufferViews;
+        uint16_t nCameras;
+        uint16_t nImages;
+        uint16_t nMaterials;
+        uint16_t nMeshes;
+        uint16_t nNodes;
+        uint16_t nSamplers;
+        uint16_t nScene;
+        uint16_t nScenes;
+        uint16_t nSkins;
+        uint16_t nTextures;
     };
 
     // not sure about this structure... imaages, especially gltf images, will
@@ -149,21 +221,7 @@ namespace gltf {
         char const * name;
     };
 
-    struct MaterialPBRMR {
-        float baseColorFactor[4] = {1.f};
-        TextureInfo * baseColorTexture = nullptr;
-        float metalicFactor = 1.f;
-        float roughnessFactor = 1.f;
-        TextureInfo * metallicRoughnessTexture = nullptr;
-    };
-
     struct Material {
-        char const * name;
-        MaterialPBRMR pbrmr;
-        MatieralNormalTexture * normalTexture;
-        MatieralOcclusionTexture * occlusionTexture;
-        TextureInfo * emissiveTexture;
-        float emissiveFactor[3];
         enum AlphaMode {
             ALPHA_OPAQUE,
             ALPHA_MASK,
@@ -171,31 +229,41 @@ namespace gltf {
         };
         AlphaMode alphaMode = ALPHA_OPAQUE;
         float alphaCutoff = 0.5f;
+        float baseColorFactor[4] = {1.f};
+        TextureInfo * baseColorTexture = nullptr;
         bool doubleSided = false;
+        float emissiveFactor[3];
+        TextureInfo * emissiveTexture = nullptr;
+        float metalicFactor = 1.f;
+        TextureInfo * metallicRoughnessTexture = nullptr;
+        char const * name;
+        MatieralNormalTexture * normalTexture;
+        MatieralOcclusionTexture * occlusionTexture;
+        float roughnessFactor = 1.f;
+    };
+
+    struct MatieralNormalTexture {
+        Texture * index;
+        Attr texCoord = ATTR_TEXCOORD0;
+        float scale = 0.0f;
+    };
+
+    struct MatieralOcclusionTexture {
+        Texture * index;
+        Attr texCoord = ATTR_TEXCOORD0;
+        float strength = 1.0f;
+    };
+
+    struct Mesh {
+        MeshPrimative * primatives;
+        int nPrimatives;
+        float * weights;
+        int nWeights;
+        char const * name;
     };
 
     struct MeshAttribute {
-        enum Type {
-            TYPE_POSITION,
-            TYPE_NORMAL,
-            TYPE_TANGENT,
-            TYPE_BITANGENT,
-            TYPE_COLOR0,
-            TYPE_COLOR1,
-            TYPE_COLOR2,
-            TYPE_COLOR3,
-            TYPE_INDICES,
-            TYPE_WEIGHT,
-            TYPE_TEXCOORD0,
-            TYPE_TEXCOORD1,
-            TYPE_TEXCOORD2,
-            TYPE_TEXCOORD3,
-            TYPE_TEXCOORD4,
-            TYPE_TEXCOORD5,
-            TYPE_TEXCOORD6,
-            TYPE_TEXCOORD7,
-        };
-        Type type;
+        Attr type;
         Accessor * accessor;
     };
 
@@ -216,14 +284,6 @@ namespace gltf {
         Mode mode = MODE_TRIANGLES;
         MeshAttribute * targets;
         int nTargets;
-    };
-
-    struct Mesh {
-        MeshPrimative * primatives;
-        int nPrimatives;
-        float * weights;
-        int nWeights;
-        char const * name;
     };
 
     struct Node {
@@ -284,40 +344,6 @@ namespace gltf {
 
     struct TextureInfo {
         Texture * index;
-        MeshAttribute::Type texCoord;
-    };
-
-    struct GLTF {
-        Accessor    * accessors;
-        Animation   * animations;
-        Asset         asset;
-        Buffer      * buffers;
-        BufferView  * bufferViews;
-        Camera      * cameras;
-        Image       * images;
-        Material    * materials;
-        Mesh        * meshes;
-        Node        * nodes;
-        Sampler     * samplers;
-        Scene       * scenes;
-        Skin        * skins;
-        Texture     * textures;
-
-        int16_t scene = -1;
-
-        uint16_t nAccessors;
-        uint16_t nAnimations;
-        uint16_t nBuffers;
-        uint16_t nBufferViews;
-        uint16_t nCameras;
-        uint16_t nImages;
-        uint16_t nMaterials;
-        uint16_t nMeshes;
-        uint16_t nNodes;
-        uint16_t nSamplers;
-        uint16_t nScene;
-        uint16_t nScenes;
-        uint16_t nSkins;
-        uint16_t nTextures;
+        Attr texCoord;
     };
 }
