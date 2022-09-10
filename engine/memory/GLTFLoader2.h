@@ -1,6 +1,7 @@
 #pragma once
-#include "GLTF.h"
 #include <stddef.h>
+#include "GLTF.h"
+#include "Stack.h"
 
 struct GLTFLoader2 {
 
@@ -22,7 +23,7 @@ struct GLTFLoader2 {
         char key[MaxKeyLen] = {'\0'};
 
         Crumb() {}
-        
+
         Crumb(ObjType objType, char const * key = nullptr);
         void setKey(char const * key);
         // match key? null key matches any (no check, always true)
@@ -37,12 +38,12 @@ struct GLTFLoader2 {
     Crumb crumbs[MaxDepth];
     size_t depth = 0;
     char key[MaxKeyLen] = {'\0'};
-    byte_t * dst = nullptr;
-    size_t dstSize = 0;
-    size_t head = 0;
     gltf::GLTF * gltf;
+    Stack * strStack;
+    gltfutil::Counter const & counted;
+    byte_t * buffers;
 
-    GLTFLoader2(byte_t * dst, size_t dstSize);
+    GLTFLoader2(byte_t * dst, size_t dstSize, gltfutil::Counter const & counted);
     void push(ObjType objType);
     void pop();
     void captureKey(char const * key);
@@ -63,4 +64,24 @@ struct GLTFLoader2 {
     bool EndObject(size_t memberCount);
     bool EndArray (size_t elementCount);
     void printBreadcrumb() const;
+
+    gltf::Accessor::Type accessorTypeFromStr(char const * str);
+    gltf::AnimationTarget animationTargetFromStr(char const * str);
+    gltf::AnimationSampler::Interpolation interpolationFromStr(char const * str);
+
+    byte_t * head() const;
+    // object heads (current)
+    gltf::Accessor * accessor() const;
+    gltf::Animation * animation() const;
+    gltf::AnimationChannel * animationChannel() const;
+    gltf::AnimationSampler * animationSampler() const;
+
+    void checkCounts() const;
+
+private:
+    size_t _head = 0;
+    byte_t * _dst = nullptr;
+    size_t _dstSize = 0;
+
+    float * _floatPtr = nullptr;
 };

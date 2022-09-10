@@ -27,7 +27,7 @@ void MemSys::destroyPool(Pool * a) {
     destroy(a);
 }
 
-MemSys::Stack * MemSys::createStack(size_t size) {
+Stack * MemSys::createStack(size_t size) {
     Block * block = requestFreeBlock(size + sizeof(Stack));
     if (!block) return nullptr;
     block->type = TYPE_STACK;
@@ -97,7 +97,8 @@ MemSys::Entity * MemSys::createEntity(char const * path, bool loadNow) {
     }
 
     // calc size
-    size_t gltfSize = Entity::getMemorySize(fp);
+    auto counter = Entity::getMemorySize(fp);
+    size_t gltfSize = counter.totalSize();
     printl("gltf %s memory size %zu", path, gltfSize);
 
     // create block from size
@@ -114,10 +115,12 @@ MemSys::Entity * MemSys::createEntity(char const * path, bool loadNow) {
     }
 
     // load it into memory
-    entity->load(fp, entity->data(), gltfSize);
+    entity->load(fp, entity->data(), gltfSize, counter);
 
     // close fp
     fclose(fp);
+
+    entity->printGLTF();
 
     return nullptr;
 }

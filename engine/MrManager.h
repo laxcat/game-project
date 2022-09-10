@@ -33,7 +33,7 @@ public:
     EngineSetup setup;
 
     MemSys memSys;
-    MemSys::Stack * frameStack = nullptr;
+    Stack * frameStack = nullptr;
     RenderSystem rendSys;
 
     bool mouseIsDown = false;

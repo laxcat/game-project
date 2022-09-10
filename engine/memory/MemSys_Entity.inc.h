@@ -12,9 +12,11 @@ public:
     bool loaded() const { return _loaded; }
     char const * path() const { return _path; }
 
-    size_t static getMemorySize(FILE * externalFP);
+    static gltfutil::Counter getMemorySize(FILE * externalFP);
 
-    bool load(FILE * externalFP, byte_t * dst, size_t dstSize);
+    bool load(FILE * externalFP, byte_t * dst, size_t dstSize, gltfutil::Counter const & counted);
+
+    void printGLTF() const;
 
 private:
     size_t _size = 0;

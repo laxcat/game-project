@@ -6,6 +6,7 @@
 #include <stdarg.h>
 #include <new>
 #include "GLTF.h"
+#include "Stack.h"
 
 class MemSys {
 public:
@@ -42,7 +43,6 @@ public:
     // internal block content types ----------------------------------------- //
 
     #include "MemSys_Pool.inc.h"
-    #include "MemSys_Stack.inc.h"
     // read only for now
     #include "MemSys_File.inc.h"
     #include "MemSys_Entity.inc.h"

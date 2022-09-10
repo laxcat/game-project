@@ -1,6 +1,7 @@
 #pragma once
-#include <stdint.h>
+#include <stddef.h>
 #include "../common/types.h"
+#include "Stack.h"
 
 namespace gltf {
     // Philosophy: basically mirror the spec
@@ -14,13 +15,14 @@ namespace gltf {
     // • no support for extensions yet, so leave that out
     // • no support for sparse accessors, so leave that out
     // • expect 4GB limit for buffers (for now), so favor uint32_t for buffer sizes/offsets
+    // • single instance classes must exist should be packed into the parent if it makes sense.
+    //   for example the PBRMetalicRoughness class is packed directly into Material.
 
     // forward
     struct Accessor;
     struct Animation;
     struct AnimationChannel;
     struct AnimationSampler;
-    struct Asset;
     struct Buffer;
     struct BufferView;
     struct Camera;
@@ -65,15 +67,30 @@ namespace gltf {
         ATTR_TEXCOORD6,
         ATTR_TEXCOORD7,
     };
+    enum AnimationTarget {
+        ANIM_TAR_UNDEFINED,
+        ANIM_TAR_WEIGHTS,
+        ANIM_TAR_TRANSLATION,
+        ANIM_TAR_ROTATION,
+        ANIM_TAR_SCALE,
+    };
 
     // structs
 
     struct Accessor {
-        BufferView * bufferView;
-        uint32_t byteOffset;
-        int componentType;
-        bool normalized;
-        uint32_t count;
+        BufferView * bufferView = nullptr;
+        uint32_t byteOffset = 0;
+        enum ComponentType {
+            COMP_BYTE           = 0x1400, // 5120
+            COMP_UNSIGNED_BYTE  = 0x1401, // 5121
+            COMP_SHORT          = 0x1402, // 5122
+            COMP_UNSIGNED_SHORT = 0x1403, // 5123
+            COMP_UNSIGNED_INT   = 0x1405, // 5125
+            COMP_FLOAT          = 0x1406, // 5126
+        };
+        ComponentType componentType = COMP_UNSIGNED_BYTE;
+        bool normalized = false;
+        uint32_t count = 0;
         enum Type {
             TYPE_UNDEFINED,
             TYPE_SCALAR,
@@ -84,49 +101,35 @@ namespace gltf {
             TYPE_MAT3,
             TYPE_MAT4,
         };
-        Type type;
-        float min[16];
-        float max[16];
-        char const * name;
+        Type type = TYPE_UNDEFINED;
+        float min[16] = {0.0f};
+        float max[16] = {0.0f};
+        char const * name = nullptr;
     };
 
     struct Animation {
-        AnimationChannel * channels;
-        int nChannels;
-        AnimationSampler * samplers;
-        int nSamplers;
-        char const * name;
-        enum Target {
-            ANIM_TAR_UNDEFINED,
-            ANIM_TAR_WEIGHTS,
-            ANIM_TAR_TRANSLATION,
-            ANIM_TAR_ROTATION,
-            ANIM_TAR_SCALE,
-        };
+        AnimationChannel * channels = nullptr;
+        int nChannels = 0;
+        AnimationSampler * samplers = nullptr;
+        int nSamplers = 0;
+        char const * name = nullptr;
     };
 
     struct AnimationChannel {
-        Sampler * sampler;
-        Node * node;
-        Animation::Target path;
+        Sampler * sampler = nullptr;
+        Node * node = nullptr;
+        AnimationTarget path = ANIM_TAR_UNDEFINED;
     };
 
     struct AnimationSampler {
-        Accessor * input;
+        Accessor * input = nullptr;
         enum Interpolation {
             INTERP_LINEAR,
             INTERP_STEP,
             INTERP_CUBICSPLINE
         };
-        Interpolation interpolation;
-        Accessor * output;
-    };
-
-    struct Asset {
-        char const * copyright;
-        char const * generator;
-        char const * version;
-        char const * minVersion;
+        Interpolation interpolation = INTERP_LINEAR;
+        Accessor * output = nullptr;
     };
 
     struct Buffer {
@@ -174,37 +177,45 @@ namespace gltf {
     };
 
     struct GLTF {
-        Accessor    * accessors;
-        Animation   * animations;
-        Asset         asset;
-        Buffer      * buffers;
-        BufferView  * bufferViews;
-        Camera      * cameras;
-        Image       * images;
-        Material    * materials;
-        Mesh        * meshes;
-        Node        * nodes;
-        Sampler     * samplers;
-        Scene       * scenes;
-        Skin        * skins;
-        Texture     * textures;
+        Accessor         * accessors         = nullptr;
+        Animation        * animations        = nullptr;
+        AnimationChannel * animationChannels = nullptr;
+        AnimationSampler * animationSamplers = nullptr;
+        Buffer           * buffers           = nullptr;
+        BufferView       * bufferViews       = nullptr;
+        Camera           * cameras           = nullptr;
+        Image            * images            = nullptr;
+        Material         * materials         = nullptr;
+        Mesh             * meshes            = nullptr;
+        Node             * nodes             = nullptr;
+        Sampler          * samplers          = nullptr;
+        Scene            * scenes            = nullptr;
+        Skin             * skins             = nullptr;
+        Texture          * textures          = nullptr;
+
+        uint16_t nAccessors = 0;
+        uint16_t nAnimations = 0;
+        uint16_t nAnimationChannels = 0;
+        uint16_t nAnimationSamplers = 0;
+        uint16_t nBuffers = 0;
+        uint16_t nBufferViews = 0;
+        uint16_t nCameras = 0;
+        uint16_t nImages = 0;
+        uint16_t nMaterials = 0;
+        uint16_t nMeshes = 0;
+        uint16_t nNodes = 0;
+        uint16_t nSamplers = 0;
+        uint16_t nScenes = 0;
+        uint16_t nSkins = 0;
+        uint16_t nTextures = 0;
 
         int16_t scene = -1;
 
-        uint16_t nAccessors;
-        uint16_t nAnimations;
-        uint16_t nBuffers;
-        uint16_t nBufferViews;
-        uint16_t nCameras;
-        uint16_t nImages;
-        uint16_t nMaterials;
-        uint16_t nMeshes;
-        uint16_t nNodes;
-        uint16_t nSamplers;
-        uint16_t nScene;
-        uint16_t nScenes;
-        uint16_t nSkins;
-        uint16_t nTextures;
+        // asset
+        char const * copyright;
+        char const * generator;
+        char const * version;
+        char const * minVersion;
     };
 
     // not sure about this structure... imaages, especially gltf images, will
@@ -345,5 +356,59 @@ namespace gltf {
     struct TextureInfo {
         Texture * index;
         Attr texCoord;
+    };
+}
+
+// utility classes
+namespace gltfutil {
+    struct Counter {
+        uint16_t nAccessors = 0;
+        uint16_t nAnimations = 0;
+        uint16_t nAnimationChannels = 0;
+        uint16_t nAnimationSamplers = 0;
+        uint16_t nBuffers = 0;
+        uint16_t nBufferViews = 0;
+        uint16_t nCameras = 0;
+        uint16_t nImages = 0;
+        uint16_t nMaterials = 0;
+        uint16_t nMeshes = 0;
+        uint16_t nMeshPrimatives = 0;
+        uint16_t nMeshAttributes = 0; // combined count of nAttributes and nTargets for all primatives
+        uint16_t nNodes = 0;
+        uint16_t nSamplers = 0;
+        uint16_t nScenes = 0;
+        uint16_t nSkins = 0;
+        uint16_t nTextures = 0;
+
+        uint32_t allStrLen = 0;
+        uint32_t buffersLen = 0;
+
+        size_t totalSize() const {
+            // mirrors memory order
+            return
+                sizeof(gltf::GLTF) +
+                sizeof(Stack) + allStrLen +
+                sizeof(gltf::Accessor) * nAccessors +
+                sizeof(gltf::Animation) * nAnimations +
+                sizeof(gltf::AnimationChannel) * nAnimationChannels +
+                sizeof(gltf::AnimationSampler) * nAnimationSamplers +
+                sizeof(gltf::Buffer) * nBuffers +
+                sizeof(gltf::BufferView) * nBufferViews +
+                // persp or ortho camera adds some floats. always 4 for now.
+                (sizeof(gltf::Camera) + sizeof(gltf::CameraPerspective)) * nCameras +
+                sizeof(gltf::Image) * nImages +
+                sizeof(gltf::Material) * nMaterials +
+                sizeof(gltf::Mesh) * nMeshes +
+                sizeof(gltf::MeshPrimative) * nMeshPrimatives +
+                sizeof(gltf::MeshAttribute) * nMeshAttributes +
+                sizeof(gltf::Node) * nNodes +
+                sizeof(gltf::Sampler) * nSamplers +
+                sizeof(gltf::Scene) * nScenes +
+                sizeof(gltf::Skin) * nSkins +
+                sizeof(gltf::Texture) * nTextures +
+                buffersLen
+            ;
+        }
+
     };
 }
