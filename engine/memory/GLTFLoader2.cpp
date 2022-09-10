@@ -1,7 +1,10 @@
 #include "GLTFLoader2.h"
 #include <new>
 #include <assert.h>
+#include <string.h>
 #include "GLTF.h"
+#include "../common/file_utils.h"
+#include "../common/modp_b64.h"
 #include "../common/string_utils.h"
 #include "../dev/print.h"
 
@@ -81,10 +84,12 @@ GLTFLoader2::GLTFLoader2(byte_t * dst, size_t dstSize, Counter const & counted) 
     }
     if (counted.nBuffers) {
         gltf->buffers = (Buffer *)head();
+        for (int i = 0; i < counted.nBuffers; ++i) *(gltf->buffers + i) = {};
         _head += sizeof(Buffer) * counted.nBuffers;
     }
     if (counted.nBufferViews) {
         gltf->bufferViews = (BufferView *)head();
+        for (int i = 0; i < counted.nBufferViews; ++i) *(gltf->bufferViews + i) = {};
         _head += sizeof(BufferView) * counted.nBufferViews;
     }
     if (counted.nCameras) {
@@ -159,6 +164,39 @@ GLTFLoader2::Crumb & GLTFLoader2::crumbAt(int offset) {
     return crumbs[depth-1+offset];
 }
 
+size_t GLTFLoader2::handleData(byte_t * dst, char const * str, size_t strLength) {
+    // base64?
+    auto isDataStr = "data:application/octet-stream;base64,";
+    auto isDataLen = strlen(isDataStr);
+    if (strEqualForLength(str, isDataStr, isDataLen)) {
+        size_t b64StrLen = strLength - isDataLen;
+        modp_b64_decode((char *)dst, (char *)str + isDataLen, b64StrLen);
+        return modp_b64_decode_len(b64StrLen);
+    }
+
+    // uri to load?
+    // TODO: test this
+    FILE * fp = fopen(str, "r");
+    if (!fp) {
+        fprintf(stderr, "WARNING: Error %d opening buffer file: %s\n", ferror(fp), str);
+    }
+    long fileSize = getFileSize(fp);
+    if (fileSize == -1) {
+        fclose(fp);
+        return 0;
+    }
+    size_t readSize = fread(dst, 1, fileSize, fp);
+    // error
+    if (ferror(fp) || readSize != fileSize) {
+        fprintf(stderr, "Error reading file \"%s\" contents: read %zu, expecting %zu\n",
+            str, readSize, fileSize);
+        fclose(fp);
+        return 0;
+    }
+
+    return readSize;
+}
+
 bool GLTFLoader2::Null  ()           { return true; }
 bool GLTFLoader2::Int   (int i)      { return true; }
 bool GLTFLoader2::Int64 (int64_t  i) { return true; }
@@ -175,7 +213,7 @@ bool GLTFLoader2::Bool (bool b) {
 bool GLTFLoader2::Uint(unsigned u) {
     push(TYPE_INT);
 
-    if (depth == 2 && C(0,TYPE_INT,"scene")) gltf->scene = u;
+    if (depth == 2 && CC("scene")) gltf->scene = u;
 
     else if (C(-2,TYPE_ARR,"accessors")) {
         if      (CC("bufferView"))    accessor()->bufferView = gltf->bufferViews + u;
@@ -195,6 +233,19 @@ bool GLTFLoader2::Uint(unsigned u) {
 
     else if (C(-5,TYPE_ARR,"animations") && C(-3,TYPE_ARR,"channels") && C(-1,TYPE_OBJ,"target")) {
         if (CC("node")) animationChannel()->node = gltf->nodes + u;
+    }
+
+    else if (C(-2,TYPE_ARR,"buffers") && CC("byteLength")) buffer()->byteLength = u;
+
+    else if (C(-2,TYPE_ARR,"bufferViews")) {
+        if      (CC("buffer")) bufferView()->buffer = gltf->buffers + u;
+        else if (CC("byteOffset")) bufferView()->byteOffset = u;
+        else if (CC("byteLength")) bufferView()->byteLength = u;
+        else if (CC("byteLength")) bufferView()->byteLength = u;
+        else if (CC("byteStride")) bufferView()->byteStride = u;
+        else if (CC("target")) bufferView()->target = (BufferView::Target)u;
+
+        // else if ()
     }
 
     pop();
@@ -227,12 +278,29 @@ bool GLTFLoader2::String(char const * str, size_t length, bool copy) {
 
     else if (C(-4,TYPE_ARR,"animations") && C(-2,TYPE_ARR,"samplers")) {
         if (CC("interpolation")) animationSampler()->interpolation = interpolationFromStr(str);
-        printl("animationSampler()->interpolation %d", animationSampler()->interpolation);
     }
 
     else if (C(-5,TYPE_ARR,"animations") && C(-3,TYPE_ARR,"channels") && C(-1,TYPE_OBJ,"target")) {
         if (CC("path")) animationChannel()->path = animationTargetFromStr(str);
     }
+
+    else if (C(-2,TYPE_ARR,"buffers")) {
+        if (CC("uri")) {
+            size_t bytesWritten;
+            if ((bytesWritten = handleData(buffers, str, length))) {
+                buffer()->data = buffers;
+                buffer()->byteLength = bytesWritten;
+                buffers += bytesWritten;
+                printl("WE DID IT! %zu", bytesWritten);
+            }
+        }
+        else if (CC("name")) buffer()->name = strStack->writeStr(str, length);
+    }
+
+    else if (C(-2,TYPE_ARR,"bufferViews")) {
+        if (CC("name")) bufferView()->name = strStack->writeStr(str, length);
+    }
+
 
     pop();
     return true;
@@ -276,7 +344,8 @@ bool GLTFLoader2::EndObject(size_t memberCount) {
         ++animation()->nSamplers;
         ++gltf->nAnimationSamplers;
     }
-
+    else if (CC("buffers")) ++gltf->nBuffers;
+    else if (CC("bufferViews")) ++gltf->nBufferViews;
 
     return true;
 }
@@ -325,10 +394,12 @@ AnimationSampler::Interpolation GLTFLoader2::interpolationFromStr(char const * s
 
 byte_t * GLTFLoader2::head() const { return _dst + _head; }
 
-gltf::Accessor * GLTFLoader2::accessor() const { return gltf->accessors + gltf->nAccessors; }
-gltf::Animation * GLTFLoader2::animation() const { return gltf->animations + gltf->nAnimations; }
-gltf::AnimationChannel * GLTFLoader2::animationChannel() const { return gltf->animationChannels + gltf->nAnimationChannels; }
-gltf::AnimationSampler * GLTFLoader2::animationSampler() const { return gltf->animationSamplers + gltf->nAnimationSamplers; }
+Accessor * GLTFLoader2::accessor() const { return gltf->accessors + gltf->nAccessors; }
+Animation * GLTFLoader2::animation() const { return gltf->animations + gltf->nAnimations; }
+AnimationChannel * GLTFLoader2::animationChannel() const { return gltf->animationChannels + gltf->nAnimationChannels; }
+AnimationSampler * GLTFLoader2::animationSampler() const { return gltf->animationSamplers + gltf->nAnimationSamplers; }
+Buffer * GLTFLoader2::buffer() const { return gltf->buffers + gltf->nBuffers; }
+BufferView * GLTFLoader2::bufferView() const { return gltf->bufferViews + gltf->nBufferViews; }
 
 void GLTFLoader2::checkCounts() const {
     printl("Accessors  %2d == %2d", gltf->nAccessors, counted.nAccessors);

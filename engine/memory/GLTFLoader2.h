@@ -48,6 +48,7 @@ struct GLTFLoader2 {
     void pop();
     void captureKey(char const * key);
     Crumb & crumbAt(int offset);
+    size_t handleData(byte_t * dst, char const * str, size_t strLength);
 
     bool Null  ();
     bool Bool  (bool b);
@@ -63,7 +64,6 @@ struct GLTFLoader2 {
     bool StartArray ();
     bool EndObject(size_t memberCount);
     bool EndArray (size_t elementCount);
-    void printBreadcrumb() const;
 
     gltf::Accessor::Type accessorTypeFromStr(char const * str);
     gltf::AnimationTarget animationTargetFromStr(char const * str);
@@ -75,8 +75,11 @@ struct GLTFLoader2 {
     gltf::Animation * animation() const;
     gltf::AnimationChannel * animationChannel() const;
     gltf::AnimationSampler * animationSampler() const;
+    gltf::Buffer * buffer() const;
+    gltf::BufferView * bufferView() const;
 
     void checkCounts() const;
+    void printBreadcrumb() const;
 
 private:
     size_t _head = 0;

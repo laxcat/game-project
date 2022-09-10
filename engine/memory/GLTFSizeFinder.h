@@ -135,7 +135,7 @@ struct GLTFSizeFinder {
 
         // find name strings
         // find main object names
-        strCountConds[0].allAction = [this](void * ud) { ++stringCounter; cntr.allStrLen += (size_t)ud; };
+        strCountConds[0].allAction = [this](void * ud) { ++stringCounter; cntr.allStrLen += ALIGN((size_t)ud); };
         strCountConds[0].push(0, Crumb::STR, "name");
         strCountConds[0].push(
             -2,
@@ -149,7 +149,7 @@ struct GLTFSizeFinder {
         strCountConds[1].push(-1, Crumb::OBJ, "asset");
 
         // find buffer sizes
-        byteCountConds.allAction = [this](void * ud) { cntr.buffersLen += (size_t)ud; };
+        byteCountConds.allAction = [this](void * ud) { cntr.buffersLen += ALIGN((size_t)ud); };
         byteCountConds.push(0, Crumb::INT, "byteLength");
         byteCountConds.push(-2, Crumb::ARR, "buffers");\
 

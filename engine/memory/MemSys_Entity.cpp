@@ -1,7 +1,7 @@
 #include "MemSys.h"
 #include <rapidjson/reader.h>
 #include <rapidjson/filereadstream.h>
-#include "../common/code_timer.h"
+#include "../common/codetimer.h"
 #include "../dev/print.h"
 #include "../MrManager.h"
 #include "GLTF.h"
@@ -16,10 +16,10 @@ gltfutil::Counter MemSys::Entity::getMemorySize(FILE * externalFP) {
     char * buf = (char *)mm.frameStack->alloc(bufSize);
     if (!buf) return {};
     auto fs = rapidjson::FileReadStream(externalFP, buf, bufSize);
-    code_timer_start();
+    codetimer::start();
     reader.Parse(fs, scanner);
     scanner.printStats();
-    printl("read gltf size in %d µ", code_timer_end());
+    printl("read gltf size in %d µ", codetimer::delta());
     return scanner.counter();
 }
 
@@ -31,9 +31,9 @@ bool MemSys::Entity::load(FILE * externalFP, byte_t * dst, size_t dstSize, gltfu
     char * buf = (char *)mm.frameStack->alloc(bufSize);
     if (!buf) return 0;
     auto fs = rapidjson::FileReadStream(externalFP, buf, bufSize);
-    code_timer_start();
+    codetimer::start();
     reader.Parse(fs, scanner);
-    printl("loaded gltf size in %d µ", code_timer_end());
+    printl("loaded gltf size in %d µ", codetimer::delta());
     scanner.checkCounts();
     _loaded = true;
     return _loaded;

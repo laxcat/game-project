@@ -1,4 +1,5 @@
 #include "MemSys.h"
+#include "../common/file_utils.h"
 #include "../dev/print.h"
 
 // lifecycle ------------------------------------------------------------ //
@@ -46,13 +47,7 @@ MemSys::File * MemSys::createFileHandle(char const * path, bool loadNow) {
         fprintf(stderr, "Error loading file \"%s\": %d\n", path, errno);
         return nullptr;
     }
-    int fseekError = fseek(fp, 0L, SEEK_END);
-    if (fseekError) {
-        fprintf(stderr, "Error seeking in file \"%s\": %d\n", path, fseekError);
-        return nullptr;
-    }
-    errno = 0;
-    long fileSize = ftell(fp);
+    long fileSize = getFileSize(fp);
     if (fileSize == -1) {
         fprintf(stderr, "Error reading seek position in file \"%s\": %d\n", path, errno);
         return nullptr;

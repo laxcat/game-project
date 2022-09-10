@@ -24,3 +24,4 @@ struct ImageData {
     size_t dataSize() const { return width * height * nChannels; };
 };
 ImageData loadImageBase64(char const * data, size_t length);
+
