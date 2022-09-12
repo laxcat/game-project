@@ -133,33 +133,35 @@ namespace gltf {
     };
 
     struct Buffer {
-        byte_t * data;
-        uint32_t byteLength;
-        char const * name;
+        byte_t * data = nullptr;
+        uint32_t byteLength = 0;
+        char const * name = nullptr;
     };
 
     struct BufferView {
-        Buffer * buffer;
-        uint32_t byteOffset;
-        uint32_t byteLength;
-        uint32_t byteStride;
+        Buffer * buffer = nullptr;
+        uint32_t byteOffset = 0;
+        uint32_t byteLength = 0;
+        uint32_t byteStride = 0;
         enum Target {
             ARRAY_BUFFER            = 0x8892, // 34962
             ELEMENT_ARRAY_BUFFER    = 0x8893, // 34963
         };
-        Target target;
-        char const * name;
+        Target target = ARRAY_BUFFER;
+        char const * name = nullptr;
     };
 
     struct Camera {
-        CameraOrthographic * orthographic;
-        CameraPerspective * perspective;
+        CameraOrthographic * orthographic = nullptr;
+        CameraPerspective * perspective = nullptr;
         enum Type {
             TYPE_ORTHO,
             TYPE_PERSP,
         };
-        Type type;
-        char const * name;
+        Type type = TYPE_PERSP;
+        char const * name = nullptr;
+        // pointed to by orthographic or perspective
+        float _data[4] = {0.f};
     };
 
     struct CameraOrthographic {
@@ -394,8 +396,7 @@ namespace gltfutil {
                 sizeof(gltf::AnimationSampler) * nAnimationSamplers +
                 sizeof(gltf::Buffer) * nBuffers +
                 sizeof(gltf::BufferView) * nBufferViews +
-                // persp or ortho camera adds some floats. always 4 for now.
-                (sizeof(gltf::Camera) + sizeof(gltf::CameraPerspective)) * nCameras +
+                sizeof(gltf::Camera) * nCameras +
                 sizeof(gltf::Image) * nImages +
                 sizeof(gltf::Material) * nMaterials +
                 sizeof(gltf::Mesh) * nMeshes +

@@ -94,10 +94,12 @@ GLTFLoader2::GLTFLoader2(byte_t * dst, size_t dstSize, Counter const & counted) 
     }
     if (counted.nCameras) {
         gltf->cameras = (Camera *)head();
-        // each camera will have either a persp or ortho camera
-        _head += (sizeof(Camera) + sizeof(CameraPerspective)) * counted.nCameras;
-        // they happen to be the same size, so it doesn't matter which, but we should assert this is true
+        for (int i = 0; i < counted.nCameras; ++i) *(gltf->cameras + i) = {};
+        _head += sizeof(Camera) * counted.nCameras;
+        // either Camera::perspective or Camera::orthographic points to Camera::_data
+        // explointed fact that CameraPerspective or CameraOrthographic happen to both be 4 floats
         assert(sizeof(CameraPerspective) == sizeof(CameraOrthographic));
+        assert(sizeof(CameraPerspective) == sizeof(Camera::_data));
     }
     if (counted.nImages) {
         gltf->images = (Image *)head();
@@ -346,6 +348,7 @@ bool GLTFLoader2::EndObject(size_t memberCount) {
     }
     else if (CC("buffers")) ++gltf->nBuffers;
     else if (CC("bufferViews")) ++gltf->nBufferViews;
+    else if (CC("cameras")) ++gltf->nCameras;
 
     return true;
 }
@@ -391,6 +394,12 @@ AnimationSampler::Interpolation GLTFLoader2::interpolationFromStr(char const * s
     return AnimationSampler::INTERP_LINEAR;
 }
 
+Camera::Type GLTFLoader2::cameraTypeFromStr(char const * str) {
+    if (strEqu(str, "orthographic")) return Camera::TYPE_ORTHO;
+    if (strEqu(str, "perspective" )) return Camera::TYPE_PERSP;
+    return Camera::TYPE_PERSP;
+}
+
 
 byte_t * GLTFLoader2::head() const { return _dst + _head; }
 
@@ -400,6 +409,7 @@ AnimationChannel * GLTFLoader2::animationChannel() const { return gltf->animatio
 AnimationSampler * GLTFLoader2::animationSampler() const { return gltf->animationSamplers + gltf->nAnimationSamplers; }
 Buffer * GLTFLoader2::buffer() const { return gltf->buffers + gltf->nBuffers; }
 BufferView * GLTFLoader2::bufferView() const { return gltf->bufferViews + gltf->nBufferViews; }
+Camera * GLTFLoader2::camera() const { return gltf->cameras + gltf->nCameras; }
 
 void GLTFLoader2::checkCounts() const {
     printl("Accessors  %2d == %2d", gltf->nAccessors, counted.nAccessors);

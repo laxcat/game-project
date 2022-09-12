@@ -13,7 +13,9 @@ struct GLTFLoader2 {
         TYPE_OBJ,
         TYPE_ARR,
         TYPE_STR,
-        TYPE_INT
+        TYPE_UINT,
+        TYPE_INT,
+        TYPE_FLOAT,
     };
 
     // each obj/arr shift gets a new crumb.
@@ -58,6 +60,7 @@ struct GLTFLoader2 {
     bool Double(double   d);
     bool RawNumber(char const * str, size_t length, bool copy);
     bool Uint(unsigned u);
+    void handleNumber(void * any, ObjType hint);
     bool String(char const * str, size_t length, bool copy);
     bool Key(char const * str, size_t length, bool copy);
     bool StartObject();
@@ -65,9 +68,11 @@ struct GLTFLoader2 {
     bool EndObject(size_t memberCount);
     bool EndArray (size_t elementCount);
 
+
     gltf::Accessor::Type accessorTypeFromStr(char const * str);
     gltf::AnimationTarget animationTargetFromStr(char const * str);
     gltf::AnimationSampler::Interpolation interpolationFromStr(char const * str);
+    gltf::Camera::Type cameraTypeFromStr(char const * str);
 
     byte_t * head() const;
     // object heads (current)
@@ -77,6 +82,7 @@ struct GLTFLoader2 {
     gltf::AnimationSampler * animationSampler() const;
     gltf::Buffer * buffer() const;
     gltf::BufferView * bufferView() const;
+    gltf::Camera * camera() const;
 
     void checkCounts() const;
     void printBreadcrumb() const;
