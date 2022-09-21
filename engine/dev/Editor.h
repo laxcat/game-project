@@ -5,6 +5,7 @@ public:
     
     void tick();
 
+    // main sidebar window
     void guiRendering();
     void guiLighting();
     void guiCamera();
@@ -13,4 +14,8 @@ public:
     void guiGLTF(char const * label, char const * key);
     void guiFog();
     void guiColors();
+    void guiMem();
+
+    // separate movable windows
+    void guiWinMem();
 };

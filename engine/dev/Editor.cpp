@@ -12,6 +12,7 @@
 // ImGuiTreeNodeFlags_DefaultOpen
 using namespace ImGui;
 static char scratchStr[32];
+MemMan * memMan = nullptr;
 
 struct LoadedGLTF {
     std::string label;
@@ -65,9 +66,12 @@ void Editor::tick() {
     guiGLTFs();
     guiFog();
     guiColors();
+    guiMem();
     if (mm.setup.appendInsideEditor) mm.setup.appendInsideEditor();
 
     End();
+
+    guiWinMem();
 }
 
 void Editor::guiRendering() {
@@ -419,4 +423,27 @@ void Editor::guiColors() {
 
         Dummy(ImVec2(0.0f, 20.0f));
     }
+}
+
+void Editor::guiMem() {
+    if (CollapsingHeader("Memory", ImGuiTreeNodeFlags_DefaultOpen)) {
+        Text("Total: %.0f MB", round((double)mm.memMan.size()/(1024*1024)));
+        if (Button("Show Memory")) {
+            memMan = &mm.memMan;
+        }
+    }
+}
+
+void Editor::guiWinMem() {
+    if (!memMan) return;
+
+    Begin("Memory2", NULL, ImGuiWindowFlags_NoCollapse);
+
+    Text("Do it");
+
+    if (Button("Close")) {
+        memMan = nullptr;
+    }
+
+    End();
 }

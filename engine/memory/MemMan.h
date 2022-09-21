@@ -51,6 +51,10 @@ public:
     };
     constexpr static size_t BlockInfoSize = sizeof(Block);
 
+    // info/access ---------------------------------------------------------- //
+    size_t size() const { return _size; }
+    
+
     // lifecycle ------------------------------------------------------------ //
 
     void init(size_t size);
