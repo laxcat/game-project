@@ -1,45 +1,54 @@
-#include "MemSys.h"
+#include "MemMan.h"
+#include <errno.h>
+#include <assert.h>
+#include <stdarg.h>
+#include <new>
 #include "../common/file_utils.h"
 #include "../dev/print.h"
+#include "Stack.h"
+#include "Pool.h"
+#include "File.h"
+#include "mem_align.h"
 
 // lifecycle ------------------------------------------------------------ //
 
-void MemSys::init(size_t size) {
+void MemMan::init(size_t size) {
     _data = (byte_t *)malloc(size);
     _size = size;
     _blockHead = new (_data) Block();
     _blockHead->size = size - BlockInfoSize;
+    _blockTail = _blockHead;
 }
 
-void MemSys::shutdown() {
+void MemMan::shutdown() {
     if (_data) free(_data), _data = nullptr;
 }
 
 // create/destroy for internal types ------------------------------------ //
 
-MemSys::Pool * MemSys::createPool(size_t objCount, size_t objSize) {
+Pool * MemMan::createPool(size_t objCount, size_t objSize) {
     Block * block = requestFreeBlock(objCount * objSize + sizeof(Pool));
     if (!block) return nullptr;
     block->type = TYPE_POOL;
     return new (block->data()) Pool{objCount, objSize};
 }
 
-void MemSys::destroyPool(Pool * a) {
+void MemMan::destroyPool(Pool * a) {
     destroy(a);
 }
 
-Stack * MemSys::createStack(size_t size) {
+Stack * MemMan::createStack(size_t size) {
     Block * block = requestFreeBlock(size + sizeof(Stack));
     if (!block) return nullptr;
     block->type = TYPE_STACK;
     return new (block->data()) Stack{size};
 }
 
-void MemSys::destroyStack(Stack * s) {
+void MemMan::destroyStack(Stack * s) {
     destroy(s);
 }
 
-MemSys::File * MemSys::createFileHandle(char const * path, bool loadNow) {
+File * MemMan::createFileHandle(char const * path, bool loadNow) {
     // open to deternmine size, and also maybe load
     errno = 0;
     FILE * fp = fopen(path, "r");
@@ -78,57 +87,60 @@ MemSys::File * MemSys::createFileHandle(char const * path, bool loadNow) {
     return f;
 }
 
-void MemSys::destroyFileHandle(File * f) {
+void MemMan::destroyFileHandle(File * f) {
     destroy(f);
 }
 
-MemSys::Entity * MemSys::createEntity(char const * path, bool loadNow) {
-    // open to deternmine size, and also maybe load
-    errno = 0;
-    FILE * fp = fopen(path, "r");
-    if (!fp) {
-        fprintf(stderr, "Error loading file \"%s\": %d\n", path, errno);
-        return nullptr;
-    }
+// MemMan::Entity * MemMan::createEntity(char const * path, bool loadNow) {
+//     File * f = createFileHandle(path, true);
 
-    // calc size
-    auto counter = Entity::getMemorySize(fp);
-    size_t gltfSize = counter.totalSize();
-    printl("gltf %s memory size %zu", path, gltfSize);
 
-    // create block from size
-    Block * block = requestFreeBlock(gltfSize + sizeof(Entity));
-    if (!block) return nullptr;
-    block->type = TYPE_ENTITY;
-    Entity * entity = new (block->data()) Entity{path};
+//     // // open to deternmine size, and also maybe load
+//     // errno = 0;
+//     // FILE * fp = fopen(path, "r");
+//     // if (!fp) {
+//     //     fprintf(stderr, "Error loading file \"%s\": %d\n", path, errno);
+//     //     return nullptr;
+//     // }
 
-    // seek back to start of file
-    int fseekError = fseek(fp, 0L, 0);
-    if (fseekError) {
-        fprintf(stderr, "Error seeking in file \"%s\": %d\n", path, fseekError);
-        return nullptr;
-    }
+//     // // calc size
+//     // auto counter = Entity::getMemorySize(fp);
+//     // size_t gltfSize = counter.totalSize();
+//     // printl("gltf %s memory size %zu", path, gltfSize);
 
-    // load it into memory
-    entity->load(fp, entity->data(), gltfSize, counter);
+//     // // create block from size
+//     // Block * block = requestFreeBlock(gltfSize + sizeof(Entity));
+//     // if (!block) return nullptr;
+//     // block->type = TYPE_ENTITY;
+//     // Entity * entity = new (block->data()) Entity{path};
 
-    // close fp
-    fclose(fp);
+//     // // seek back to start of file
+//     // int fseekError = fseek(fp, 0L, 0);
+//     // if (fseekError) {
+//     //     fprintf(stderr, "Error seeking in file \"%s\": %d\n", path, fseekError);
+//     //     return nullptr;
+//     // }
 
-    entity->printGLTF();
+//     // // load it into memory
+//     // entity->load(fp, entity->data(), gltfSize, counter);
 
-    return nullptr;
-}
+//     // // close fp
+//     // fclose(fp);
 
-void MemSys::destroyEntity(Entity * f) {
-    destroy(f);
-}
+//     // entity->printGLTF();
 
-void MemSys::destroy(void * ptr) {
+//     return nullptr;
+// }
+
+// void MemMan::destroyEntity(Entity * f) {
+//     destroy(f);
+// }
+
+void MemMan::destroy(void * ptr) {
     if (!isWithinData((byte_t *)ptr)) {
         fprintf(
             stderr,
-            "Unexpected location for pointer. Expected mem range %p-%p, recieved %p",
+            "Unexpected location for pointer. Expected mem range %p-%p, recieved %p\n",
             _data, _data + _size, ptr
         );
         assert(false);
@@ -140,14 +152,16 @@ void MemSys::destroy(void * ptr) {
     // set block to free
     block->type = TYPE_FREE;
     // try to merge with neighboring blocks
-    block->mergeWithNext();
-    if (block->prev) block->prev->mergeWithNext();
+    mergeBlockWithNext(block);
+    if (block->prev) mergeBlockWithNext(block->prev);
 }
 
 // block handling ------------------------------------------------------- //
 
 // find block with enough free space, split it to size, and return it
-MemSys::Block * MemSys::requestFreeBlock(size_t size) {
+MemMan::Block * MemMan::requestFreeBlock(size_t size) {
+    size = ALIGN(size);
+
     Block * block = nullptr;
     for (block = _blockHead; block; block = block->next) {
         if (block->type == TYPE_FREE && block->dataSize() >= size) {
@@ -155,25 +169,62 @@ MemSys::Block * MemSys::requestFreeBlock(size_t size) {
         }
     }
     if (!block) return nullptr;
-
     // We don't care if the split actually happens or not.
     // If it happened, we still return the first block and the 2nd is of no
     // concern.
     // If it didn't, it was the rare case where the block is big enough to
     // hold our data, but with not enough room to create a new block.
-    block->split(size);
+    splitBlock(block, size);
 
     // the old block gets returned. it was (probably) shrunk to fit by split
     return block;
 }
 
-bool MemSys::isWithinData(byte_t * ptr, size_t size) {
+MemMan::Block * MemMan::splitBlock(Block * blockA, size_t blockANewSize) {
+    // block a (this) is not big enough.
+    // equal data size also rejected because new block would have
+    // 0 bytes for data.
+    if (blockA->dataSize() <= blockANewSize + BlockInfoSize) return nullptr;
+
+    // where to put the new block?
+    byte_t * newLoc = blockA->data() + blockANewSize;
+    // write block info into data space with defaults
+    Block * blockB = new (newLoc) Block();
+    // block blockB gets remaining space
+    blockB->size = blockA->dataSize() - BlockInfoSize - blockANewSize;
+
+    // set this size
+    blockA->size = blockANewSize;
+
+    // link up
+    blockB->next = blockA->next;
+    blockB->prev = blockA;
+    blockA->next = blockB;
+    if (_blockTail == blockA) _blockTail = blockB;
+
+    return blockA;
+}
+
+MemMan::Block * MemMan::splitBlockEnd(Block * blockA, size_t blockBNewSize) {
+    if (blockBNewSize + BlockInfoSize > blockA->dataSize()) return nullptr;
+    auto ret = splitBlock(blockA, blockA->dataSize() - BlockInfoSize - blockBNewSize);
+    return (ret) ? ret->next : nullptr;
+}
+
+MemMan::Block * MemMan::mergeBlockWithNext(Block * blockA) {
+    if (blockA->type != TYPE_FREE || !blockA->next || blockA->next->type != TYPE_FREE) return nullptr;
+    blockA->size += blockA->next->totalSize();
+    blockA->next = blockA->next->next;
+    return blockA;
+}
+
+bool MemMan::isWithinData(byte_t * ptr, size_t size) {
     return (ptr >= _data && ptr + size <= _data + _size);
 }
 
 // debug ---------------------------------------------------------------- //
 
-void MemSys::getInfo(char * buf, int bufSize) {
+void MemMan::getInfo(char * buf, int bufSize) {
     int blockCount = 0;
     for (Block * b = _blockHead; b; b = b->next) {
         ++blockCount;
@@ -183,7 +234,7 @@ void MemSys::getInfo(char * buf, int bufSize) {
     wrote += snprintf(
         buf + wrote,
         bufSize - wrote,
-        "MemSys\n"
+        "MemMan\n"
         "================================================================================\n"
         "Data: %p, Size: %zu, Block count: %d\n"
         ,

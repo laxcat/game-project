@@ -46,10 +46,12 @@ bool GLTFLoader2::Crumb::matches(ObjType objType, char const * key) const {
 
 char const * GLTFLoader2::Crumb::objTypeStr() const {
     return
-        (objType == TYPE_OBJ) ? "OBJ" :
-        (objType == TYPE_ARR) ? "ARR" :
-        (objType == TYPE_STR) ? "STR" :
-        (objType == TYPE_INT) ? "INT" :
+        (objType == TYPE_OBJ)   ? "OBJ" :
+        (objType == TYPE_ARR)   ? "ARR" :
+        (objType == TYPE_STR)   ? "STR" :
+        (objType == TYPE_UINT)  ? "UINT" :
+        (objType == TYPE_INT)   ? "INT" :
+        (objType == TYPE_FLOAT) ? "FLOAT" :
         "UNKNOWN";
 }
 

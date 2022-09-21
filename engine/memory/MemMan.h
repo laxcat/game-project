@@ -1,14 +1,11 @@
 #pragma once
 #include "../common/types.h"
 #include <stdio.h>
-#include <errno.h>
-#include <assert.h>
-#include <stdarg.h>
-#include <new>
-#include "GLTF.h"
+#include "File.h"
+#include "Pool.h"
 #include "Stack.h"
 
-class MemSys {
+class MemMan {
 public:
     // types ---------------------------------------------------------------- //
 
@@ -29,24 +26,30 @@ public:
     // Each block will be placed in the large memory space, with an instance
     // placed at the start of the block, with "size" bytes available directly
     // after in memory. Member "size" represents this data space size, so the
-    // block actually takes up size + BlockInfoSize in MemSys data block.
-    #include "MemSys_Block.inc.h"
+    // block actually takes up size + BlockInfoSize in MemMan data block.
+    class Block {
+    public:
+        friend class MemMan;
 
-    // reference objects to internal memory --------------------------------- //
+        size_t dataSize() const { return size; }
+        size_t totalSize()  const { return BlockInfoSize + size; }
+        byte_t * data() { return (byte_t *)this + BlockInfoSize; }
 
-    // assumed to be uninitialized. has reserved space, but also has head (count)
-    #include "MemSys_Array.inc.h"
+    private:
+        size_t size = 0; // this is data size, not total size!
+        Block * prev = nullptr;
+        Block * next = nullptr;
+        Type type = TYPE_FREE;
 
-    // assumed to be initalized, fixed size. no head.
-    #include "MemSys_View.inc.h"
+        // "info" could maybe be a magic string (for safety checks). or maybe additional info.
+        // 8-byte allignment on current machine is forcing this Block to always be 32 bytes anyway
+        // so this is here to make that explicit. We could even take more space from type, which
+        // could easily be only 1 or 2 bytes.
+        byte_t info[4];
 
-    // internal block content types ----------------------------------------- //
-
-    #include "MemSys_Pool.inc.h"
-    // read only for now
-    #include "MemSys_File.inc.h"
-    #include "MemSys_Entity.inc.h"
-
+        Block() {}
+    };
+    constexpr static size_t BlockInfoSize = sizeof(Block);
 
     // lifecycle ------------------------------------------------------------ //
 
@@ -61,8 +64,8 @@ public:
     void destroyStack(Stack * s);
     File * createFileHandle(char const * path, bool loadNow = false);
     void destroyFileHandle(File * f);
-    Entity * createEntity(char const * path, bool loadNow = false);
-    void destroyEntity(Entity * f);
+    // Entity * createEntity(char const * path, bool loadNow = false);
+    // void destroyEntity(Entity * f);
     template <typename T, typename ... TP>
         T * create(size_t size, TP && ... params);
     void destroy(void * ptr);
@@ -71,22 +74,30 @@ public:
 
     // find block with enough free space, split it to size, and return it
     Block * requestFreeBlock(size_t size);
+    // split block A into block A (with requested data size) and block B with what remains.
+    Block * splitBlock(Block * b, size_t blockANewSize);
+    // same as split but sizes and returns second block
+    Block * splitBlockEnd(Block * b, size_t blockBNewSize);
+    // merge this block with next block IF both are free
+    Block * mergeBlockWithNext(Block * b);
 
+    // storage -------------------------------------------------------------- //
 private:
     byte_t * _data = nullptr;
     Block * _blockHead = nullptr;
+    Block * _blockTail = nullptr;
     size_t _size = 0;
 
+    // debug ---------------------------------------------------------------- //
     // check if random pointer is within
     bool isWithinData(byte_t * ptr, size_t size = 0);
 
-    // debug ---------------------------------------------------------------- //
 public:
     void getInfo(char * buf, int bufSize);
 };
 
 template <typename T, typename ... TP>
-inline T * MemSys::create(size_t size, TP && ... params) {
+inline T * MemMan::create(size_t size, TP && ... params) {
     Block * block = requestFreeBlock(size + sizeof(T));
     if (!block) return nullptr;
     block->type = TYPE_EXTERNAL;

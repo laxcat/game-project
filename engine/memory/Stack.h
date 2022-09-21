@@ -3,13 +3,14 @@
 #include <stdio.h>
 
 /*
-Designed to be used within pre-allocated memory, like inside a MemSys::Block.
-Expects `_size` bytes of pre-allocated, thread-safe memory directly after
-its own instance.
+Designed to be used within pre-allocated memory, like inside a MemMan::Block.
+Expects `_size` bytes of pre-allocated (safe) memory directly after its own instance.
 */
 
 class Stack {
 public:
+    friend class MemMan;
+
     Stack(size_t size) :
         _size(size)
     {

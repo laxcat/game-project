@@ -1,7 +1,7 @@
 #pragma once
 #include <bgfx/bgfx.h>
 #include "engine.h"
-#include "memory/MemSys.h"
+#include "memory/MemMan.h"
 #include "render/Camera.h"
 #include "render/CameraControl.h"
 #include "render/RenderSystem.h"
@@ -32,7 +32,7 @@ public:
     double dt;
     EngineSetup setup;
 
-    MemSys memSys;
+    MemMan memMan;
     Stack * frameStack = nullptr;
     RenderSystem rendSys;
 

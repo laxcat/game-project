@@ -410,6 +410,10 @@ namespace gltfutil {
                 buffersLen
             ;
         }
-
     };
+
+    void printGLTF(gltf::GLTF * g);
+    Counter getGLTFDataSize(char const * jsonStr);
+    bool load(byte_t * dst, size_t dstSize);
+
 }

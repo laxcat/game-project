@@ -17,9 +17,9 @@ int MrManager::init(EngineSetup const & setup) {
     thisTime = setup.startTime;
     prevTime = setup.startTime;
 
-    memSys.init(setup.memSysSize);
+    memMan.init(setup.memSysSize);
     if (setup.frameStackSize) {
-        frameStack = memSys.createStack(setup.frameStackSize);
+        frameStack = memMan.createStack(setup.frameStackSize);
     }
     rendSys.init();
     camera.init(windowSize);
@@ -37,8 +37,10 @@ int MrManager::init(EngineSetup const & setup) {
     #endif // DEV_INTERFACE
 
     if (setup.args.c > 1) {
-        memSys.createEntity(setup.args.v[1], true);
+        // memMan.createEntity(setup.args.v[1], true);
     }
+
+    test();
 
     return 0;
 }
@@ -47,7 +49,7 @@ void MrManager::shutdown() {
     if (setup.preShutdown) setup.preShutdown();
     rendSys.shutdown();
     camera.shutdown();
-    memSys.shutdown();
+    memMan.shutdown();
     if (setup.postShutdown) setup.postShutdown();
 }
 
@@ -146,29 +148,31 @@ void MrManager::scrollEvent(Event const & e) {
 void MrManager::test() {
     int bufSize = 4096;
     char * buf = tempStr(bufSize);
-    memSys.getInfo(buf, bufSize);
+    memMan.getInfo(buf, bufSize);
     print("%s\n", buf);
 
     printl("!!! creating 2 pools");
     printl();
-    MemSys::Pool * temp1 = memSys.createPool(1024, 16);
-    MemSys::Pool * temp2 = memSys.createPool(16, 16);
+    Pool * temp1 = memMan.createPool(1024, 16);
+    assert(temp1);
+    Pool * temp2 = memMan.createPool(16, 16);
+    assert(temp2);
 
-    memSys.getInfo(buf, bufSize);
+    memMan.getInfo(buf, bufSize);
     print("%s\n", buf);
 
     printl("!!! destroying pool 1");
     printl();
-    memSys.destroyPool(temp1);
+    memMan.destroyPool(temp1);
 
-    memSys.getInfo(buf, bufSize);
+    memMan.getInfo(buf, bufSize);
     print("%s\n", buf);
 
     printl("!!! destroying pool 2");
     printl();
-    memSys.destroyPool(temp2);
+    memMan.destroyPool(temp2);
 
-    memSys.getInfo(buf, bufSize);
+    memMan.getInfo(buf, bufSize);
     print("%s\n", buf);
 
     printl("!!! testing frameStack->formatStr");
@@ -178,45 +182,46 @@ void MrManager::test() {
 
     printl("!!! testing external allocation");
     printl();
-    Path * p = memSys.create<Path>(0, "fart");
+    Path * p = memMan.create<Path>(0, "fart");
+    assert(p);
 
-    memSys.getInfo(buf, bufSize);
+    memMan.getInfo(buf, bufSize);
     print("%s\n", buf);
 
     printl("!!! creating 1 pool");
     printl();
-    MemSys::Pool * temp3 = memSys.createPool(64, 64);
+    Pool * temp3 = memMan.createPool(64, 64);
+    assert(temp3);
 
-    memSys.getInfo(buf, bufSize);
+    memMan.getInfo(buf, bufSize);
     print("%s\n", buf);
 
     printl("!!! destroying external allocation");
     printl();
-    memSys.destroy(p);
+    memMan.destroy(p);
 
-    memSys.getInfo(buf, bufSize);
+    memMan.getInfo(buf, bufSize);
     print("%s\n", buf);
 
     printl("!!! destroying pool 3");
     printl();
-    memSys.destroyPool(temp3);
+    memMan.destroyPool(temp3);
 
-    memSys.getInfo(buf, bufSize);
+    memMan.getInfo(buf, bufSize);
     print("%s\n", buf);
 
     printl("loading file");
     printl();
-    MemSys::File * f = memSys.createFileHandle("BoxTextured.glb", true);
-    if (f) {
-        if (f->loaded()) {
-            printl("file loaded. found %zu bytes. last byte: 0x%02x", f->fileSize(), f->data()[f->size()-1]);
-        }
-        else {
-            printl("file read but not loaded. found %zu bytes.", f->size());
-        }
+    File * f = memMan.createFileHandle("BoxTextured.glb", true);
+    assert(f);
+    if (f->loaded()) {
+        printl("file loaded. found %zu bytes. last byte: 0x%02x", f->fileSize(), f->data()[f->size()-1]);
+    }
+    else {
+        printl("file read but not loaded. found %zu bytes.", f->size());
     }
 
-    memSys.getInfo(buf, bufSize);
+    memMan.getInfo(buf, bufSize);
     print("%s\n", buf);
 
     char const * absPathA = "/tmp";

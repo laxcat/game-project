@@ -1,4 +1,12 @@
-// assumed to be uninitialized. has reserved space, but also has head (count)
+#pragma once
+
+/*
+Container that assumed contents are uninitialized. Has reserved space, but also has head (count)
+
+Designed to be used within pre-allocated memory, like inside a MemMan::Block.
+Expects `_size` bytes of pre-allocated (safe) memory directly after its own instance.
+*/
+
 template <typename T>
 class Array {
 public:

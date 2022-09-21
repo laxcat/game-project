@@ -1,7 +1,19 @@
+#pragma once
+#include <stdarg.h>
+#include <stdio.h>
+#include <errno.h>
+
+/*
+Container that assumes memory in _ptr to be initalized, fixed size. no head.
+
+Designed to be used within pre-allocated memory, like inside a MemMan::Block.
+Expects `_size` bytes of pre-allocated (safe) memory directly after its own instance.
+*/
+
 // read only for now
 class File {
 public:
-    friend class MemSys;
+    friend class MemMan;
 
     // data size is one bigger than actual file size. 0x00 byte written at end.
     size_t size() const { return _size; }

@@ -1,6 +1,18 @@
+#pragma once
+#include <assert.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include "Array.h"
+#include "View.h"
+
+/*
+Designed to be used within pre-allocated memory, like inside a MemMan::Block.
+Expects `_size` bytes of pre-allocated (safe) memory directly after its own instance.
+*/
+
 class Pool {
 public:
-    friend class MemSys;
+    friend class MemMan;
 
     size_t size() const { return _objMaxCount * _objSize; }
     size_t objMaxCount() const { return _objMaxCount; }

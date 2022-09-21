@@ -2,7 +2,7 @@
 #include "GLTF.h"
 #include <functional>
 #include "../common/string_utils.h"
-#include "memutils.h"
+#include "mem_align.h"
 
 struct GLTFSizeFinder {
 

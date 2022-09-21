@@ -1,6 +1,6 @@
 class Entity {
 public:
-    friend class MemSys;
+    friend class MemMan;
 
     // data size is one bigger than actual file size. 0x00 byte written at end.
     size_t size() const { return _size; }
@@ -11,12 +11,6 @@ public:
     byte_t * dataHead() const { return data() + _head; }
     bool loaded() const { return _loaded; }
     char const * path() const { return _path; }
-
-    static gltfutil::Counter getMemorySize(FILE * externalFP);
-
-    bool load(FILE * externalFP, byte_t * dst, size_t dstSize, gltfutil::Counter const & counted);
-
-    void printGLTF() const;
 
 private:
     size_t _size = 0;
