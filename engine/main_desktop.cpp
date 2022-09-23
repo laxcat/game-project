@@ -5,21 +5,11 @@
 #include <bgfx/platform.h>
 
 #if ENABLE_IMGUI
-#include "imgui_impl_bgfx.h"
-#include <backends/imgui_impl_glfw.h>
+#include "common/imgui_bgfx/imgui_bgfx.h"
 #endif // ENABLE_IMGUI
 
 #include "MrManager.h"
 #include "engine.h"
-
-
-static void glfw_errorCallback(int error, const char *description) {
-    fprintf(stderr, "GLFW error %d: %s\n", error, description);
-}
-
-static void glfw_windowSizeCallback(GLFWwindow *, int width, int height) {
-    mm.updateSize({width, height});
-}
 
 // dev interface enabled, so imgui will be also
 #if DEV_INTERFACE
@@ -35,22 +25,46 @@ static void glfw_windowSizeCallback(GLFWwindow *, int width, int height) {
     #define SHOULD_IMGUI_CAPTURE_MOUSE    (false)
 #endif // DEV_INTERFACE
 
+struct InputState {
+    int32_t x, y, z;
+    uint8_t b = 0;
+    int key = -1;
+};
+static InputState inputState;
+
+static void glfw_errorCallback(int error, char const * description) {
+    fprintf(stderr, "GLFW error %d: %s\n", error, description);
+}
+
+static void glfw_windowSizeCallback(GLFWwindow *, int width, int height) {
+    mm.updateSize({width, height});
+}
+
 static void glfw_keyCallback(GLFWwindow *, int key, int scancode, int action, int mods) {
+    inputState.key = (action) ? key : -1;
+    fprintf(stderr, "key? %d, %d\n", inputState.key, action);
     if (SHOULD_IMGUI_CAPTURE_KEYBOARD) return;
     mm.keyEvent({.key=key, .scancode=scancode, .action=action, .mods=mods});
 }
 
 static void glfw_mousePosCallback(GLFWwindow *, double x, double y) {
+    inputState.x = x;
+    inputState.y = y;
     if (SHOULD_IMGUI_CAPTURE_MOUSE) return;
     mm.mousePosEvent({.x=x, .y=y});
 }
 
 static void glfw_mouseButtonCallback(GLFWwindow *, int button, int action, int mods) {
+    uint8_t bits = (uint8_t)1 << button;
+    inputState.b = (action) ?
+        inputState.b |  bits:
+        inputState.b & ~bits;
     if (SHOULD_IMGUI_CAPTURE_MOUSE) return;
     mm.mouseButtonEvent({.button=button, .action=action, .mods=mods});
 }
 
 static void glfw_scrollCallback(GLFWwindow *, double x, double y) {
+    inputState.z = y;
     if (SHOULD_IMGUI_CAPTURE_MOUSE) return;
     mm.scrollEvent({.x=x, .y=y});
 }
@@ -122,10 +136,7 @@ int main_desktop(EngineSetup & setup) {
 
     // setup ImGUI
     #if ENABLE_IMGUI
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGui_Implbgfx_Init(mm.guiView);
-    ImGui_ImplGlfw_InitForOther(mm.window, true);
+    imguiCreate();
     #endif // ENABLE_IMGUI
 
     err = 0;
@@ -142,9 +153,16 @@ int main_desktop(EngineSetup & setup) {
             if (mm.devOverlay.isShowingImGUI()) {
             #endif // DEV_INTERFACE
 
-                ImGui_Implbgfx_NewFrame();
-                ImGui_ImplGlfw_NewFrame();
-                ImGui::NewFrame();
+                imguiBeginFrame(
+                    inputState.x, inputState.y,
+                    inputState.b,
+                    inputState.z,
+                    mm.windowSize.w, mm.windowSize.h,
+                    inputState.key,
+                    mm.guiView
+                );
+                inputState.key = -1;
+
                 if (mm.setup.preEditor) mm.setup.preEditor();
 
                 #if DEV_INTERFACE
@@ -152,8 +170,8 @@ int main_desktop(EngineSetup & setup) {
                 #endif // DEV_INTERFACE
 
                 if (mm.setup.postEditor) mm.setup.postEditor();
-                ImGui::Render();
-                ImGui_Implbgfx_RenderDrawLists(ImGui::GetDrawData());
+
+                imguiEndFrame();
 
             #if DEV_INTERFACE
             }
@@ -165,10 +183,9 @@ int main_desktop(EngineSetup & setup) {
         mm.tick();
     }
 
-    #if DEV_INTERFACE
-    ImGui_Implbgfx_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    #endif // DEV_INTERFACE
+    #if ENABLE_IMGUI
+    imguiDestroy();
+    #endif // ENABLE_IMGUI
 
     mm.shutdown();
     bgfx::shutdown();

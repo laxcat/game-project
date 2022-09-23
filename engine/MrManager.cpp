@@ -40,7 +40,7 @@ int MrManager::init(EngineSetup const & setup) {
         // memMan.createEntity(setup.args.v[1], true);
     }
 
-    test();
+    // test();
 
     return 0;
 }

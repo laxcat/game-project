@@ -100,6 +100,7 @@ BGFXCompileShaders(
 )
 
 # CONFIGURE MAIN BINARY
+include_directories(${SetupLib_include_dirs})
 set_property(TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY COMPILE_FLAGS ${SetupLib_flags})
 target_link_libraries(${PROJECT_NAME} ${SetupLib_libs})
 target_compile_definitions(${PROJECT_NAME} PUBLIC ENABLE_IMGUI=${ENABLE_IMGUI})

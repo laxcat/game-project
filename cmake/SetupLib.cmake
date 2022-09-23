@@ -69,10 +69,11 @@ macro(SetupLib_bgfx)
     set(BX_AMALGAMATED              ON  CACHE BOOL "" FORCE)
     set(BGFX_CONFIG_RENDERER_WEBGPU OFF CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(bgfx_content)
-    include_directories(${BX_DIR}/include)
-    # include_directories(${BIMG_DIR}/include)
-    list(APPEND SetupLib_include_dirs "${BIMG_DIR}/3rdparty")
+    # include_directories("${BX_DIR}/include")
     list(APPEND SetupLib_include_dirs "${BX_DIR}/include")
+    # list(APPEND SetupLib_include_dirs "${BGFX_DIR}/3rdparty")
+    list(APPEND SetupLib_include_dirs "${BIMG_DIR}/include")
+    list(APPEND SetupLib_include_dirs "${BIMG_DIR}/3rdparty")
     target_compile_options(bgfx PUBLIC 
         -Wno-tautological-compare
         -Wno-deprecated-declarations
@@ -133,7 +134,7 @@ endmacro()
 # ---------------------------------------------------------------------------- #
 # IMGUI
 # ---------------------------------------------------------------------------- #
-# TODO configure for GLFW (or other windowing apis) and BGFX (or other renderers). assuming both GLFW and BGFX for now.
+# TODO: configure other renderers. assuming BGFX for now.
 macro(SetupLib_imgui)
     message(STATUS "SETUP IMGUI")
     FetchContent_Declare(
@@ -145,44 +146,12 @@ macro(SetupLib_imgui)
     include_directories(${imgui_content_SOURCE_DIR})
     list(APPEND SetupLib_include_dirs "${imgui_content_SOURCE_DIR}")
     list(APPEND SetupLib_sources
-        ${imgui_content_SOURCE_DIR}/imgui.cpp
-        ${imgui_content_SOURCE_DIR}/imgui_draw.cpp
-        ${imgui_content_SOURCE_DIR}/imgui_tables.cpp
-        ${imgui_content_SOURCE_DIR}/imgui_widgets.cpp
-        # ${imgui_content_SOURCE_DIR}/imgui_demo.cpp
-        ${imgui_content_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+        "${imgui_content_SOURCE_DIR}/imgui.cpp"
+        "${imgui_content_SOURCE_DIR}/imgui_draw.cpp"
+        "${imgui_content_SOURCE_DIR}/imgui_tables.cpp"
+        "${imgui_content_SOURCE_DIR}/imgui_widgets.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/common/imgui_bgfx/imgui_bgfx.cpp"
     )
-
-    # BGFX + IMGUI
-    # Taken from https://github.com/pr0g/sdl-bgfx-imgui-starter
-    # (See also this gist: https://gist.github.com/pr0g/aff79b71bf9804ddb03f39ca7c0c3bbb)
-    # Content from this repo is pretty old and static, and we don't want SDL 
-    # support. Rather than pulling that repo, imgui_impl_bgfx files are 
-    # expected to be coppied directly to this project. Required shaders are
-    # included directly from BGFX example code.
-    message(STATUS "SETUP BGFX+IMGUI")
-    if(NOT DEFINED ${bgfx_content_SOURCE_DIR})
-        # take educated guess if imgui_content_SOURCE_DIR missing
-        set(bgfx_content_SOURCE_DIR "${imgui_content_SOURCE_DIR}/../bgfx_content-src")
-    endif()
-    include_directories("${bgfx_content_SOURCE_DIR}/bgfx/examples/common/imgui")
-    include_directories("${SetupLib_FILES_PATH}/bgfx_imgui")
-    list(APPEND SetupLib_include_dirs "${bgfx_content_SOURCE_DIR}/bgfx/examples/common/imgui")
-    list(APPEND SetupLib_include_dirs "${SetupLib_FILES_PATH}/bgfx_imgui")
-    list(APPEND SetupLib_sources "${SetupLib_FILES_PATH}/bgfx_imgui/imgui_impl_bgfx.cpp")
-
-    # OLD FETCH CONTENT WAY:
-    # FetchContent_Declare(
-    #     bgfx_imgui_content
-    #     GIT_REPOSITORY https://github.com/pr0g/sdl-bgfx-imgui-starter
-    #     GIT_TAG        1b7b8c917e3d9fbe7028766c960ab123eccaeb44 # arbitrary, captured Oct.2021, https://github.com/pr0g/sdl-bgfx-imgui-starter/commit/1b7b8c917e3d9fbe7028766c960ab123eccaeb44
-    #     SOURCE_SUBDIR  bgfx-imgui # avoid CMakeLists.txt in root # THIS DIDN'T WORK IN LINUX. CMAKE CONFIG WAS ASKING FOR SDL FILES!
-    # )
-    # FetchContent_MakeAvailable(bgfx_imgui_content)
-    # include_directories(${bgfx_imgui_content_SOURCE_DIR})
-    # list(APPEND SetupLib_sources
-    #     ${bgfx_imgui_content_SOURCE_DIR}/bgfx-imgui/imgui_impl_bgfx.cpp
-    # )
 endmacro()
 
 
