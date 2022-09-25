@@ -18,11 +18,6 @@
 #include "vs_imgui_image.bin.h"
 #include "fs_imgui_image.bin.h"
 
-#include "roboto_regular.ttf.h"
-#include "robotomono_regular.ttf.h"
-#include "icons_kenney.ttf.h"
-#include "icons_font_awesome.ttf.h"
-
 static const bgfx::EmbeddedShader s_embeddedShaders[] =
 {
 	BGFX_EMBEDDED_SHADER(vs_ocornut_imgui),
@@ -33,32 +28,8 @@ static const bgfx::EmbeddedShader s_embeddedShaders[] =
 	BGFX_EMBEDDED_SHADER_END()
 };
 
-struct FontRangeMerge
-{
-	const void* data;
-	size_t      size;
-	ImWchar     ranges[3];
-};
-
-static FontRangeMerge s_fontRangeMerge[] =
-{
-	{ s_iconsKenneyTtf,      sizeof(s_iconsKenneyTtf),      { ICON_MIN_KI, ICON_MAX_KI, 0 } },
-	{ s_iconsFontAwesomeTtf, sizeof(s_iconsFontAwesomeTtf), { ICON_MIN_FA, ICON_MAX_FA, 0 } },
-};
-
 static void* memAlloc(size_t _size, void* _userData);
 static void memFree(void* _ptr, void* _userData);
-
-namespace ImGui {
-    struct Font {
-        enum Enum {
-            Regular,
-            Mono,
-
-            Count
-        };
-    };
-}
 
 inline bool checkAvailTransientBuffers(uint32_t _numVertices, const bgfx::VertexLayout& _layout, uint32_t _numIndices) {
 	return _numVertices == bgfx::getAvailTransientVertexBuffer(_numVertices, _layout)
@@ -245,34 +216,7 @@ struct OcornutImguiContext
 		uint8_t* data;
 		int32_t width;
 		int32_t height;
-		{
-			ImFontConfig config;
-			config.FontDataOwnedByAtlas = false;
-			config.MergeMode = false;
-//			config.MergeGlyphCenterV = true;
-
-			const ImWchar* ranges = io.Fonts->GetGlyphRangesCyrillic();
-			m_font[ImGui::Font::Regular] = io.Fonts->AddFontFromMemoryTTF( (void*)s_robotoRegularTtf,     sizeof(s_robotoRegularTtf),     _fontSize,      &config, ranges);
-			m_font[ImGui::Font::Mono   ] = io.Fonts->AddFontFromMemoryTTF( (void*)s_robotoMonoRegularTtf, sizeof(s_robotoMonoRegularTtf), _fontSize-3.0f, &config, ranges);
-
-			config.MergeMode = true;
-			config.DstFont   = m_font[ImGui::Font::Regular];
-
-			for (uint32_t ii = 0; ii < BX_COUNTOF(s_fontRangeMerge); ++ii)
-			{
-				const FontRangeMerge& frm = s_fontRangeMerge[ii];
-
-				io.Fonts->AddFontFromMemoryTTF( (void*)frm.data
-						, (int)frm.size
-						, _fontSize-3.0f
-						, &config
-						, frm.ranges
-						);
-			}
-		}
-
 		io.Fonts->GetTexDataAsRGBA32(&data, &width, &height);
-
 		m_texture = bgfx::createTexture2D(
 			  (uint16_t)width
 			, (uint16_t)height
@@ -282,13 +226,10 @@ struct OcornutImguiContext
 			, 0
 			, bgfx::copy(data, width*height*4)
 			);
-
-		// ImGui::InitDockContext();
 	}
 
 	void destroy()
 	{
-		// ImGui::ShutdownDockContext();
 		ImGui::DestroyContext(m_imgui);
 
 		bgfx::destroy(s_tex);
@@ -372,7 +313,6 @@ struct OcornutImguiContext
 	bgfx::TextureHandle m_texture;
 	bgfx::UniformHandle s_tex;
 	bgfx::UniformHandle u_imageLodEnabled;
-	ImFont* m_font[ImGui::Font::Count];
 	int64_t m_last;
 	int32_t m_lastScroll;
 	bgfx::ViewId m_viewId;
@@ -417,11 +357,6 @@ void imguiEndFrame()
 
 namespace ImGui
 {
-	void PushFont(Font::Enum _font)
-	{
-		PushFont(s_ctx.m_font[_font]);
-	}
-
 	void PushEnabled(bool _enabled)
 	{
 		extern void PushItemFlag(int option, bool enabled);
@@ -445,8 +380,4 @@ BX_PRAGMA_DIAGNOSTIC_IGNORED_CLANG("-Wunknown-pragmas")
 BX_PRAGMA_DIAGNOSTIC_IGNORED_CLANG_GCC("-Wtype-limits"); // warning: comparison is always true due to limited range of data type
 #define STBTT_malloc(_size, _userData) memAlloc(_size, _userData)
 #define STBTT_free(_ptr, _userData) memFree(_ptr, _userData)
-#define STB_RECT_PACK_IMPLEMENTATION
-#include "../stb_rect_pack.h"
-#define STB_TRUETYPE_IMPLEMENTATION
-#include "../stb_truetype.h"
 BX_PRAGMA_DIAGNOSTIC_POP();

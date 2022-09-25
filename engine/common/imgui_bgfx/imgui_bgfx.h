@@ -8,22 +8,10 @@
 
 #include <bgfx/bgfx.h>
 #include <imgui.h>
-#include "../iconfontheaders/icons_kenney.h"
-#include "../iconfontheaders/icons_font_awesome.h"
 
 #define IMGUI_MBUT_LEFT   0x01
 #define IMGUI_MBUT_RIGHT  0x02
 #define IMGUI_MBUT_MIDDLE 0x04
-
-inline uint32_t imguiRGBA(uint8_t _r, uint8_t _g, uint8_t _b, uint8_t _a = 255)
-{
-	return 0
-		| (uint32_t(_r) <<  0)
-		| (uint32_t(_g) <<  8)
-		| (uint32_t(_b) << 16)
-		| (uint32_t(_a) << 24)
-		;
-}
 
 namespace bx { struct AllocatorI; }
 
