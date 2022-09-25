@@ -45,9 +45,8 @@ public:
     Camera camera;
     CameraControl cameraControl;
 
-    Renderable * originWidget;
-
     #if DEV_INTERFACE
+    Renderable * originWidget;
     Editor editor;
     DevOverlay devOverlay;
     #endif // DEV_INTERFACE
