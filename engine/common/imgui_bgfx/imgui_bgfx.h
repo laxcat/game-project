@@ -6,6 +6,8 @@
 #ifndef IMGUI_H_HEADER_GUARD
 #define IMGUI_H_HEADER_GUARD
 
+#define IMGUI_DISABLE_DEFAULT_ALLOCATORS 1
+
 #include <bgfx/bgfx.h>
 #include <imgui.h>
 
@@ -13,9 +15,7 @@
 #define IMGUI_MBUT_RIGHT  0x02
 #define IMGUI_MBUT_MIDDLE 0x04
 
-namespace bx { struct AllocatorI; }
-
-void imguiCreate(float _fontSize = 18.0f, bx::AllocatorI* _allocator = NULL);
+void imguiCreate();
 void imguiDestroy();
 
 void imguiBeginFrame(int32_t _mx, int32_t _my, uint8_t _button, int32_t _scroll, uint16_t _width, uint16_t _height, int _inputChar = -1, bgfx::ViewId _view = 255);

@@ -1,6 +1,7 @@
 #pragma once
 #include "../common/types.h"
 #include <stdio.h>
+#include <bx/allocator.h>
 #include "File.h"
 #include "Pool.h"
 #include "Stack.h"
@@ -30,6 +31,7 @@ public:
     class Block {
     public:
         friend class MemMan;
+        friend void * memManAlloc(size_t, void *);
 
         size_t dataSize() const { return size; }
         size_t totalSize()  const { return BlockInfoSize + size; }
@@ -84,6 +86,13 @@ public:
     Block * splitBlockEnd(Block * b, size_t blockBNewSize);
     // merge this block with next block IF both are free
     Block * mergeBlockWithNext(Block * b);
+    // resize block if possible
+    Block * resizeBlock(Block * b, size_t newSize);
+
+    // checks and assertions ------------------------------------------------ //
+
+    // check if random pointer is within managed range
+    void assertWithinData(void * ptr, size_t size = 0);
 
     // storage -------------------------------------------------------------- //
 private:
@@ -93,8 +102,6 @@ private:
     size_t _size = 0;
 
     // debug ---------------------------------------------------------------- //
-    // check if random pointer is within
-    bool isWithinData(byte_t * ptr, size_t size = 0);
 
 public:
     void getInfo(char * buf, int bufSize);
@@ -107,3 +114,13 @@ inline T * MemMan::create(size_t size, TP && ... params) {
     block->type = TYPE_EXTERNAL;
     return new (block->data()) T{static_cast<TP &&>(params)...};
 }
+
+void * memManAlloc(size_t size, void * userData);
+void * memManRealloc(void * ptr, size_t size, void * userData);
+void memManFree(void * ptr, void * userData);
+
+class BXAllocator : public bx::AllocatorI {
+public:
+    MemMan * memMan = nullptr;
+    void * realloc(void *, size_t, size_t, char const *, uint32_t);
+};

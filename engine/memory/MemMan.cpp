@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <stdarg.h>
+#include <string.h>
 #include <new>
 #include "../common/file_utils.h"
 #include "../dev/print.h"
@@ -137,14 +138,7 @@ void MemMan::destroyFileHandle(File * f) {
 // }
 
 void MemMan::destroy(void * ptr) {
-    if (!isWithinData((byte_t *)ptr)) {
-        fprintf(
-            stderr,
-            "Unexpected location for pointer. Expected mem range %p-%p, recieved %p\n",
-            _data, _data + _size, ptr
-        );
-        assert(false);
-    }
+    assertWithinData((byte_t *)ptr);
 
     // we verified the ptr is in our expected memory space,
     // so we expect block info just prior to it
@@ -218,8 +212,81 @@ MemMan::Block * MemMan::mergeBlockWithNext(Block * blockA) {
     return blockA;
 }
 
-bool MemMan::isWithinData(byte_t * ptr, size_t size) {
-    return (ptr >= _data && ptr + size <= _data + _size);
+MemMan::Block * MemMan::resizeBlock(Block * block, size_t newSize) {
+    // shrink block
+    if (block->dataSize() >= newSize + BlockInfoSize) {
+        return splitBlock(block, newSize);
+    }
+    // expand block
+    else if (block->next && block->next->type != TYPE_FREE) {
+        Block * newBlock = nullptr;
+        // room enough to expand in place (returns same block)
+        if (block->dataSize() + block->next->totalSize() <= newSize) {
+            mergeBlockWithNext(block);
+            return resizeBlock(block, newSize);
+        }
+        // copy to new place (frees old block, returns new block)
+        else if ((newBlock = requestFreeBlock(newSize))) {
+            memcpy(newBlock->data(), block->data(), block->dataSize());
+            destroy(block->data());
+            return newBlock;
+        }
+    }
+
+    // failed
+    return nullptr;
+}
+
+void MemMan::assertWithinData(void * ptr, size_t size) {
+    auto bptr = (byte_t *)ptr;
+    // within range
+    if (bptr >= _data && bptr + size <= _data + _size) {
+        return;
+    }
+    // not in range
+    fprintf(
+        stderr,
+        "Unexpected location for pointer. Expected mem range %p-%p, recieved %p\n",
+        _data, _data + _size, bptr
+    );
+    assert(false);
+}
+
+void * memManAlloc(size_t size, void * userData) {
+    if (!size || !userData) return nullptr;
+    MemMan * memMan = (MemMan *)userData;
+    MemMan::Block * block = memMan->requestFreeBlock(size);
+    if (!block) {
+        fprintf(stderr, "Unable to alloc memory: %zu\n", size);
+        assert(false);
+    }
+    block->type = MemMan::TYPE_EXTERNAL;
+    return (block) ? block->data() : nullptr;
+}
+
+void * memManRealloc(void * ptr, size_t size, void * userData) {
+    if (ptr == nullptr) return memManAlloc(size, userData);
+    if (size == 0) {
+        memManFree(ptr, userData);
+        return nullptr;
+    }
+    if (!userData) return nullptr;
+    MemMan * memMan = (MemMan *)userData;
+    memMan->assertWithinData(ptr, size);
+    auto block = (MemMan::Block *)((byte_t *)ptr - MemMan::BlockInfoSize);
+    block = memMan->resizeBlock(block, size);
+    return (block) ? block->data() : nullptr;
+}
+
+void memManFree(void * ptr, void * userData) {
+    if (!ptr || !userData) return;
+    MemMan * memMan = (MemMan *)userData;
+    memMan->destroy(ptr);
+}
+
+void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * file, uint32_t line) {
+    assert(memMan && "Memory manager pointer not set in BXAllocator.");
+    return memManRealloc(ptr, size, (void *)memMan);
 }
 
 // debug ---------------------------------------------------------------- //

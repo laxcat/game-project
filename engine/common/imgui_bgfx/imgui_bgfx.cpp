@@ -3,20 +3,20 @@
  * License: https://github.com/bkaradzic/bgfx/blob/master/LICENSE
  */
 
+#include "imgui_bgfx.h"
+
 #include <bgfx/bgfx.h>
 #include <bgfx/embedded_shader.h>
-#include <bx/allocator.h>
 #include <bx/math.h>
 #include <bx/timer.h>
-#include <imgui.h>
 #include <imgui_internal.h>
-
-#include "imgui_bgfx.h"
 
 #include "vs_ocornut_imgui.bin.h"
 #include "fs_ocornut_imgui.bin.h"
 #include "vs_imgui_image.bin.h"
 #include "fs_imgui_image.bin.h"
+
+#include "../../MrManager.h"
 
 static const bgfx::EmbeddedShader s_embeddedShaders[] =
 {
@@ -27,9 +27,6 @@ static const bgfx::EmbeddedShader s_embeddedShaders[] =
 
 	BGFX_EMBEDDED_SHADER_END()
 };
-
-static void* memAlloc(size_t _size, void* _userData);
-static void memFree(void* _ptr, void* _userData);
 
 inline bool checkAvailTransientBuffers(uint32_t _numVertices, const bgfx::VertexLayout& _layout, uint32_t _numIndices) {
 	return _numVertices == bgfx::getAvailTransientVertexBuffer(_numVertices, _layout)
@@ -162,21 +159,13 @@ struct OcornutImguiContext
 		}
 	}
 
-	void create(float _fontSize, bx::AllocatorI* _allocator)
+	void create()
 	{
-		m_allocator = _allocator;
-
-		if (NULL == _allocator)
-		{
-			static bx::DefaultAllocator allocator;
-			m_allocator = &allocator;
-		}
-
 		m_viewId = 255;
 		m_lastScroll = 0;
 		m_last = bx::getHPCounter();
 
-		ImGui::SetAllocatorFunctions(memAlloc, memFree, NULL);
+		ImGui::SetAllocatorFunctions(memManAlloc, memManFree, &mm.memMan);
 
 		m_imgui = ImGui::CreateContext();
 
@@ -238,8 +227,6 @@ struct OcornutImguiContext
 		bgfx::destroy(u_imageLodEnabled);
 		bgfx::destroy(m_imageProgram);
 		bgfx::destroy(m_program);
-
-		m_allocator = NULL;
 	}
 
 	void setupStyle(bool _dark)
@@ -306,7 +293,6 @@ struct OcornutImguiContext
 	}
 
 	ImGuiContext*       m_imgui;
-	bx::AllocatorI*     m_allocator;
 	bgfx::VertexLayout  m_layout;
 	bgfx::ProgramHandle m_program;
 	bgfx::ProgramHandle m_imageProgram;
@@ -323,21 +309,9 @@ struct OcornutImguiContext
 
 static OcornutImguiContext s_ctx;
 
-static void* memAlloc(size_t _size, void* _userData)
+void imguiCreate()
 {
-	BX_UNUSED(_userData);
-	return BX_ALLOC(s_ctx.m_allocator, _size);
-}
-
-static void memFree(void* _ptr, void* _userData)
-{
-	BX_UNUSED(_userData);
-	BX_FREE(s_ctx.m_allocator, _ptr);
-}
-
-void imguiCreate(float _fontSize, bx::AllocatorI* _allocator)
-{
-	s_ctx.create(_fontSize, _allocator);
+	s_ctx.create();
 }
 
 void imguiDestroy()

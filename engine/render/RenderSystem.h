@@ -12,6 +12,7 @@
 #include "Samplers.h"
 #include "Texture.h"
 #include "../common/KeyedPool.h"
+#include "../memory/MemMan.h"
 
 
 using RenderableIterator = KeyedPool<std::string, Renderable>::Iterator;
@@ -62,6 +63,7 @@ private:
     bgfx::UniformHandle materialPBRValues;
     bgfx::UniformHandle normModel;
     Texture whiteTexture;
+    BXAllocator bxAllocator;
     
     RenderableIterator destroy(char const * key);
     void reset(char const * key);
