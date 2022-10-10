@@ -40,7 +40,7 @@ void RenderSystem::init() {
     fog.init();
     colors.init();
     materialBaseColor = bgfx::createUniform("u_materialBaseColor", bgfx::UniformType::Vec4);
-    materialPBRValues  = bgfx::createUniform("u_materialPBRValues",  bgfx::UniformType::Vec4);
+    materialPBRValues = bgfx::createUniform("u_materialPBRValues",  bgfx::UniformType::Vec4);
     normModel = bgfx::createUniform("u_normModel", bgfx::UniformType::Mat3);
 
     byte_t data[] = {

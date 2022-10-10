@@ -58,12 +58,10 @@ public:
     
 
     // lifecycle ------------------------------------------------------------ //
-
     void init(size_t size);
     void shutdown();
 
     // create/destroy for internal types ------------------------------------ //
-
     Pool * createPool(size_t objCount, size_t objSize);
     void destroyPool(Pool * a);
     Stack * createStack(size_t size);
@@ -77,7 +75,6 @@ public:
     void destroy(void * ptr);
 
     // block handling ------------------------------------------------------- //
-
     // find block with enough free space, split it to size, and return it
     Block * requestFreeBlock(size_t size);
     // split block A into block A (with requested data size) and block B with what remains.
@@ -90,7 +87,6 @@ public:
     Block * resizeBlock(Block * b, size_t newSize);
 
     // checks and assertions ------------------------------------------------ //
-
     // check if random pointer is within managed range
     void assertWithinData(void * ptr, size_t size = 0);
 
