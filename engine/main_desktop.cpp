@@ -5,7 +5,7 @@
 #include <bgfx/platform.h>
 
 #if ENABLE_IMGUI
-#include "common/imgui_bgfx/imgui_bgfx.h"
+#include "common/imgui_bgfx_glfw/imgui_bgfx_glfw.h"
 #endif // ENABLE_IMGUI
 
 #include "MrManager.h"
@@ -36,7 +36,7 @@ static void glfw_errorCallback(int error, char const * description) {
     fprintf(stderr, "GLFW error %d: %s\n", error, description);
 }
 
-static void glfw_windowSizeCallback(GLFWwindow *, int width, int height) {
+static void glfw_windowSizeCallback(GLFWwindow * window, int width, int height) {
     mm.updateSize({width, height});
 }
 

@@ -3,7 +3,7 @@
  * License: https://github.com/bkaradzic/bgfx/blob/master/LICENSE
  */
 
-#include "imgui_bgfx.h"
+#include "imgui_bgfx_glfw.h"
 
 #include <bgfx/bgfx.h>
 #include <bgfx/embedded_shader.h>
@@ -215,6 +215,8 @@ struct OcornutImguiContext
 			, 0
 			, bgfx::copy(data, width*height*4)
 			);
+
+
 	}
 
 	void destroy()
@@ -258,9 +260,39 @@ struct OcornutImguiContext
 		, bgfx::ViewId _viewId
 		)
 	{
+	    ImGuiIO & io = ImGui::GetIO();
+
+		if (false) {
+
+		    // ImGui_ImplGlfw_Data * bd = io.BackendPlatformUserData;
+
+		    // // Setup display size (every frame to accommodate for window resizing)
+		    // int w, h;
+		    // int display_w, display_h;
+		    // glfwGetWindowSize(bd->Window, &w, &h);
+		    // glfwGetFramebufferSize(bd->Window, &display_w, &display_h);
+		    // io.DisplaySize = ImVec2((float)w, (float)h);
+		    // if (w > 0 && h > 0)
+		    //     io.DisplayFramebufferScale = ImVec2((float)display_w / (float)w, (float)display_h / (float)h);
+
+		    // // Setup time step
+		    // double current_time = glfwGetTime();
+		    // io.DeltaTime = bd->Time > 0.0 ? (float)(current_time - bd->Time) : (float)(1.0f / 60.0f);
+		    // bd->Time = current_time;
+
+		    // ImGui_ImplGlfw_UpdateMouseData();
+		    // ImGui_ImplGlfw_UpdateMouseCursor();
+
+		    // // Update game controllers (if enabled and available)
+		    // ImGui_ImplGlfw_UpdateGamepads();
+		}
+
+
+
+
+
 		m_viewId = _viewId;
 
-		ImGuiIO& io = ImGui::GetIO();
 		if (_inputChar >= 0)
 		{
 			io.AddInputCharacter(_inputChar);

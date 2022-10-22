@@ -24,6 +24,7 @@ public:
 // STATE VARS
 // -------------------------------------------------------------------------- //
     size2 windowSize = {0, 0};
+    size2 framebufferSize = {0, 0};
     GLFWwindow * window = nullptr;
     bgfx::ViewId mainView = 0;
     bgfx::ViewId guiView  = 0xff;
