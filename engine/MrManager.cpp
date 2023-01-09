@@ -112,6 +112,10 @@ void MrManager::keyEvent(Event const & e) {
     if (setup.keyEvent) setup.keyEvent(e);
 }
 
+void MrManager::charEvent(Event const & e) {
+    if (setup.charEvent) setup.charEvent(e);
+}
+
 void MrManager::mousePosEvent(Event const & e) {
     mousePrevPos = mousePos;
     mousePos.x = e.x;

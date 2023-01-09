@@ -44,9 +44,9 @@ public:
         Type type = TYPE_FREE;
 
         // "info" could maybe be a magic string (for safety checks). or maybe additional info.
-        // 8-byte allignment on current machine is forcing this Block to always be 32 bytes anyway
-        // so this is here to make that explicit. We could even take more space from type, which
-        // could easily be only 1 or 2 bytes.
+        // 8-byte allignment on personal development machine is forcing this Block to always be
+        // 32 bytes anyway so this is here to make that explicit. We could even take more space
+        // from type, which could easily be only 1 or 2 bytes.
         byte_t info[4];
 
         Block() {}

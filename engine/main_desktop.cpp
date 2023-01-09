@@ -25,46 +25,53 @@
     #define SHOULD_IMGUI_CAPTURE_MOUSE    (false)
 #endif // DEV_INTERFACE
 
-struct InputState {
-    int32_t x, y, z;
-    uint8_t b = 0;
-    int key = -1;
-};
-static InputState inputState;
+static Event imguiStateEvent;
 
 static void glfw_errorCallback(int error, char const * description) {
     fprintf(stderr, "GLFW error %d: %s\n", error, description);
 }
 
 static void glfw_windowSizeCallback(GLFWwindow * window, int width, int height) {
+    imguiStateEvent.width = width;
+    imguiStateEvent.height = height;
     mm.updateSize({width, height});
 }
 
-static void glfw_keyCallback(GLFWwindow *, int key, int scancode, int action, int mods) {
-    inputState.key = (action) ? key : -1;
-    fprintf(stderr, "key? %d, %d\n", inputState.key, action);
+static void glfw_keyCallback(GLFWwindow * window, int key, int scancode, int action, int mods) {
+    imguiStateEvent.key = key;
+    imguiStateEvent.scancode = scancode;
+    imguiStateEvent.action = action;
+    imguiStateEvent.mods = mods;
     if (SHOULD_IMGUI_CAPTURE_KEYBOARD) return;
     mm.keyEvent({.key=key, .scancode=scancode, .action=action, .mods=mods});
 }
 
-static void glfw_mousePosCallback(GLFWwindow *, double x, double y) {
-    inputState.x = x;
-    inputState.y = y;
+static void glfw_charCallback(GLFWwindow * window, unsigned int codepoint) {
+    imguiStateEvent.codepoint = codepoint;
+    mm.charEvent({.codepoint=codepoint});
+}
+
+static void glfw_mousePosCallback(GLFWwindow * window, double x, double y) {
+    imguiStateEvent.x = x;
+    imguiStateEvent.y = y;
+    mm.mousePos.x = x;
+    mm.mousePos.y = y;
     if (SHOULD_IMGUI_CAPTURE_MOUSE) return;
     mm.mousePosEvent({.x=x, .y=y});
 }
 
-static void glfw_mouseButtonCallback(GLFWwindow *, int button, int action, int mods) {
-    uint8_t bits = (uint8_t)1 << button;
-    inputState.b = (action) ?
-        inputState.b |  bits:
-        inputState.b & ~bits;
+static void glfw_mouseButtonCallback(GLFWwindow * window, int button, int action, int mods) {
+    imguiStateEvent.checkButton = 1;
+    imguiStateEvent.button = button;
+    imguiStateEvent.action = action;
+    imguiStateEvent.mods = mods;
     if (SHOULD_IMGUI_CAPTURE_MOUSE) return;
     mm.mouseButtonEvent({.button=button, .action=action, .mods=mods});
 }
 
-static void glfw_scrollCallback(GLFWwindow *, double x, double y) {
-    inputState.z = y;
+static void glfw_scrollCallback(GLFWwindow * window, double x, double y) {
+    imguiStateEvent.scrollx = x;
+    imguiStateEvent.scrolly = y;
     if (SHOULD_IMGUI_CAPTURE_MOUSE) return;
     mm.scrollEvent({.x=x, .y=y});
 }
@@ -121,6 +128,7 @@ int main_desktop(EngineSetup & setup) {
 
     // input callbacks
     glfwSetKeyCallback(mm.window, glfw_keyCallback);
+    glfwSetCharCallback(mm.window, glfw_charCallback);
     glfwSetCursorPosCallback(mm.window, glfw_mousePosCallback);
     glfwSetMouseButtonCallback(mm.window, glfw_mouseButtonCallback);
     glfwSetScrollCallback(mm.window, glfw_scrollCallback);
@@ -148,20 +156,28 @@ int main_desktop(EngineSetup & setup) {
 
         glfwPollEvents();
 
+        mm.updateTime(glfwGetTime());
+
         #if ENABLE_IMGUI
             #if DEV_INTERFACE
             if (mm.devOverlay.isShowingImGUI()) {
             #endif // DEV_INTERFACE
 
-                imguiBeginFrame(
-                    inputState.x, inputState.y,
-                    inputState.b,
-                    inputState.z,
-                    mm.windowSize.w, mm.windowSize.h,
-                    inputState.key,
-                    mm.guiView
-                );
-                inputState.key = -1;
+                // imguiBeginFrame(
+                //     inputState.x, inputState.y,
+                //     inputState.b,
+                //     inputState.z,
+                //     mm.windowSize.w, mm.windowSize.h,
+                //     inputState.key,
+                //     mm.guiView
+                // );
+                // inputState.key = -1;
+                if (!imguiStateEvent.width) imguiStateEvent.width = mm.windowSize.w;
+                if (!imguiStateEvent.height) imguiStateEvent.height = mm.windowSize.h;
+                if (imguiStateEvent.x == -1.0) imguiStateEvent.x = mm.mousePos.x;
+                if (imguiStateEvent.y == -1.0) imguiStateEvent.y = mm.mousePos.y;
+                imguiBeginFrame(imguiStateEvent, mm.dt, mm.guiView);
+                imguiStateEvent = {};
 
                 if (mm.setup.preEditor) mm.setup.preEditor();
 
@@ -179,7 +195,6 @@ int main_desktop(EngineSetup & setup) {
             #endif // DEV_INTERFACE
         #endif // ENABLE_IMGUI
 
-        mm.updateTime(glfwGetTime());
         mm.tick();
     }
 

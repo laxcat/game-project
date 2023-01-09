@@ -10,6 +10,7 @@
 
 #include <bgfx/bgfx.h>
 #include <imgui.h>
+#include "../Event.h"
 
 #define IMGUI_MBUT_LEFT   0x01
 #define IMGUI_MBUT_RIGHT  0x02
@@ -19,6 +20,7 @@ void imguiCreate();
 void imguiDestroy();
 
 void imguiBeginFrame(int32_t _mx, int32_t _my, uint8_t _button, int32_t _scroll, uint16_t _width, uint16_t _height, int _inputChar = -1, bgfx::ViewId _view = 255);
+void imguiBeginFrame(Event const & event, double dt, bgfx::ViewId viewId = 255);
 void imguiEndFrame();
 
 namespace ImGui

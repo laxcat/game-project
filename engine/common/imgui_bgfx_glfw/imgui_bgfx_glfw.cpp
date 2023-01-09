@@ -259,7 +259,9 @@ struct OcornutImguiContext
 		, int _inputChar
 		, bgfx::ViewId _viewId
 		)
-	{
+	{}
+
+	void beginFrame(Event const & event, double dt, bgfx::ViewId viewId) {
 	    ImGuiIO & io = ImGui::GetIO();
 
 		if (false) {
@@ -291,27 +293,22 @@ struct OcornutImguiContext
 
 
 
-		m_viewId = _viewId;
+		m_viewId = viewId;
 
-		if (_inputChar >= 0)
-		{
-			io.AddInputCharacter(_inputChar);
+		if (event.codepoint >= 0) {
+			io.AddInputCharacter(event.codepoint);
 		}
 
-		io.DisplaySize = ImVec2( (float)_width, (float)_height);
+		io.DisplaySize = ImVec2((float)event.width, (float)event.height);
+		// io.DisplayFramebufferScale
 
-		const int64_t now = bx::getHPCounter();
-		const int64_t frameTime = now - m_last;
-		m_last = now;
-		const double freq = double(bx::getHPFrequency() );
-		io.DeltaTime = float(frameTime/freq);
+		io.DeltaTime = dt;
 
-		io.AddMousePosEvent( (float)_mx, (float)_my);
-		io.AddMouseButtonEvent(ImGuiMouseButton_Left,   0 != (_button & IMGUI_MBUT_LEFT  ) );
-		io.AddMouseButtonEvent(ImGuiMouseButton_Right,  0 != (_button & IMGUI_MBUT_RIGHT ) );
-		io.AddMouseButtonEvent(ImGuiMouseButton_Middle, 0 != (_button & IMGUI_MBUT_MIDDLE) );
-		io.AddMouseWheelEvent(0.0f, (float)(_scroll - m_lastScroll) );
-		m_lastScroll = _scroll;
+		io.AddMousePosEvent(event.x, event.y);
+		if (event.checkButton) {
+			io.AddMouseButtonEvent(event.button, event.action);
+		}
+		io.AddMouseWheelEvent(event.scrollx, event.scrolly);
 
 		ImGui::NewFrame();
 
@@ -354,6 +351,11 @@ void imguiDestroy()
 void imguiBeginFrame(int32_t _mx, int32_t _my, uint8_t _button, int32_t _scroll, uint16_t _width, uint16_t _height, int _inputChar, bgfx::ViewId _viewId)
 {
 	s_ctx.beginFrame(_mx, _my, _button, _scroll, _width, _height, _inputChar, _viewId);
+}
+
+void imguiBeginFrame(Event const & event, double dt, bgfx::ViewId viewId)
+{
+	s_ctx.beginFrame(event, dt, viewId);
 }
 
 void imguiEndFrame()

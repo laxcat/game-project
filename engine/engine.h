@@ -31,15 +31,7 @@ struct Args {
     char ** v = nullptr;
 };
 
-struct Event {
-    int key = 0;
-    int scancode = 0;
-    int button = 0;
-    int action = 0;
-    int mods = 0;
-    double x = 0.0;
-    double y = 0.0;
-};
+#include "common/Event.h"
 
 struct WindowLimits {
     // always passed directly into glfwSetWindowSizeLimits
@@ -79,6 +71,7 @@ struct EngineSetup {
     callback_t preShutdown = nullptr;
     callback_t postShutdown = nullptr;
     input_callback_t keyEvent = nullptr;
+    input_callback_t charEvent = nullptr;
     input_callback_t mousePosEvent = nullptr;
     input_callback_t mouseButtonEvent = nullptr;
     input_callback_t scrollEvent = nullptr;

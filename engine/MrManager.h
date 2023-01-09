@@ -72,6 +72,7 @@ public:
 // EVENT
 // -------------------------------------------------------------------------- //
     void keyEvent(Event const & e);
+    void charEvent(Event const & e);
     void mousePosEvent(Event const & e);
     void mouseButtonEvent(Event const & e);
     void scrollEvent(Event const & e);

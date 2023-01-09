@@ -163,6 +163,7 @@ MemMan::Block * MemMan::requestFreeBlock(size_t size) {
         }
     }
     if (!block) return nullptr;
+
     // We don't care if the split actually happens or not.
     // If it happened, we still return the first block and the 2nd is of no
     // concern.
@@ -170,12 +171,13 @@ MemMan::Block * MemMan::requestFreeBlock(size_t size) {
     // hold our data, but with not enough room to create a new block.
     splitBlock(block, size);
 
-    // the old block gets returned. it was (probably) shrunk to fit by split
+    // the old block is returned.
+    // it was (probably) shrunk to fit by splitBlock.
     return block;
 }
 
 MemMan::Block * MemMan::splitBlock(Block * blockA, size_t blockANewSize) {
-    // block a (this) is not big enough.
+    // block A (this) is not big enough.
     // equal data size also rejected because new block would have
     // 0 bytes for data.
     if (blockA->dataSize() <= blockANewSize + BlockInfoSize) return nullptr;
