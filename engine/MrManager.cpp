@@ -77,6 +77,8 @@ void MrManager::draw() {
 void MrManager::updateSize(size2 windowSize) {
     if (setup.preResize) setup.preResize();
 
+    printl("size: %d, %d", windowSize.w, windowSize.h);
+
     this->windowSize = windowSize;
     rendSys.settings.updateSize(windowSize);
     camera.setRatio(windowSize);
@@ -99,6 +101,36 @@ char * MrManager::tempStr(size_t size) {
 // -------------------------------------------------------------------------- //
 // EVENT
 // -------------------------------------------------------------------------- //
+
+void MrManager::processEvents() {
+    for (int i = 0; i < mm.eventQueue.count; ++i) {
+        Event & e = mm.eventQueue.events[i];
+        switch (e.type) {
+        case Event::Window:
+            updateSize({e.width, e.height});
+            break;
+
+        case Event::Keyboard:
+            if (e.key) keyEvent(e);
+            else if (e.codepoint) charEvent(e);
+            break;
+
+        case Event::Mouse:
+            if (e.button != -1) mouseButtonEvent(e);
+            else if (e.scrollx != 0.0 && e.scrolly != 0.0) scrollEvent(e);
+            else mousePosEvent(e);
+            break;
+
+        case Event::Gamepad:
+            break;
+
+        default:
+        case Event::None:
+            break;
+        }
+    }
+    mm.eventQueue.clear();
+}
 
 void MrManager::keyEvent(Event const & e) {
     if (e.action == GLFW_PRESS) {

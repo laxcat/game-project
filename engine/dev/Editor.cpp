@@ -2,7 +2,7 @@
 #include <unordered_map>
 #include <vector>
 // #include <stdio.h>
-#include "../common/imgui_bgfx_glfw/imgui_bgfx_glfw.h"
+#include "../common/imgui_bgfx_glfw/imgui_bgfx_glfw_2.h"
 #include <nfd.h>
 #include "../MrManager.h"
 #include "OriginWidget.h"
@@ -50,6 +50,8 @@ char const * filenameForLoadedGLTF(char const * key) {
 }
 
 void Editor::tick() {
+    if (!GetCurrentContext()) return;
+
     SetNextWindowPos({0, 0});
     ImVec2 min{250, (float)mm.windowSize.h};
     ImVec2 max{mm.windowSize.w / 2.f, min.y};

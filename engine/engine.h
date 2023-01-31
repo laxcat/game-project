@@ -1,5 +1,5 @@
 #pragma once
-#include <stddef.h>
+#include "common/types.h"
 
 /*
 Engine entry point.
@@ -25,31 +25,6 @@ int main(int argc, char ** argv) {
 }
 ```
 */
-
-struct Args {
-    int c = 0;
-    char ** v = nullptr;
-};
-
-#include "common/Event.h"
-
-struct WindowLimits {
-    // always passed directly into glfwSetWindowSizeLimits
-    // these defaults match GLFW_DONT_CARE, which effectively means no constraints are set
-    int minw = -1;
-    int minh = -1;
-    int maxw = -1;
-    int maxh = -1;
-    int ratioNumer = -1;
-    int ratioDenom = -1;
-};
-
-struct WindowPlacement {
-    int x = -1;
-    int y = -1;
-    int w = 1920;
-    int h = 1080;
-};
 
 struct EngineSetup {
     using setup_callback_t = int (*)(EngineSetup & setup);

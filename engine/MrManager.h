@@ -1,6 +1,7 @@
 #pragma once
 #include <bgfx/bgfx.h>
 #include "engine.h"
+#include "common/EventQueue.h"
 #include "memory/MemMan.h"
 #include "render/Camera.h"
 #include "render/CameraControl.h"
@@ -32,6 +33,8 @@ public:
     double prevTime;
     double dt;
     EngineSetup setup;
+
+    EventQueue eventQueue;
 
     MemMan memMan;
     Stack * frameStack = nullptr;
@@ -71,6 +74,7 @@ public:
 // -------------------------------------------------------------------------- //
 // EVENT
 // -------------------------------------------------------------------------- //
+    void processEvents();
     void keyEvent(Event const & e);
     void charEvent(Event const & e);
     void mousePosEvent(Event const & e);

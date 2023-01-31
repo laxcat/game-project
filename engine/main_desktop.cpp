@@ -5,7 +5,7 @@
 #include <bgfx/platform.h>
 
 #if ENABLE_IMGUI
-#include "common/imgui_bgfx_glfw/imgui_bgfx_glfw.h"
+#include "common/imgui_bgfx_glfw/imgui_bgfx_glfw_2.h"
 #endif // ENABLE_IMGUI
 
 #include "MrManager.h"
@@ -13,67 +13,73 @@
 
 // dev interface enabled, so imgui will be also
 #if DEV_INTERFACE
-    #define SHOULD_IMGUI_CAPTURE_KEYBOARD (mm.devOverlay.isShowingImGUI() && ImGui::GetIO().WantCaptureKeyboard)
-    #define SHOULD_IMGUI_CAPTURE_MOUSE    (mm.devOverlay.isShowingImGUI() && ImGui::GetIO().WantCaptureMouse)
+    #define SHOULD_IMGUI_CAPTURE_KEYBOARD (mm.devOverlay.isShowingImGUI() && ImGui::GetCurrentContext() && ImGui::GetIO().WantCaptureKeyboard)
+    #define SHOULD_IMGUI_CAPTURE_MOUSE    (mm.devOverlay.isShowingImGUI() && ImGui::GetCurrentContext() && ImGui::GetIO().WantCaptureMouse)
 // just imgui but not dev interface (using imgui in some other way)
 #elif ENABLE_IMGUI
-    #define SHOULD_IMGUI_CAPTURE_KEYBOARD (ImGui::GetIO().WantCaptureKeyboard)
-    #define SHOULD_IMGUI_CAPTURE_MOUSE    (ImGui::GetIO().WantCaptureMouse)
+    #define SHOULD_IMGUI_CAPTURE_KEYBOARD (ImGui::GetCurrentContext() && ImGui::GetIO().WantCaptureKeyboard)
+    #define SHOULD_IMGUI_CAPTURE_MOUSE    (ImGui::GetCurrentContext() && ImGui::GetIO().WantCaptureMouse)
 // no imgui at all
 #else
     #define SHOULD_IMGUI_CAPTURE_KEYBOARD (false)
     #define SHOULD_IMGUI_CAPTURE_MOUSE    (false)
 #endif // DEV_INTERFACE
 
-static Event imguiStateEvent;
-
 static void glfw_errorCallback(int error, char const * description) {
     fprintf(stderr, "GLFW error %d: %s\n", error, description);
 }
 
 static void glfw_windowSizeCallback(GLFWwindow * window, int width, int height) {
-    imguiStateEvent.width = width;
-    imguiStateEvent.height = height;
-    mm.updateSize({width, height});
+    mm.eventQueue.push({
+        .type = Event::Window,
+        .width = width,
+        .height = height
+    });
 }
 
 static void glfw_keyCallback(GLFWwindow * window, int key, int scancode, int action, int mods) {
-    imguiStateEvent.key = key;
-    imguiStateEvent.scancode = scancode;
-    imguiStateEvent.action = action;
-    imguiStateEvent.mods = mods;
-    if (SHOULD_IMGUI_CAPTURE_KEYBOARD) return;
-    mm.keyEvent({.key=key, .scancode=scancode, .action=action, .mods=mods});
+    mm.eventQueue.push({
+        .type = Event::Keyboard,
+        .key = key,
+        .scancode = scancode,
+        .action = action,
+        .mods = mods,
+        .consume = true,
+    });
 }
 
 static void glfw_charCallback(GLFWwindow * window, unsigned int codepoint) {
-    imguiStateEvent.codepoint = codepoint;
-    mm.charEvent({.codepoint=codepoint});
+    mm.eventQueue.push({
+        .type = Event::Keyboard,
+        .codepoint = codepoint,
+        .consume = true,
+    });
 }
 
 static void glfw_mousePosCallback(GLFWwindow * window, double x, double y) {
-    imguiStateEvent.x = x;
-    imguiStateEvent.y = y;
-    mm.mousePos.x = x;
-    mm.mousePos.y = y;
-    if (SHOULD_IMGUI_CAPTURE_MOUSE) return;
-    mm.mousePosEvent({.x=x, .y=y});
+    mm.eventQueue.push({
+        .type = Event::Mouse,
+        .x = x,
+        .y = y,
+        .consume = true,
+    });
 }
 
 static void glfw_mouseButtonCallback(GLFWwindow * window, int button, int action, int mods) {
-    imguiStateEvent.checkButton = 1;
-    imguiStateEvent.button = button;
-    imguiStateEvent.action = action;
-    imguiStateEvent.mods = mods;
-    if (SHOULD_IMGUI_CAPTURE_MOUSE) return;
-    mm.mouseButtonEvent({.button=button, .action=action, .mods=mods});
+    mm.eventQueue.push({
+        .type = Event::Mouse,
+        .button = button,
+        .action = action,
+        .mods = mods,
+    });
 }
 
 static void glfw_scrollCallback(GLFWwindow * window, double x, double y) {
-    imguiStateEvent.scrollx = x;
-    imguiStateEvent.scrolly = y;
-    if (SHOULD_IMGUI_CAPTURE_MOUSE) return;
-    mm.scrollEvent({.x=x, .y=y});
+    mm.eventQueue.push({
+        .type = Event::Mouse,
+        .scrollx = x,
+        .scrolly = y,
+    });
 }
 
 int main_desktop(EngineSetup & setup) {
@@ -87,7 +93,7 @@ int main_desktop(EngineSetup & setup) {
     if (setup.preWindow) err = setup.preWindow(setup);
     if (err) return err;
 
-    // create window
+    // window hints
     if (setup.forceOpenGL) {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
@@ -102,6 +108,8 @@ int main_desktop(EngineSetup & setup) {
     if (setup.transparentFramebuffer) {
         glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE); // can be enabled to test transparent bg
     }
+
+    // create window
     mm.window = glfwCreateWindow(
         setup.requestWindowPosition.w,
         setup.requestWindowPosition.h,
@@ -117,7 +125,6 @@ int main_desktop(EngineSetup & setup) {
     if (setup.requestWindowPosition.x != GLFW_DONT_CARE && setup.requestWindowPosition.y != GLFW_DONT_CARE) {
         glfwSetWindowPos(mm.window, setup.requestWindowPosition.x, setup.requestWindowPosition.y);
     }
-    glfwSetWindowSizeCallback(mm.window, glfw_windowSizeCallback);
     glfwSetWindowAspectRatio(mm.window, setup.windowLimits.ratioNumer, setup.windowLimits.ratioDenom);
     glfwSetWindowSizeLimits(
         mm.window,
@@ -126,7 +133,8 @@ int main_desktop(EngineSetup & setup) {
     );
     if (setup.forceOpenGL) glfwMakeContextCurrent(mm.window);
 
-    // input callbacks
+    // window/input callbacks
+    glfwSetWindowSizeCallback(mm.window, glfw_windowSizeCallback);
     glfwSetKeyCallback(mm.window, glfw_keyCallback);
     glfwSetCharCallback(mm.window, glfw_charCallback);
     glfwSetCursorPosCallback(mm.window, glfw_mousePosCallback);
@@ -142,9 +150,18 @@ int main_desktop(EngineSetup & setup) {
     err = mm.init(setup);
     if (err) return err;
 
+    // get actual window size (might not match requested), and framebuffer size
+    glfwGetWindowSize(mm.window, &mm.windowSize.w, &mm.windowSize.h);
+    glfwGetFramebufferSize(mm.window, &mm.framebufferSize.w, &mm.framebufferSize.h);
+
     // setup ImGUI
     #if ENABLE_IMGUI
-    imguiCreate();
+    imguiCreate(
+        mm.window,
+        mm.guiView,
+        {(float)mm.windowSize.w, (float)mm.windowSize.h},
+        {(float)mm.framebufferSize.w, (float)mm.framebufferSize.h}
+    );
     #endif // ENABLE_IMGUI
 
     err = 0;
@@ -163,31 +180,15 @@ int main_desktop(EngineSetup & setup) {
             if (mm.devOverlay.isShowingImGUI()) {
             #endif // DEV_INTERFACE
 
-                // imguiBeginFrame(
-                //     inputState.x, inputState.y,
-                //     inputState.b,
-                //     inputState.z,
-                //     mm.windowSize.w, mm.windowSize.h,
-                //     inputState.key,
-                //     mm.guiView
-                // );
-                // inputState.key = -1;
-                if (!imguiStateEvent.width) imguiStateEvent.width = mm.windowSize.w;
-                if (!imguiStateEvent.height) imguiStateEvent.height = mm.windowSize.h;
-                if (imguiStateEvent.x == -1.0) imguiStateEvent.x = mm.mousePos.x;
-                if (imguiStateEvent.y == -1.0) imguiStateEvent.y = mm.mousePos.y;
-                imguiBeginFrame(imguiStateEvent, mm.dt, mm.guiView);
-                imguiStateEvent = {};
+                imguiBeginFrame(mm.eventQueue, mm.dt);
 
                 if (mm.setup.preEditor) mm.setup.preEditor();
-
                 #if DEV_INTERFACE
                 mm.editor.tick();
                 #endif // DEV_INTERFACE
-
                 if (mm.setup.postEditor) mm.setup.postEditor();
 
-                imguiEndFrame();
+                imguiEndFrame(mm.guiView);
 
             #if DEV_INTERFACE
             }
@@ -195,6 +196,7 @@ int main_desktop(EngineSetup & setup) {
             #endif // DEV_INTERFACE
         #endif // ENABLE_IMGUI
 
+        mm.processEvents();
         mm.tick();
     }
 
