@@ -80,7 +80,7 @@ void MrManager::draw() {
 void MrManager::updateSize(size2 windowSize) {
     if (setup.preResize) setup.preResize();
 
-    printl("size: %d, %d", windowSize.w, windowSize.h);
+    // printl("updateSize: %d, %d", windowSize.w, windowSize.h);
 
     this->windowSize = windowSize;
     rendSys.settings.updateSize(windowSize);

@@ -48,7 +48,7 @@ void imguiCreate(GLFWwindow * window, bgfx::ViewId viewId, ImVec2 windowSize) {
     ImGuiIO & io = ImGui::GetIO();
 
     io.DisplaySize = windowSize;
-    printl("imguiCreate, io.DisplaySize (%f, %f)", io.DisplaySize.x, io.DisplaySize.y);
+    // printl("imguiCreate, io.DisplaySize (%f, %f)", io.DisplaySize.x, io.DisplaySize.y);
     io.DeltaTime   = 1.0f / 60.0f;
     io.IniFilename = NULL;
 
@@ -153,7 +153,7 @@ void imguiBeginFrame(size2 windowSize, EventQueue & events, double dt) {
 
     // set size
     io.DisplaySize = ImVec2((float)windowSize.w, (float)windowSize.h);
-    printl("imguiBeginFrame, io.DisplaySize (%f, %f)", io.DisplaySize.x, io.DisplaySize.y);
+    // printl("imguiBeginFrame, io.DisplaySize (%f, %f)", io.DisplaySize.x, io.DisplaySize.y);
 
     // proces events
     for (int i = 0; i < events.count; ++i) {

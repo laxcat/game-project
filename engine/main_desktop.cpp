@@ -31,14 +31,7 @@ static void glfw_errorCallback(int error, char const * description) {
 
 static void glfw_windowSizeCallback(GLFWwindow * window, int width, int height) {
     mm.updateSize({width, height});
-    // mm.windowSize.w = width;
-    // mm.windowSize.h = height;
-    // mm.eventQueue.push({
-    //     .type = Event::Window,
-    //     .width = width,
-    //     .height = height
-    // });
-    printl("glfw_windowSizeCallback, %d, %d", width, height);
+    // printl("glfw_windowSizeCallback, %d, %d", width, height);
 }
 
 static void glfw_keyCallback(GLFWwindow * window, int key, int scancode, int action, int mods) {
@@ -156,8 +149,6 @@ int main_desktop(EngineSetup & setup) {
 
     // get actual window size (might not match requested), and framebuffer size
     glfwGetWindowSize(mm.window, &mm.windowSize.w, &mm.windowSize.h);
-
-    printl("glfwGetWindowSize (after init) %d, %d", mm.windowSize.w, mm.windowSize.h);
 
     // setup ImGUI
     #if ENABLE_IMGUI
