@@ -4,6 +4,7 @@
 #include <bgfx/embedded_shader.h>
 #include <bx/math.h>
 #include <bx/timer.h>
+#include <backends/imgui_impl_glfw.h>
 // #include <imgui_internal.h> // TODO: what do we need that isn't publically available?
 
 #include "vs_ocornut_imgui.bin.h"
@@ -33,13 +34,13 @@ static bgfx::UniformHandle uniformSampler;
 static bgfx::UniformHandle uniformImageLodEnabled;
 static GLFWcursor * mouseCursors[ImGuiMouseCursor_COUNT];
 
-static char const * getClipboardText(void * userData) {
-    return glfwGetClipboardString((GLFWwindow *)userData);
-}
+// static char const * getClipboardText(void * userData) {
+//     return glfwGetClipboardString((GLFWwindow *)userData);
+// }
 
-static void setClipboardText(void * userData, char const * text) {
-    glfwSetClipboardString((GLFWwindow *)userData, text);
-}
+// static void setClipboardText(void * userData, char const * text) {
+//     glfwSetClipboardString((GLFWwindow *)userData, text);
+// }
 
 void imguiCreate(GLFWwindow * window, bgfx::ViewId viewId, ImVec2 windowSize) {
     assert(context == nullptr && "Already initialized imgui!");
@@ -89,53 +90,12 @@ void imguiCreate(GLFWwindow * window, bgfx::ViewId viewId, ImVec2 windowSize) {
         bgfx::copy(data, width*height*4)
     );
 
-
-
-
-
-
-
-    // FROM imgui_impl_glfw.cpp
-
-    io.BackendPlatformName = "imgui_bgfx_glfw";
-    io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;         // We can honor GetMouseCursor() values (optional)
-    io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;          // We can honor io.WantSetMousePos requests (optional, rarely used)
-
-    io.SetClipboardTextFn = setClipboardText;
-    io.GetClipboardTextFn = getClipboardText;
-    io.ClipboardUserData = window;
-
-    // Set platform dependent data in viewport
-#if defined(_WIN32)
-    ImGui::GetMainViewport()->PlatformHandleRaw = (void*)glfwGetWin32Window(window);
-#endif
-
-    // Create mouse cursors
-    // (By design, on X11 cursors are user configurable and some cursors may be missing. When a cursor doesn't exist,
-    // GLFW will emit an error which will often be printed by the app, so we temporarily disable error reporting.
-    // Missing cursors will return NULL and our _UpdateMouseCursor() function will use the Arrow cursor instead.)
-    GLFWerrorfun prev_error_callback = glfwSetErrorCallback(NULL);
-    mouseCursors[ImGuiMouseCursor_Arrow] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
-    mouseCursors[ImGuiMouseCursor_TextInput] = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
-    mouseCursors[ImGuiMouseCursor_ResizeNS] = glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR);
-    mouseCursors[ImGuiMouseCursor_ResizeEW] = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);
-    mouseCursors[ImGuiMouseCursor_Hand] = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
-#if GLFW_HAS_NEW_CURSORS
-    mouseCursors[ImGuiMouseCursor_ResizeAll] = glfwCreateStandardCursor(GLFW_RESIZE_ALL_CURSOR);
-    mouseCursors[ImGuiMouseCursor_ResizeNESW] = glfwCreateStandardCursor(GLFW_RESIZE_NESW_CURSOR);
-    mouseCursors[ImGuiMouseCursor_ResizeNWSE] = glfwCreateStandardCursor(GLFW_RESIZE_NWSE_CURSOR);
-    mouseCursors[ImGuiMouseCursor_NotAllowed] = glfwCreateStandardCursor(GLFW_NOT_ALLOWED_CURSOR);
-#else
-    mouseCursors[ImGuiMouseCursor_ResizeAll] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
-    mouseCursors[ImGuiMouseCursor_ResizeNESW] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
-    mouseCursors[ImGuiMouseCursor_ResizeNWSE] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
-    mouseCursors[ImGuiMouseCursor_NotAllowed] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
-#endif
-    glfwSetErrorCallback(prev_error_callback);
-
+    ImGui_ImplGlfw_InitForOther(window, true);
 }
 
 void imguiDestroy() {
+    ImGui_ImplGlfw_Shutdown();
+
     ImGui::DestroyContext(context);
 
     bgfx::destroy(uniformSampler);
@@ -146,7 +106,7 @@ void imguiDestroy() {
     bgfx::destroy(mainProgram);
 }
 
-void imguiBeginFrame(size2 windowSize, EventQueue & events, double dt) {
+void imguiBeginFrame(size2 windowSize, double dt) {
     // printl("imguiBeginFrame dt %f", dt);
 
     ImGuiIO & io = ImGui::GetIO();
@@ -155,25 +115,9 @@ void imguiBeginFrame(size2 windowSize, EventQueue & events, double dt) {
     io.DisplaySize = ImVec2((float)windowSize.w, (float)windowSize.h);
     // printl("imguiBeginFrame, io.DisplaySize (%f, %f)", io.DisplaySize.x, io.DisplaySize.y);
 
-    // proces events
-    for (int i = 0; i < events.count; ++i) {
-        Event & e = events.events[i];
-        switch (e.type) {
-
-        case Event::Keyboard:
-            break;
-        case Event::Mouse:
-            break;
-        case Event::Gamepad:
-            break;
-
-        case Event::None:
-        default:
-            break;
-        }
-    }
-
     io.DeltaTime = (float)dt;
+
+    ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 }
 

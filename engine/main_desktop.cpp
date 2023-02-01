@@ -173,7 +173,7 @@ int main_desktop(EngineSetup & setup) {
 
         // dev interface not available or hidden but imgui is enabled
         #if ENABLE_IMGUI
-            imguiBeginFrame(mm.windowSize, mm.eventQueue, mm.dt);
+            imguiBeginFrame(mm.windowSize, mm.dt);
             mm.processEvents();
             // full dev interface available and showing
             #if DEV_INTERFACE
