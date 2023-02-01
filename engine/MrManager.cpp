@@ -109,8 +109,8 @@ void MrManager::processEvents() {
     for (int i = 0; i < mm.eventQueue.count; ++i) {
         Event & e = mm.eventQueue.events[i];
         switch (e.type) {
-        case Event::Window:
-            break;
+        // case Event::Window:
+        //     break;
 
         case Event::Keyboard:
             if (e.key) keyEvent(e);

@@ -41,34 +41,30 @@ static void setClipboardText(void * userData, char const * text) {
     glfwSetClipboardString((GLFWwindow *)userData, text);
 }
 
-void imguiCreate(GLFWwindow * window, bgfx::ViewId viewId, ImVec2 windowSize, ImVec2 framebufferSize) {
+void imguiCreate(GLFWwindow * window, bgfx::ViewId viewId, ImVec2 windowSize) {
     assert(context == nullptr && "Already initialized imgui!");
 
     context = ImGui::CreateContext();
     ImGuiIO & io = ImGui::GetIO();
 
     io.DisplaySize = windowSize;
-    io.DisplayFramebufferScale = ImVec2(1.f, 1.f);
-    // io.DisplayFramebufferScale = ImVec2(
-    //     framebufferSize.x / windowSize.x,
-    //     framebufferSize.y / windowSize.y
-    // );
+    printl("imguiCreate, io.DisplaySize (%f, %f)", io.DisplaySize.x, io.DisplaySize.y);
     io.DeltaTime   = 1.0f / 60.0f;
     io.IniFilename = NULL;
 
     bgfx::RendererType::Enum type = bgfx::getRendererType();
     mainProgram = bgfx::createProgram(
-          bgfx::createEmbeddedShader(s_embeddedShaders, type, "vs_ocornut_imgui")
-        , bgfx::createEmbeddedShader(s_embeddedShaders, type, "fs_ocornut_imgui")
-        , true
-        );
+        bgfx::createEmbeddedShader(s_embeddedShaders, type, "vs_ocornut_imgui"),
+        bgfx::createEmbeddedShader(s_embeddedShaders, type, "fs_ocornut_imgui"),
+        true
+    );
 
     uniformImageLodEnabled = bgfx::createUniform("u_imageLodEnabled", bgfx::UniformType::Vec4);
     imageProgram = bgfx::createProgram(
-          bgfx::createEmbeddedShader(s_embeddedShaders, type, "vs_imgui_image")
-        , bgfx::createEmbeddedShader(s_embeddedShaders, type, "fs_imgui_image")
-        , true
-        );
+        bgfx::createEmbeddedShader(s_embeddedShaders, type, "vs_imgui_image"),
+        bgfx::createEmbeddedShader(s_embeddedShaders, type, "fs_imgui_image"),
+        true
+    );
 
     vertexLayout
         .begin()
@@ -150,23 +146,20 @@ void imguiDestroy() {
     bgfx::destroy(mainProgram);
 }
 
-void imguiBeginFrame(GLFWwindow * window, EventQueue & events, double dt) {
-    printl("imgui begin frame dt %f", dt);
+void imguiBeginFrame(size2 windowSize, EventQueue & events, double dt) {
+    // printl("imguiBeginFrame dt %f", dt);
+
     ImGuiIO & io = ImGui::GetIO();
 
-    size2 winSize, fbSize;
-    glfwGetWindowSize(window, &winSize.w, &winSize.h);
-    // glfwGetFramebufferSize(window, &fbSize.w, &fbSize.h);
-    io.DisplaySize = {(float)winSize.w, (float)winSize.h};
-    // io.DisplayFramebufferScale = ImVec2(
-    //     (float)fbSize.w / (float)winSize.w,
-    //     (float)fbSize.h / (float)winSize.h
-    // );
-    printl("imguiBeginFrame, %f %f", io.DisplaySize.x, io.DisplaySize.y);
+    // set size
+    io.DisplaySize = ImVec2((float)windowSize.w, (float)windowSize.h);
+    printl("imguiBeginFrame, io.DisplaySize (%f, %f)", io.DisplaySize.x, io.DisplaySize.y);
 
+    // proces events
     for (int i = 0; i < events.count; ++i) {
         Event & e = events.events[i];
         switch (e.type) {
+
         case Event::Keyboard:
             break;
         case Event::Mouse:
@@ -179,12 +172,6 @@ void imguiBeginFrame(GLFWwindow * window, EventQueue & events, double dt) {
             break;
         }
     }
-
-    // process events
-
-    // handle in processing
-    // io.DisplaySize = ImVec2( (float)event.width, (float)event.height);
-
 
     io.DeltaTime = (float)dt;
     ImGui::NewFrame();

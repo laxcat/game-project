@@ -48,6 +48,22 @@ public:
     }
 
     void updateState() {
+        /*
+        RE: Resolution!
+
+        BGFX_CAPS_HIDPI is always false on mac (as of testing)
+        BGFX_RESET_HIDPI either doesen't do anything or is only considered when resizing? (unclear)
+
+        https://github.com/bkaradzic/bgfx/issues/2009
+
+        ! ! ! ! ! ! !
+        Generally expect to handle backing buffer resolution MANUALLY, OUTSIDE bgfx.
+        ! ! ! ! ! ! !
+
+        Unaddressed for now, and always create
+
+        */
+
         bgfxInit.resolution.reset = 0;
         if (user.vsync)             bgfxInit.resolution.reset |= BGFX_RESET_VSYNC;
         if (user.msaa == 4)         bgfxInit.resolution.reset |= BGFX_RESET_MSAA_X4;

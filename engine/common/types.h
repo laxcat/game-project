@@ -35,7 +35,7 @@ struct WindowPlacement {
 struct Event {
     enum Type {
         None,
-        Window,
+        // Window,
         Keyboard,
         Mouse,
         Gamepad
@@ -54,5 +54,7 @@ struct Event {
     double scrolly = 0.0;
     int width = 0;
     int height = 0;
-    bool consume = false; // when true will be consumed by first processor (probably UI)
+    bool consume = false;   // When true will be consumed by first processor.
+                            // For example debug UI might consume input events,
+                            // so the main game doesn't even see them.
 };

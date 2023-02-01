@@ -8,8 +8,8 @@
 #include "../glfw.h"
 #include "../EventQueue.h"
 
-void imguiCreate(GLFWwindow * window, bgfx::ViewId viewId, ImVec2 windowSize, ImVec2 framebufferSize);
+void imguiCreate(GLFWwindow * window, bgfx::ViewId viewId, ImVec2 windowSize);
 void imguiDestroy();
 
-void imguiBeginFrame(GLFWwindow * window, EventQueue & event, double dt);
+void imguiBeginFrame(size2 windowSize, EventQueue & event, double dt);
 void imguiEndFrame(bgfx::ViewId viewId);

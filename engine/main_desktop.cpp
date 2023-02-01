@@ -29,21 +29,15 @@ static void glfw_errorCallback(int error, char const * description) {
     fprintf(stderr, "GLFW error %d: %s\n", error, description);
 }
 
-static void glfw_framebufferSizeCallback(GLFWwindow * window, int width, int height) {
-    printl("glfw_framebufferSizeCallback %d, %d", width, height);
-    mm.framebufferSize.w = width;
-    mm.framebufferSize.h = height;
-}
-
 static void glfw_windowSizeCallback(GLFWwindow * window, int width, int height) {
-    mm.eventQueue.push({
-        .type = Event::Window,
-        .width = width,
-        .height = height
-    });
-    printl("glfw_windowSizeCallback %d, %d", width, height);
     mm.windowSize.w = width;
     mm.windowSize.h = height;
+    // mm.eventQueue.push({
+    //     .type = Event::Window,
+    //     .width = width,
+    //     .height = height
+    // });
+    printl("glfw_windowSizeCallback, %d, %d", width, height);
 }
 
 static void glfw_keyCallback(GLFWwindow * window, int key, int scancode, int action, int mods) {
@@ -143,7 +137,6 @@ int main_desktop(EngineSetup & setup) {
     if (setup.forceOpenGL) glfwMakeContextCurrent(mm.window);
 
     // window/input callbacks
-    glfwSetFramebufferSizeCallback(mm.window, glfw_framebufferSizeCallback);
     glfwSetWindowSizeCallback(mm.window, glfw_windowSizeCallback);
     glfwSetKeyCallback(mm.window, glfw_keyCallback);
     glfwSetCharCallback(mm.window, glfw_charCallback);
@@ -162,15 +155,15 @@ int main_desktop(EngineSetup & setup) {
 
     // get actual window size (might not match requested), and framebuffer size
     glfwGetWindowSize(mm.window, &mm.windowSize.w, &mm.windowSize.h);
-    glfwGetFramebufferSize(mm.window, &mm.framebufferSize.w, &mm.framebufferSize.h);
+
+    printl("glfwGetWindowSize (after init) %d, %d", mm.windowSize.w, mm.windowSize.h);
 
     // setup ImGUI
     #if ENABLE_IMGUI
     imguiCreate(
         mm.window,
         mm.guiView,
-        {(float)mm.windowSize.w, (float)mm.windowSize.h},
-        {(float)mm.framebufferSize.w, (float)mm.framebufferSize.h}
+        {(float)mm.windowSize.w, (float)mm.windowSize.h}
     );
     #endif // ENABLE_IMGUI
 
@@ -179,38 +172,26 @@ int main_desktop(EngineSetup & setup) {
     if (err) return err;
 
     while (!glfwWindowShouldClose(mm.window)) {
-        // printf("wut %d\n", DEV_INTERFACE);
-        glfwPollEvents();
+        // printf("DEV_INTERFACE %d\n", DEV_INTERFACE);
+        // printf("ENABLE_IMGUI %d\n", ENABLE_IMGUI);
 
+        glfwPollEvents();
 
         mm.beginFrame(glfwGetTime());
 
-        // full dev interface available and showing
-        #if ENABLE_IMGUI && DEV_INTERFACE
-        if (mm.devOverlay.isShowingImGUI()) {
-            imguiBeginFrame(mm.window, mm.eventQueue, mm.dt);
+        // dev interface not available or hidden but imgui is enabled
+        #if ENABLE_IMGUI
+            imguiBeginFrame(mm.windowSize, mm.eventQueue, mm.dt);
             mm.processEvents();
+            // full dev interface available and showing
+            #if DEV_INTERFACE
+            if (mm.devOverlay.isShowingImGUI()) {
+                if (mm.setup.preEditor) mm.setup.preEditor();
+                mm.editor.tick();
+                if (mm.setup.postEditor) mm.setup.postEditor();
+            }
+            #endif // DEV_INTERFACE
             mm.tick();
-            if (mm.setup.preEditor) mm.setup.preEditor();
-            mm.editor.tick();
-            if (mm.setup.postEditor) mm.setup.postEditor();
-            imguiEndFrame(mm.guiView);
-            mm.draw();
-        }
-
-        // full dev interface available but not showing
-        else {
-            imguiBeginFrame(mm.window, mm.eventQueue, mm.dt);
-            mm.processEvents();
-            mm.tick();
-            imguiEndFrame(mm.guiView);
-            mm.draw();
-        }
-
-        // dev interface not available but imgui is
-        #elif ENABLE_IMGUI
-            imguiBeginFrame(mm.window, mm.eventQueue, mm.dt);
-            mm.processEvents();
             imguiEndFrame(mm.guiView);
             mm.draw();
 
@@ -220,10 +201,9 @@ int main_desktop(EngineSetup & setup) {
             mm.tick();
             mm.draw();
 
-        #endif // ENABLE_IMGUI && DEV_INTERFACE
+        #endif // ENABLE_IMGUI
 
         mm.endFrame();
-
 
     }
 
