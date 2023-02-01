@@ -30,8 +30,9 @@ static void glfw_errorCallback(int error, char const * description) {
 }
 
 static void glfw_windowSizeCallback(GLFWwindow * window, int width, int height) {
-    mm.windowSize.w = width;
-    mm.windowSize.h = height;
+    mm.updateSize({width, height});
+    // mm.windowSize.w = width;
+    // mm.windowSize.h = height;
     // mm.eventQueue.push({
     //     .type = Event::Window,
     //     .width = width,
