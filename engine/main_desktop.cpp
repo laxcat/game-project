@@ -201,14 +201,13 @@ int main_desktop(EngineSetup & setup) {
 
     #if ENABLE_IMGUI
     imguiDestroy();
+    #if DEV_INTERFACE
+    mm.devOverlay.shutdown();
+    #endif // DEV_INTERFACE
     #endif // ENABLE_IMGUI
 
     mm.shutdown();
     bgfx::shutdown();
-
-    #if DEV_INTERFACE
-    mm.devOverlay.shutdown();
-    #endif // DEV_INTERFACE
 
     glfwDestroyWindow(mm.window);
     glfwTerminate();
