@@ -24,121 +24,158 @@ static const bgfx::EmbeddedShader s_embeddedShaders[] =
 
     BGFX_EMBEDDED_SHADER_END()
 };
-static ImGuiContext *      m_imgui;
-static bgfx::VertexLayout  m_layout;
-static bgfx::ProgramHandle m_program;
-static bgfx::ProgramHandle m_imageProgram;
-static bgfx::TextureHandle m_texture;
-static bgfx::UniformHandle s_tex;
-static bgfx::UniformHandle u_imageLodEnabled;
+static ImGuiContext * context = nullptr;
+static bgfx::VertexLayout  vertexLayout;
+static bgfx::ProgramHandle mainProgram;
+static bgfx::ProgramHandle imageProgram;
+static bgfx::TextureHandle fontTexture;
+static bgfx::UniformHandle uniformSampler;
+static bgfx::UniformHandle uniformImageLodEnabled;
+static GLFWcursor * mouseCursors[ImGuiMouseCursor_COUNT];
+
+static char const * getClipboardText(void * userData) {
+    return glfwGetClipboardString((GLFWwindow *)userData);
+}
+
+static void setClipboardText(void * userData, char const * text) {
+    glfwSetClipboardString((GLFWwindow *)userData, text);
+}
 
 void imguiCreate(GLFWwindow * window, bgfx::ViewId viewId, ImVec2 windowSize, ImVec2 framebufferSize) {
-    m_imgui = ImGui::CreateContext();
+    assert(context == nullptr && "Already initialized imgui!");
+
+    context = ImGui::CreateContext();
     ImGuiIO & io = ImGui::GetIO();
 
     io.DisplaySize = windowSize;
-    if (windowSize.x > 0 && windowSize.y > 0) {
-        io.DisplayFramebufferScale = ImVec2(
-            framebufferSize.x / windowSize.x,
-            framebufferSize.y / windowSize.y
-        );
-    }
+    io.DisplayFramebufferScale = ImVec2(1.f, 1.f);
+    // io.DisplayFramebufferScale = ImVec2(
+    //     framebufferSize.x / windowSize.x,
+    //     framebufferSize.y / windowSize.y
+    // );
     io.DeltaTime   = 1.0f / 60.0f;
     io.IniFilename = NULL;
 
     bgfx::RendererType::Enum type = bgfx::getRendererType();
-    m_program = bgfx::createProgram(
+    mainProgram = bgfx::createProgram(
           bgfx::createEmbeddedShader(s_embeddedShaders, type, "vs_ocornut_imgui")
         , bgfx::createEmbeddedShader(s_embeddedShaders, type, "fs_ocornut_imgui")
         , true
         );
 
-    u_imageLodEnabled = bgfx::createUniform("u_imageLodEnabled", bgfx::UniformType::Vec4);
-    m_imageProgram = bgfx::createProgram(
+    uniformImageLodEnabled = bgfx::createUniform("u_imageLodEnabled", bgfx::UniformType::Vec4);
+    imageProgram = bgfx::createProgram(
           bgfx::createEmbeddedShader(s_embeddedShaders, type, "vs_imgui_image")
         , bgfx::createEmbeddedShader(s_embeddedShaders, type, "fs_imgui_image")
         , true
         );
 
-    m_layout
+    vertexLayout
         .begin()
         .add(bgfx::Attrib::Position,  2, bgfx::AttribType::Float)
         .add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float)
         .add(bgfx::Attrib::Color0,    4, bgfx::AttribType::Uint8, true)
         .end();
 
-    s_tex = bgfx::createUniform("s_tex", bgfx::UniformType::Sampler);
+    uniformSampler = bgfx::createUniform("s_tex", bgfx::UniformType::Sampler);
 
     uint8_t* data;
     int32_t width;
     int32_t height;
     io.Fonts->GetTexDataAsRGBA32(&data, &width, &height);
-    m_texture = bgfx::createTexture2D(
-          (uint16_t)width
-        , (uint16_t)height
-        , false
-        , 1
-        , bgfx::TextureFormat::BGRA8
-        , 0
-        , bgfx::copy(data, width*height*4)
-        );
+    fontTexture = bgfx::createTexture2D(
+        (uint16_t)width,
+        (uint16_t)height,
+        false,
+        1,
+        bgfx::TextureFormat::BGRA8,
+        0,
+        bgfx::copy(data, width*height*4)
+    );
 
 
 
-    // uint8_t* fontData;
-    // int32_t fontw;
-    // int32_t fonth;
-    // io.Fonts->GetTexDataAsRGBA32(&fontData, &fontw, &fonth);
 
-    // bgfx::RendererType::Enum type = bgfx::getRendererType();
-    // m_program = bgfx::createProgram(
-    //       bgfx::createEmbeddedShader(s_embeddedShaders, type, "vs_ocornut_imgui")
-    //     , bgfx::createEmbeddedShader(s_embeddedShaders, type, "fs_ocornut_imgui")
-    //     , true
-    //     );
 
-    // u_imageLodEnabled = bgfx::createUniform("u_imageLodEnabled", bgfx::UniformType::Vec4);
-    // m_imageProgram = bgfx::createProgram(
-    //       bgfx::createEmbeddedShader(s_embeddedShaders, type, "vs_imgui_image")
-    //     , bgfx::createEmbeddedShader(s_embeddedShaders, type, "fs_imgui_image")
-    //     , true
-    //     );
 
-    // vertexLayout
-    //     .begin()
-    //     .add(bgfx::Attrib::Position,  2, bgfx::AttribType::Float)
-    //     .add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float)
-    //     .add(bgfx::Attrib::Color0,    4, bgfx::AttribType::Uint8, true)
-    //     .end();
+
+    // FROM imgui_impl_glfw.cpp
+
+    io.BackendPlatformName = "imgui_bgfx_glfw";
+    io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;         // We can honor GetMouseCursor() values (optional)
+    io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;          // We can honor io.WantSetMousePos requests (optional, rarely used)
+
+    io.SetClipboardTextFn = setClipboardText;
+    io.GetClipboardTextFn = getClipboardText;
+    io.ClipboardUserData = window;
+
+    // Set platform dependent data in viewport
+#if defined(_WIN32)
+    ImGui::GetMainViewport()->PlatformHandleRaw = (void*)glfwGetWin32Window(window);
+#endif
+
+    // Create mouse cursors
+    // (By design, on X11 cursors are user configurable and some cursors may be missing. When a cursor doesn't exist,
+    // GLFW will emit an error which will often be printed by the app, so we temporarily disable error reporting.
+    // Missing cursors will return NULL and our _UpdateMouseCursor() function will use the Arrow cursor instead.)
+    GLFWerrorfun prev_error_callback = glfwSetErrorCallback(NULL);
+    mouseCursors[ImGuiMouseCursor_Arrow] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
+    mouseCursors[ImGuiMouseCursor_TextInput] = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
+    mouseCursors[ImGuiMouseCursor_ResizeNS] = glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR);
+    mouseCursors[ImGuiMouseCursor_ResizeEW] = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);
+    mouseCursors[ImGuiMouseCursor_Hand] = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
+#if GLFW_HAS_NEW_CURSORS
+    mouseCursors[ImGuiMouseCursor_ResizeAll] = glfwCreateStandardCursor(GLFW_RESIZE_ALL_CURSOR);
+    mouseCursors[ImGuiMouseCursor_ResizeNESW] = glfwCreateStandardCursor(GLFW_RESIZE_NESW_CURSOR);
+    mouseCursors[ImGuiMouseCursor_ResizeNWSE] = glfwCreateStandardCursor(GLFW_RESIZE_NWSE_CURSOR);
+    mouseCursors[ImGuiMouseCursor_NotAllowed] = glfwCreateStandardCursor(GLFW_NOT_ALLOWED_CURSOR);
+#else
+    mouseCursors[ImGuiMouseCursor_ResizeAll] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
+    mouseCursors[ImGuiMouseCursor_ResizeNESW] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
+    mouseCursors[ImGuiMouseCursor_ResizeNWSE] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
+    mouseCursors[ImGuiMouseCursor_NotAllowed] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
+#endif
+    glfwSetErrorCallback(prev_error_callback);
+
 }
 
 void imguiDestroy() {
-        ImGui::DestroyContext(m_imgui);
+    ImGui::DestroyContext(context);
 
-        bgfx::destroy(s_tex);
-        bgfx::destroy(m_texture);
+    bgfx::destroy(uniformSampler);
+    bgfx::destroy(fontTexture);
 
-        bgfx::destroy(u_imageLodEnabled);
-        bgfx::destroy(m_imageProgram);
-        bgfx::destroy(m_program);
+    bgfx::destroy(uniformImageLodEnabled);
+    bgfx::destroy(imageProgram);
+    bgfx::destroy(mainProgram);
 }
 
-void imguiBeginFrame(EventQueue const & events, double dt) {
+void imguiBeginFrame(GLFWwindow * window, EventQueue & events, double dt) {
     printl("imgui begin frame dt %f", dt);
     ImGuiIO & io = ImGui::GetIO();
 
+    size2 winSize, fbSize;
+    glfwGetWindowSize(window, &winSize.w, &winSize.h);
+    // glfwGetFramebufferSize(window, &fbSize.w, &fbSize.h);
+    io.DisplaySize = {(float)winSize.w, (float)winSize.h};
+    // io.DisplayFramebufferScale = ImVec2(
+    //     (float)fbSize.w / (float)winSize.w,
+    //     (float)fbSize.h / (float)winSize.h
+    // );
+    printl("imguiBeginFrame, %f %f", io.DisplaySize.x, io.DisplaySize.y);
+
     for (int i = 0; i < events.count; ++i) {
-        switch (events.events[i].type) {
-        case Event::Window:
-            break;
+        Event & e = events.events[i];
+        switch (e.type) {
         case Event::Keyboard:
             break;
         case Event::Mouse:
             break;
         case Event::Gamepad:
             break;
-        default:
+
         case Event::None:
+        default:
             break;
         }
     }
@@ -154,14 +191,12 @@ void imguiBeginFrame(EventQueue const & events, double dt) {
 }
 
 bool checkAvailTransientBuffers(uint32_t _numVertices, uint32_t _numIndices) {
-    return _numVertices == bgfx::getAvailTransientVertexBuffer(_numVertices, m_layout)
+    return _numVertices == bgfx::getAvailTransientVertexBuffer(_numVertices, vertexLayout)
         && (0 == _numIndices || _numIndices == bgfx::getAvailTransientIndexBuffer(_numIndices) )
         ;
 }
 
 void render(bgfx::ViewId viewId, ImDrawData * drawData) {
-    // #if 0 // disable until all variables are re-introduced
-
     // Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates != framebuffer coordinates)
     int fb_width = (int)(drawData->DisplaySize.x * drawData->FramebufferScale.x);
     int fb_height = (int)(drawData->DisplaySize.y * drawData->FramebufferScale.y);
@@ -201,7 +236,7 @@ void render(bgfx::ViewId viewId, ImDrawData * drawData) {
             break;
         }
 
-        bgfx::allocTransientVertexBuffer(&tvb, numVertices, m_layout);
+        bgfx::allocTransientVertexBuffer(&tvb, numVertices, vertexLayout);
         bgfx::allocTransientIndexBuffer(&tib, numIndices, sizeof(ImDrawIdx) == 4);
 
         ImDrawVert* verts = (ImDrawVert*)tvb.data;
@@ -223,8 +258,8 @@ void render(bgfx::ViewId viewId, ImDrawData * drawData) {
                     | BGFX_STATE_MSAA
                     ;
 
-                bgfx::TextureHandle th = m_texture;
-                bgfx::ProgramHandle program = m_program;
+                bgfx::TextureHandle th = fontTexture;
+                bgfx::ProgramHandle program = mainProgram;
 
                 if (NULL != cmd->TextureId) {
                     union { ImTextureID ptr; struct { bgfx::TextureHandle handle; uint8_t flags; uint8_t mip; } s; } texture = { cmd->TextureId };
@@ -235,8 +270,8 @@ void render(bgfx::ViewId viewId, ImDrawData * drawData) {
                     th = texture.s.handle;
                     if (0 != texture.s.mip) {
                         const float lodEnabled[4] = { float(texture.s.mip), 1.0f, 0.0f, 0.0f };
-                        bgfx::setUniform(u_imageLodEnabled, lodEnabled);
-                        program = m_imageProgram;
+                        bgfx::setUniform(uniformImageLodEnabled, lodEnabled);
+                        program = imageProgram;
                     }
                 }
                 else {
@@ -262,7 +297,7 @@ void render(bgfx::ViewId viewId, ImDrawData * drawData) {
                             );
 
                     encoder->setState(state);
-                    encoder->setTexture(0, s_tex, th);
+                    encoder->setTexture(0, uniformSampler, th);
                     encoder->setVertexBuffer(0, &tvb, cmd->VtxOffset, numVertices);
                     encoder->setIndexBuffer(&tib, cmd->IdxOffset, cmd->ElemCount);
                     encoder->submit(viewId, program);
@@ -273,7 +308,6 @@ void render(bgfx::ViewId viewId, ImDrawData * drawData) {
         bgfx::end(encoder);
 
     }
-    // #endif
 }
 
 void imguiEndFrame(bgfx::ViewId viewId) {

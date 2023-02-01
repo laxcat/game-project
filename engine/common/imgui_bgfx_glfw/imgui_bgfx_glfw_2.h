@@ -11,5 +11,5 @@
 void imguiCreate(GLFWwindow * window, bgfx::ViewId viewId, ImVec2 windowSize, ImVec2 framebufferSize);
 void imguiDestroy();
 
-void imguiBeginFrame(EventQueue const & event, double dt);
+void imguiBeginFrame(GLFWwindow * window, EventQueue & event, double dt);
 void imguiEndFrame(bgfx::ViewId viewId);

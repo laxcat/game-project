@@ -53,25 +53,28 @@ void MrManager::shutdown() {
     if (setup.postShutdown) setup.postShutdown();
 }
 
-void MrManager::updateTime(double nowInSeconds) {
+void MrManager::beginFrame(double nowInSeconds) {
+    // update time
     prevTime = thisTime;
     thisTime = nowInSeconds;
     dt = thisTime - prevTime;
 }
 
-void MrManager::tick() {
-    if (setup.preDraw) setup.preDraw();
-    draw();
-    if (setup.postDraw) setup.postDraw();
+void MrManager::endFrame() {
     if (frameStack) frameStack->reset();
 }
 
+void MrManager::tick() {
+}
+
 void MrManager::draw() {
+    if (setup.preDraw) setup.preDraw();
     bgfx::setViewClear(mainView, BGFX_CLEAR_COLOR|BGFX_CLEAR_DEPTH, rendSys.colors.background.asRGBAInt());
     bgfx::setViewTransform(mainView, (float *)&camera.viewMat, (float *)&camera.projMat);
     bgfx::setViewRect(mainView, 0, 0, bgfx::BackbufferRatio::Equal);
     rendSys.draw();
     bgfx::frame();
+    if (setup.postDraw) setup.postDraw();
 }
 
 void MrManager::updateSize(size2 windowSize) {
@@ -107,7 +110,6 @@ void MrManager::processEvents() {
         Event & e = mm.eventQueue.events[i];
         switch (e.type) {
         case Event::Window:
-            updateSize({e.width, e.height});
             break;
 
         case Event::Keyboard:

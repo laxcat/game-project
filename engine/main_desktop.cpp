@@ -29,12 +29,21 @@ static void glfw_errorCallback(int error, char const * description) {
     fprintf(stderr, "GLFW error %d: %s\n", error, description);
 }
 
+static void glfw_framebufferSizeCallback(GLFWwindow * window, int width, int height) {
+    printl("glfw_framebufferSizeCallback %d, %d", width, height);
+    mm.framebufferSize.w = width;
+    mm.framebufferSize.h = height;
+}
+
 static void glfw_windowSizeCallback(GLFWwindow * window, int width, int height) {
     mm.eventQueue.push({
         .type = Event::Window,
         .width = width,
         .height = height
     });
+    printl("glfw_windowSizeCallback %d, %d", width, height);
+    mm.windowSize.w = width;
+    mm.windowSize.h = height;
 }
 
 static void glfw_keyCallback(GLFWwindow * window, int key, int scancode, int action, int mods) {
@@ -134,6 +143,7 @@ int main_desktop(EngineSetup & setup) {
     if (setup.forceOpenGL) glfwMakeContextCurrent(mm.window);
 
     // window/input callbacks
+    glfwSetFramebufferSizeCallback(mm.window, glfw_framebufferSizeCallback);
     glfwSetWindowSizeCallback(mm.window, glfw_windowSizeCallback);
     glfwSetKeyCallback(mm.window, glfw_keyCallback);
     glfwSetCharCallback(mm.window, glfw_charCallback);
@@ -170,34 +180,51 @@ int main_desktop(EngineSetup & setup) {
 
     while (!glfwWindowShouldClose(mm.window)) {
         // printf("wut %d\n", DEV_INTERFACE);
-
         glfwPollEvents();
 
-        mm.updateTime(glfwGetTime());
 
-        #if ENABLE_IMGUI
-            #if DEV_INTERFACE
-            if (mm.devOverlay.isShowingImGUI()) {
-            #endif // DEV_INTERFACE
+        mm.beginFrame(glfwGetTime());
 
-                imguiBeginFrame(mm.eventQueue, mm.dt);
+        // full dev interface available and showing
+        #if ENABLE_IMGUI && DEV_INTERFACE
+        if (mm.devOverlay.isShowingImGUI()) {
+            imguiBeginFrame(mm.window, mm.eventQueue, mm.dt);
+            mm.processEvents();
+            mm.tick();
+            if (mm.setup.preEditor) mm.setup.preEditor();
+            mm.editor.tick();
+            if (mm.setup.postEditor) mm.setup.postEditor();
+            imguiEndFrame(mm.guiView);
+            mm.draw();
+        }
 
-                if (mm.setup.preEditor) mm.setup.preEditor();
-                #if DEV_INTERFACE
-                mm.editor.tick();
-                #endif // DEV_INTERFACE
-                if (mm.setup.postEditor) mm.setup.postEditor();
+        // full dev interface available but not showing
+        else {
+            imguiBeginFrame(mm.window, mm.eventQueue, mm.dt);
+            mm.processEvents();
+            mm.tick();
+            imguiEndFrame(mm.guiView);
+            mm.draw();
+        }
 
-                imguiEndFrame(mm.guiView);
+        // dev interface not available but imgui is
+        #elif ENABLE_IMGUI
+            imguiBeginFrame(mm.window, mm.eventQueue, mm.dt);
+            mm.processEvents();
+            imguiEndFrame(mm.guiView);
+            mm.draw();
 
-            #if DEV_INTERFACE
-            }
-            mm.devOverlay.tick();
-            #endif // DEV_INTERFACE
-        #endif // ENABLE_IMGUI
+        // no imgui at all
+        #else
+            mm.processEvents();
+            mm.tick();
+            mm.draw();
 
-        mm.processEvents();
-        mm.tick();
+        #endif // ENABLE_IMGUI && DEV_INTERFACE
+
+        mm.endFrame();
+
+
     }
 
     #if ENABLE_IMGUI

@@ -61,7 +61,9 @@ public:
 // -------------------------------------------------------------------------- //
     int init(EngineSetup const & setup);
     void shutdown();
-    void updateTime(double nowInSeconds);
+    // void updateTime(double nowInSeconds);
+    void beginFrame(double nowInSeconds);
+    void endFrame();
     void tick();
     void draw();
     void updateSize(size2 windowSize);
@@ -80,5 +82,9 @@ public:
     void mousePosEvent(Event const & e);
     void mouseButtonEvent(Event const & e);
     void scrollEvent(Event const & e);
+
+// -------------------------------------------------------------------------- //
+// TEST/DEBUG
+// -------------------------------------------------------------------------- //
     void test();
 };
