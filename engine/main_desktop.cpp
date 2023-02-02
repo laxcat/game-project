@@ -68,6 +68,7 @@ static void glfw_mouseButtonCallback(GLFWwindow * window, int button, int action
         .button = button,
         .action = action,
         .mods = mods,
+        .consume = true,
     });
 }
 
@@ -76,6 +77,7 @@ static void glfw_scrollCallback(GLFWwindow * window, double x, double y) {
         .type = Event::MouseScroll,
         .scrollx = x,
         .scrolly = y,
+        .consume = true,
     });
 }
 

@@ -207,29 +207,6 @@ static void ImGui_ImplGlfw_UpdateKeyModifiers(int mods)
     io.AddKeyEvent(ImGuiKey_ModSuper, (mods & GLFW_MOD_SUPER) != 0);
 }
 
-void ImGui_ImplGlfw_MouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
-{
-    ImGui_ImplGlfw_Data * bd = ImGui_ImplGlfw_GetBackendData();
-    if (bd->PrevUserCallbackMousebutton != NULL && window == bd->Window)
-        bd->PrevUserCallbackMousebutton(window, button, action, mods);
-
-    ImGui_ImplGlfw_UpdateKeyModifiers(mods);
-
-    ImGuiIO & io = ImGui::GetIO();
-    if (button >= 0 && button < ImGuiMouseButton_COUNT)
-        io.AddMouseButtonEvent(button, action == GLFW_PRESS);
-}
-
-void ImGui_ImplGlfw_ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
-{
-    ImGui_ImplGlfw_Data * bd = ImGui_ImplGlfw_GetBackendData();
-    if (bd->PrevUserCallbackScroll != NULL && window == bd->Window)
-        bd->PrevUserCallbackScroll(window, xoffset, yoffset);
-
-    ImGuiIO & io = ImGui::GetIO();
-    io.AddMouseWheelEvent((float)xoffset, (float)yoffset);
-}
-
 static int ImGui_ImplGlfw_TranslateUntranslatedKey(int key, int scancode)
 {
 #if GLFW_HAS_GET_KEY_NAME && !defined(__EMSCRIPTEN__)
@@ -255,25 +232,6 @@ static int ImGui_ImplGlfw_TranslateUntranslatedKey(int key, int scancode)
     IM_UNUSED(scancode);
 #endif
     return key;
-}
-
-void ImGui_ImplGlfw_KeyCallback(GLFWwindow* window, int keycode, int scancode, int action, int mods)
-{
-    ImGui_ImplGlfw_Data * bd = ImGui_ImplGlfw_GetBackendData();
-    if (bd->PrevUserCallbackKey != NULL && window == bd->Window)
-        bd->PrevUserCallbackKey(window, keycode, scancode, action, mods);
-
-    if (action != GLFW_PRESS && action != GLFW_RELEASE)
-        return;
-
-    ImGui_ImplGlfw_UpdateKeyModifiers(mods);
-
-    keycode = ImGui_ImplGlfw_TranslateUntranslatedKey(keycode, scancode);
-
-    ImGuiIO & io = ImGui::GetIO();
-    ImGuiKey imgui_key = ImGui_ImplGlfw_KeyToImGuiKey(keycode);
-    io.AddKeyEvent(imgui_key, (action == GLFW_PRESS));
-    io.SetKeyEventNativeData(imgui_key, keycode, scancode); // To support legacy indexing (<1.87 user code)
 }
 
 void ImGui_ImplGlfw_WindowFocusCallback(GLFWwindow* window, int focused)
@@ -308,16 +266,6 @@ void ImGui_ImplGlfw_CursorEnterCallback(GLFWwindow* window, int entered)
     }
 }
 
-void ImGui_ImplGlfw_CharCallback(GLFWwindow* window, unsigned int c)
-{
-    ImGui_ImplGlfw_Data * bd = ImGui_ImplGlfw_GetBackendData();
-    if (bd->PrevUserCallbackChar != NULL && window == bd->Window)
-        bd->PrevUserCallbackChar(window, c);
-
-    ImGuiIO & io = ImGui::GetIO();
-    io.AddInputCharacter(c);
-}
-
 void ImGui_ImplGlfw_InstallCallbacks(GLFWwindow* window)
 {
     ImGui_ImplGlfw_Data * bd = ImGui_ImplGlfw_GetBackendData();
@@ -326,10 +274,10 @@ void ImGui_ImplGlfw_InstallCallbacks(GLFWwindow* window)
     bd->PrevUserCallbackWindowFocus = glfwSetWindowFocusCallback(window, ImGui_ImplGlfw_WindowFocusCallback);
     bd->PrevUserCallbackCursorEnter = glfwSetCursorEnterCallback(window, ImGui_ImplGlfw_CursorEnterCallback);
     // bd->PrevUserCallbackCursorPos = glfwSetCursorPosCallback(window, ImGui_ImplGlfw_CursorPosCallback);
-    bd->PrevUserCallbackMousebutton = glfwSetMouseButtonCallback(window, ImGui_ImplGlfw_MouseButtonCallback);
-    bd->PrevUserCallbackScroll = glfwSetScrollCallback(window, ImGui_ImplGlfw_ScrollCallback);
-    bd->PrevUserCallbackKey = glfwSetKeyCallback(window, ImGui_ImplGlfw_KeyCallback);
-    bd->PrevUserCallbackChar = glfwSetCharCallback(window, ImGui_ImplGlfw_CharCallback);
+    // bd->PrevUserCallbackMousebutton = glfwSetMouseButtonCallback(window, ImGui_ImplGlfw_MouseButtonCallback);
+    // bd->PrevUserCallbackScroll = glfwSetScrollCallback(window, ImGui_ImplGlfw_ScrollCallback);
+    // bd->PrevUserCallbackKey = glfwSetKeyCallback(window, ImGui_ImplGlfw_KeyCallback);
+    // bd->PrevUserCallbackChar = glfwSetCharCallback(window, ImGui_ImplGlfw_CharCallback);
 }
 
 void ImGui_ImplGlfw_RestoreCallbacks(GLFWwindow* window)
@@ -340,10 +288,10 @@ void ImGui_ImplGlfw_RestoreCallbacks(GLFWwindow* window)
     glfwSetWindowFocusCallback(window, bd->PrevUserCallbackWindowFocus);
     glfwSetCursorEnterCallback(window, bd->PrevUserCallbackCursorEnter);
     // glfwSetCursorPosCallback(window, bd->PrevUserCallbackCursorPos);
-    glfwSetMouseButtonCallback(window, bd->PrevUserCallbackMousebutton);
-    glfwSetScrollCallback(window, bd->PrevUserCallbackScroll);
-    glfwSetKeyCallback(window, bd->PrevUserCallbackKey);
-    glfwSetCharCallback(window, bd->PrevUserCallbackChar);
+    // glfwSetMouseButtonCallback(window, bd->PrevUserCallbackMousebutton);
+    // glfwSetScrollCallback(window, bd->PrevUserCallbackScroll);
+    // glfwSetKeyCallback(window, bd->PrevUserCallbackKey);
+    // glfwSetCharCallback(window, bd->PrevUserCallbackChar);
     bd->PrevUserCallbackWindowFocus = NULL;
     bd->PrevUserCallbackCursorEnter = NULL;
     bd->PrevUserCallbackCursorPos = NULL;
@@ -517,20 +465,43 @@ void imguiBeginFrame(size2 windowSize, EventQueue & events, double dt) {
         Event & e = events.events[i];
         switch (e.type) {
 
-        case Event::MousePos:
+        case Event::MousePos: {
             io.AddMousePosEvent((float)e.x, (float)e.y);
             // printf("ImGui_ImplGlfw_CursorPosCallback %f, %f\n", x, y);
             bd->LastValidMousePos = ImVec2((float)e.x, (float)e.y);
             if (e.consume && io.WantCaptureMouse) e.type = Event::None;
             break;
+        }
+        case Event::MouseButton: {
+            ImGui_ImplGlfw_UpdateKeyModifiers(e.mods);
+            if (e.button >= 0 && e.button < ImGuiMouseButton_COUNT)
+                io.AddMouseButtonEvent(e.button, (e.action == GLFW_PRESS));
+            if (e.consume && io.WantCaptureMouse) e.type = Event::None;
+            break;
+        }
+        case Event::MouseScroll: {
+            io.AddMouseWheelEvent((float)e.scrollx, (float)e.scrolly);
+            if (e.consume && io.WantCaptureMouse) e.type = Event::None;
+            break;
+        }
 
-        case Event::MouseButton:
+        case Event::Char: {
+            io.AddInputCharacter(e.codepoint);
+            if (e.consume && io.WantCaptureKeyboard) e.type = Event::None;
             break;
-        case Event::MouseScroll:
+        }
+        case Event::Key: {
+            if (e.action != GLFW_PRESS && e.action != GLFW_RELEASE)
+                break;
+            ImGui_ImplGlfw_UpdateKeyModifiers(e.mods);
+            int keycode = ImGui_ImplGlfw_TranslateUntranslatedKey(e.key, e.scancode);
+            ImGuiKey imgui_key = ImGui_ImplGlfw_KeyToImGuiKey(keycode);
+            io.AddKeyEvent(imgui_key, (e.action == GLFW_PRESS));
+            io.SetKeyEventNativeData(imgui_key, keycode, e.scancode);
+            if (e.consume && io.WantCaptureKeyboard) e.type = Event::None;
             break;
-            
-        case Event::Char:
-        case Event::Key:
+        }
+
         case Event::None:
         default:
             break;
