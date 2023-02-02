@@ -19,11 +19,11 @@ void CameraControl::mousePosEvent(Event const & e) {
 
 void CameraControl::scrollEvent(Event const & e) {
     if (mm.camera.projType == Camera::ProjType::Persp) {
-        mm.camera.distance -= e.y;
+        mm.camera.distance -= e.scrolly;
         mm.camera.updatePosFromDistancePitchYaw();
     }
     else if (mm.camera.projType == Camera::ProjType::Ortho) {
-        mm.camera.distance -= e.y * orthoScrollScale;
+        mm.camera.distance -= e.scrolly * orthoScrollScale;
         if (mm.camera.distance < 0.1f) mm.camera.distance = 0.1f;
         mm.camera.updateProjection();
     }
