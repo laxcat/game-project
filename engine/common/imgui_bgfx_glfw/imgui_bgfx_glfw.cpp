@@ -286,18 +286,6 @@ void ImGui_ImplGlfw_WindowFocusCallback(GLFWwindow* window, int focused)
     io.AddFocusEvent(focused != 0);
 }
 
-void ImGui_ImplGlfw_CursorPosCallback(GLFWwindow* window, double x, double y)
-{
-    // ImGui_ImplGlfw_Data * bd = ImGui_ImplGlfw_GetBackendData();
-    // if (bd->PrevUserCallbackCursorPos != NULL && window == bd->Window)
-    //     bd->PrevUserCallbackCursorPos(window, x, y);
-
-    // ImGuiIO & io = ImGui::GetIO();
-    // io.AddMousePosEvent((float)x, (float)y);
-    // // printf("ImGui_ImplGlfw_CursorPosCallback %f, %f\n", x, y);
-    // bd->LastValidMousePos = ImVec2((float)x, (float)y);
-}
-
 // Workaround: X11 seems to send spurious Leave/Enter events which would make us lose our position,
 // so we back it up and restore on Leave/Enter (see https://github.com/ocornut/imgui/issues/4984)
 void ImGui_ImplGlfw_CursorEnterCallback(GLFWwindow* window, int entered)
@@ -365,27 +353,6 @@ void ImGui_ImplGlfw_RestoreCallbacks(GLFWwindow* window)
     bd->PrevUserCallbackChar = NULL;
 }
 
-static void ImGui_ImplGlfw_UpdateMouseCursor()
-{
-    ImGuiIO & io = ImGui::GetIO();
-    ImGui_ImplGlfw_Data * bd = ImGui_ImplGlfw_GetBackendData();
-    if ((io.ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange) || glfwGetInputMode(bd->Window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED)
-        return;
-
-    ImGuiMouseCursor imgui_cursor = ImGui::GetMouseCursor();
-    if (imgui_cursor == ImGuiMouseCursor_None || io.MouseDrawCursor)
-    {
-        // Hide OS mouse cursor if imgui is drawing it or if it wants no cursor
-        glfwSetInputMode(bd->Window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-    }
-    else
-    {
-        // Show OS mouse cursor
-        // FIXME-PLATFORM: Unfocused windows seems to fail changing the mouse cursor with GLFW 3.2, but 3.3 works here.
-        glfwSetCursor(bd->Window, bd->MouseCursors[imgui_cursor] ? bd->MouseCursors[imgui_cursor] : bd->MouseCursors[ImGuiMouseCursor_Arrow]);
-        glfwSetInputMode(bd->Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    }
-}
 
 
 
@@ -543,21 +510,27 @@ void imguiBeginFrame(size2 windowSize, EventQueue & events, double dt) {
     ImGui_ImplGlfw_Data * bd = ImGui_ImplGlfw_GetBackendData();
     IM_ASSERT(bd != NULL && "Did you call ImGui_ImplGlfw_InitForXXX()?");
 
-    printl("imguiBeginFrame event count: %d", events.count);
 
+    // process events
+    // printl("imguiBeginFrame event count: %d", events.count);
     for (int i = 0; i < events.count; ++i) {
         Event & e = events.events[i];
         switch (e.type) {
+
         case Event::MousePos:
             io.AddMousePosEvent((float)e.x, (float)e.y);
             // printf("ImGui_ImplGlfw_CursorPosCallback %f, %f\n", x, y);
             bd->LastValidMousePos = ImVec2((float)e.x, (float)e.y);
             if (e.consume && io.WantCaptureMouse) e.type = Event::None;
             break;
+
+        case Event::MouseButton:
+            break;
+        case Event::MouseScroll:
+            break;
+            
         case Event::Char:
         case Event::Key:
-        case Event::MouseButton:
-        case Event::MouseScroll:
         case Event::None:
         default:
             break;
@@ -565,7 +538,24 @@ void imguiBeginFrame(size2 windowSize, EventQueue & events, double dt) {
     }
 
 
-    ImGui_ImplGlfw_UpdateMouseCursor();
+    // ImGui_ImplGlfw_UpdateMouseCursor
+    if ((io.ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange) || glfwGetInputMode(bd->Window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED)
+        return;
+
+    ImGuiMouseCursor imgui_cursor = ImGui::GetMouseCursor();
+    if (imgui_cursor == ImGuiMouseCursor_None || io.MouseDrawCursor)
+    {
+        // Hide OS mouse cursor if imgui is drawing it or if it wants no cursor
+        glfwSetInputMode(bd->Window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    }
+    else
+    {
+        // Show OS mouse cursor
+        // FIXME-PLATFORM: Unfocused windows seems to fail changing the mouse cursor with GLFW 3.2, but 3.3 works here.
+        glfwSetCursor(bd->Window, bd->MouseCursors[imgui_cursor] ? bd->MouseCursors[imgui_cursor] : bd->MouseCursors[ImGuiMouseCursor_Arrow]);
+        glfwSetInputMode(bd->Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+
 
     ImGui::NewFrame();
 }

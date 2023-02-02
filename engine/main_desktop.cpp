@@ -54,7 +54,6 @@ static void glfw_charCallback(GLFWwindow * window, unsigned int codepoint) {
 }
 
 static void glfw_mousePosCallback(GLFWwindow * window, double x, double y) {
-    printl("glfw_mousePosCallback");
     mm.eventQueue.push({
         .type = Event::MousePos,
         .x = x,
