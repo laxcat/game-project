@@ -6,7 +6,7 @@ public:
     static constexpr size_t MAX_EVENTS = 8;
 
     Event events[MAX_EVENTS];
-    int count;
+    int count = 0;
 
     Event * push(Event const && newEvent) {
         if (count == MAX_EVENTS) return nullptr;

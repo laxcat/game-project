@@ -36,9 +36,11 @@ struct Event {
     enum Type {
         None,
         // Window,
-        Keyboard,
-        Mouse,
-        Gamepad
+        Key,
+        Char,
+        MousePos,
+        MouseButton,
+        MouseScroll
     };
 
     Type type = None;

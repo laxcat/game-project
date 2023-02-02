@@ -75,12 +75,12 @@ static ImGui_ImplGlfw_Data * ImGui_ImplGlfw_GetBackendData()
 }
 
 // Functions
-static const char* ImGui_ImplGlfw_GetClipboardText(void* user_data)
+static const char* ImGui_ImplGlfw_GetClipboardText(void * user_data)
 {
     return glfwGetClipboardString((GLFWwindow*)user_data);
 }
 
-static void ImGui_ImplGlfw_SetClipboardText(void* user_data, const char* text)
+static void ImGui_ImplGlfw_SetClipboardText(void * user_data, const char* text)
 {
     glfwSetClipboardString((GLFWwindow*)user_data, text);
 }
@@ -288,14 +288,14 @@ void ImGui_ImplGlfw_WindowFocusCallback(GLFWwindow* window, int focused)
 
 void ImGui_ImplGlfw_CursorPosCallback(GLFWwindow* window, double x, double y)
 {
-    ImGui_ImplGlfw_Data * bd = ImGui_ImplGlfw_GetBackendData();
-    if (bd->PrevUserCallbackCursorPos != NULL && window == bd->Window)
-        bd->PrevUserCallbackCursorPos(window, x, y);
+    // ImGui_ImplGlfw_Data * bd = ImGui_ImplGlfw_GetBackendData();
+    // if (bd->PrevUserCallbackCursorPos != NULL && window == bd->Window)
+    //     bd->PrevUserCallbackCursorPos(window, x, y);
 
-    ImGuiIO & io = ImGui::GetIO();
-    io.AddMousePosEvent((float)x, (float)y);
-    // printf("ImGui_ImplGlfw_CursorPosCallback %f, %f\n", x, y);
-    bd->LastValidMousePos = ImVec2((float)x, (float)y);
+    // ImGuiIO & io = ImGui::GetIO();
+    // io.AddMousePosEvent((float)x, (float)y);
+    // // printf("ImGui_ImplGlfw_CursorPosCallback %f, %f\n", x, y);
+    // bd->LastValidMousePos = ImVec2((float)x, (float)y);
 }
 
 // Workaround: X11 seems to send spurious Leave/Enter events which would make us lose our position,
@@ -337,7 +337,7 @@ void ImGui_ImplGlfw_InstallCallbacks(GLFWwindow* window)
 
     bd->PrevUserCallbackWindowFocus = glfwSetWindowFocusCallback(window, ImGui_ImplGlfw_WindowFocusCallback);
     bd->PrevUserCallbackCursorEnter = glfwSetCursorEnterCallback(window, ImGui_ImplGlfw_CursorEnterCallback);
-    bd->PrevUserCallbackCursorPos = glfwSetCursorPosCallback(window, ImGui_ImplGlfw_CursorPosCallback);
+    // bd->PrevUserCallbackCursorPos = glfwSetCursorPosCallback(window, ImGui_ImplGlfw_CursorPosCallback);
     bd->PrevUserCallbackMousebutton = glfwSetMouseButtonCallback(window, ImGui_ImplGlfw_MouseButtonCallback);
     bd->PrevUserCallbackScroll = glfwSetScrollCallback(window, ImGui_ImplGlfw_ScrollCallback);
     bd->PrevUserCallbackKey = glfwSetKeyCallback(window, ImGui_ImplGlfw_KeyCallback);
@@ -351,7 +351,7 @@ void ImGui_ImplGlfw_RestoreCallbacks(GLFWwindow* window)
 
     glfwSetWindowFocusCallback(window, bd->PrevUserCallbackWindowFocus);
     glfwSetCursorEnterCallback(window, bd->PrevUserCallbackCursorEnter);
-    glfwSetCursorPosCallback(window, bd->PrevUserCallbackCursorPos);
+    // glfwSetCursorPosCallback(window, bd->PrevUserCallbackCursorPos);
     glfwSetMouseButtonCallback(window, bd->PrevUserCallbackMousebutton);
     glfwSetScrollCallback(window, bd->PrevUserCallbackScroll);
     glfwSetKeyCallback(window, bd->PrevUserCallbackKey);
@@ -431,7 +431,7 @@ void imguiCreate(GLFWwindow * window, bgfx::ViewId viewId, ImVec2 windowSize) {
 
     // Set platform dependent data in viewport
 #if defined(_WIN32)
-    ImGui::GetMainViewport()->PlatformHandleRaw = (void*)glfwGetWin32Window(bd->Window);
+    ImGui::GetMainViewport()->PlatformHandleRaw = (void *)glfwGetWin32Window(bd->Window);
 #endif
 
     // Create mouse cursors
@@ -530,7 +530,7 @@ void imguiDestroy() {
     bgfx::destroy(mainProgram);
 }
 
-void imguiBeginFrame(size2 windowSize, double dt) {
+void imguiBeginFrame(size2 windowSize, EventQueue & events, double dt) {
     // printl("imguiBeginFrame dt %f", dt);
 
     ImGuiIO & io = ImGui::GetIO();
@@ -542,6 +542,28 @@ void imguiBeginFrame(size2 windowSize, double dt) {
 
     ImGui_ImplGlfw_Data * bd = ImGui_ImplGlfw_GetBackendData();
     IM_ASSERT(bd != NULL && "Did you call ImGui_ImplGlfw_InitForXXX()?");
+
+    printl("imguiBeginFrame event count: %d", events.count);
+
+    for (int i = 0; i < events.count; ++i) {
+        Event & e = events.events[i];
+        switch (e.type) {
+        case Event::MousePos:
+            io.AddMousePosEvent((float)e.x, (float)e.y);
+            // printf("ImGui_ImplGlfw_CursorPosCallback %f, %f\n", x, y);
+            bd->LastValidMousePos = ImVec2((float)e.x, (float)e.y);
+            if (e.consume && io.WantCaptureMouse) e.type = Event::None;
+            break;
+        case Event::Char:
+        case Event::Key:
+        case Event::MouseButton:
+        case Event::MouseScroll:
+        case Event::None:
+        default:
+            break;
+        }
+    }
+
 
     ImGui_ImplGlfw_UpdateMouseCursor();
 

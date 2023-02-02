@@ -112,18 +112,21 @@ void MrManager::processEvents() {
         // case Event::Window:
         //     break;
 
-        case Event::Keyboard:
-            if (e.key) keyEvent(e);
-            else if (e.codepoint) charEvent(e);
+        case Event::Key:
+            keyEvent(e);
+            break;
+        case Event::Char:
+            charEvent(e);
             break;
 
-        case Event::Mouse:
-            if (e.button != -1) mouseButtonEvent(e);
-            else if (e.scrollx != 0.0 && e.scrolly != 0.0) scrollEvent(e);
-            else mousePosEvent(e);
+        case Event::MousePos:
+            mousePosEvent(e);
             break;
-
-        case Event::Gamepad:
+        case Event::MouseButton:
+            mouseButtonEvent(e);
+            break;
+        case Event::MouseScroll:
+            scrollEvent(e);
             break;
 
         default:

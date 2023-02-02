@@ -36,7 +36,7 @@ static void glfw_windowSizeCallback(GLFWwindow * window, int width, int height) 
 
 static void glfw_keyCallback(GLFWwindow * window, int key, int scancode, int action, int mods) {
     mm.eventQueue.push({
-        .type = Event::Keyboard,
+        .type = Event::Key,
         .key = key,
         .scancode = scancode,
         .action = action,
@@ -47,15 +47,16 @@ static void glfw_keyCallback(GLFWwindow * window, int key, int scancode, int act
 
 static void glfw_charCallback(GLFWwindow * window, unsigned int codepoint) {
     mm.eventQueue.push({
-        .type = Event::Keyboard,
+        .type = Event::Char,
         .codepoint = codepoint,
         .consume = true,
     });
 }
 
 static void glfw_mousePosCallback(GLFWwindow * window, double x, double y) {
+    printl("glfw_mousePosCallback");
     mm.eventQueue.push({
-        .type = Event::Mouse,
+        .type = Event::MousePos,
         .x = x,
         .y = y,
         .consume = true,
@@ -64,7 +65,7 @@ static void glfw_mousePosCallback(GLFWwindow * window, double x, double y) {
 
 static void glfw_mouseButtonCallback(GLFWwindow * window, int button, int action, int mods) {
     mm.eventQueue.push({
-        .type = Event::Mouse,
+        .type = Event::MouseButton,
         .button = button,
         .action = action,
         .mods = mods,
@@ -73,7 +74,7 @@ static void glfw_mouseButtonCallback(GLFWwindow * window, int button, int action
 
 static void glfw_scrollCallback(GLFWwindow * window, double x, double y) {
     mm.eventQueue.push({
-        .type = Event::Mouse,
+        .type = Event::MouseScroll,
         .scrollx = x,
         .scrolly = y,
     });
@@ -173,7 +174,7 @@ int main_desktop(EngineSetup & setup) {
 
         // dev interface not available or hidden but imgui is enabled
         #if ENABLE_IMGUI
-            imguiBeginFrame(mm.windowSize, mm.dt);
+            imguiBeginFrame(mm.windowSize, mm.eventQueue, mm.dt);
             mm.processEvents();
             // full dev interface available and showing
             #if DEV_INTERFACE
