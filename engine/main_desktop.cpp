@@ -5,7 +5,7 @@
 #include <bgfx/platform.h>
 
 #if ENABLE_IMGUI
-#include "common/imgui_bgfx_glfw/imgui_bgfx_glfw_2.h"
+#include "common/imgui_bgfx_glfw/imgui_bgfx_glfw.h"
 #endif // ENABLE_IMGUI
 
 #include "MrManager.h"
