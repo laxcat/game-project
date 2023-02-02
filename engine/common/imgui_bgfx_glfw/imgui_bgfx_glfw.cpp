@@ -58,7 +58,6 @@ struct ImGui_ImplGlfw_Data
     GLFWscrollfun           PrevUserCallbackScroll;
     GLFWkeyfun              PrevUserCallbackKey;
     GLFWcharfun             PrevUserCallbackChar;
-    GLFWmonitorfun          PrevUserCallbackMonitor;
 
     ImGui_ImplGlfw_Data()   { memset(this, 0, sizeof(*this)); }
 };
@@ -331,11 +330,6 @@ void ImGui_ImplGlfw_CharCallback(GLFWwindow* window, unsigned int c)
     io.AddInputCharacter(c);
 }
 
-void ImGui_ImplGlfw_MonitorCallback(GLFWmonitor*, int)
-{
-    // Unused in 'master' branch but 'docking' branch will use this, so we declare it ahead of it so if you have to install callbacks you can install this one too.
-}
-
 void ImGui_ImplGlfw_InstallCallbacks(GLFWwindow* window)
 {
     ImGui_ImplGlfw_Data * bd = ImGui_ImplGlfw_GetBackendData();
@@ -348,7 +342,6 @@ void ImGui_ImplGlfw_InstallCallbacks(GLFWwindow* window)
     bd->PrevUserCallbackScroll = glfwSetScrollCallback(window, ImGui_ImplGlfw_ScrollCallback);
     bd->PrevUserCallbackKey = glfwSetKeyCallback(window, ImGui_ImplGlfw_KeyCallback);
     bd->PrevUserCallbackChar = glfwSetCharCallback(window, ImGui_ImplGlfw_CharCallback);
-    bd->PrevUserCallbackMonitor = glfwSetMonitorCallback(ImGui_ImplGlfw_MonitorCallback);
 }
 
 void ImGui_ImplGlfw_RestoreCallbacks(GLFWwindow* window)
@@ -363,7 +356,6 @@ void ImGui_ImplGlfw_RestoreCallbacks(GLFWwindow* window)
     glfwSetScrollCallback(window, bd->PrevUserCallbackScroll);
     glfwSetKeyCallback(window, bd->PrevUserCallbackKey);
     glfwSetCharCallback(window, bd->PrevUserCallbackChar);
-    glfwSetMonitorCallback(bd->PrevUserCallbackMonitor);
     bd->PrevUserCallbackWindowFocus = NULL;
     bd->PrevUserCallbackCursorEnter = NULL;
     bd->PrevUserCallbackCursorPos = NULL;
@@ -371,7 +363,6 @@ void ImGui_ImplGlfw_RestoreCallbacks(GLFWwindow* window)
     bd->PrevUserCallbackScroll = NULL;
     bd->PrevUserCallbackKey = NULL;
     bd->PrevUserCallbackChar = NULL;
-    bd->PrevUserCallbackMonitor = NULL;
 }
 
 static void ImGui_ImplGlfw_UpdateMouseCursor()
