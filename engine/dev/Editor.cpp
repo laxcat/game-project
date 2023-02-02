@@ -420,7 +420,7 @@ void Editor::guiFog() {
 }
 
 void Editor::guiColors() {
-    if (CollapsingHeader("Colors")) {
+    if (CollapsingHeader("Colors", ImGuiTreeNodeFlags_DefaultOpen)) {
         ColorEdit4("background", (float *)&mm.rendSys.colors.background.data, ImGuiColorEditFlags_DisplayHex);
 
         Dummy(ImVec2(0.0f, 20.0f));
@@ -428,7 +428,7 @@ void Editor::guiColors() {
 }
 
 void Editor::guiMem() {
-    if (CollapsingHeader("Memory", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (CollapsingHeader("Memory")) {
         Text("Total: %.0f MB", round((double)mm.memMan.size()/(1024*1024)));
         if (Button("Show Memory")) {
             memMan = &mm.memMan;
