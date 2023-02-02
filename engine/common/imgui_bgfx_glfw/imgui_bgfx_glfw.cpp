@@ -42,21 +42,12 @@ static GLFWcursor * mouseCursors[ImGuiMouseCursor_COUNT];
 
 
 
-// GLFW data
-enum GlfwClientApi
-{
-    GlfwClientApi_Unknown,
-    GlfwClientApi_OpenGL,
-    GlfwClientApi_Vulkan
-};
-
 struct ImGui_ImplGlfw_Data
 {
-    GLFWwindow*             Window;
-    GlfwClientApi           ClientApi;
+    GLFWwindow *            Window;
     double                  Time;
-    GLFWwindow*             MouseWindow;
-    GLFWcursor*             MouseCursors[ImGuiMouseCursor_COUNT];
+    GLFWwindow *            MouseWindow;
+    GLFWcursor *            MouseCursors[ImGuiMouseCursor_COUNT];
     ImVec2                  LastValidMousePos;
     bool                    InstalledCallbacks;
 
@@ -80,7 +71,7 @@ struct ImGui_ImplGlfw_Data
 //   (passing install_callbacks=false in ImGui_ImplGlfw_InitXXX functions), set the current dear imgui context and then call our callbacks.
 // - Otherwise we may need to store a GLFWWindow* -> ImGuiContext* map and handle this in the backend, adding a little bit of extra complexity to it.
 // FIXME: some shared resources (mouse cursor shape, gamepad) are mishandled when using multi-context.
-static ImGui_ImplGlfw_Data* ImGui_ImplGlfw_GetBackendData()
+static ImGui_ImplGlfw_Data * ImGui_ImplGlfw_GetBackendData()
 {
     return ImGui::GetCurrentContext() ? (ImGui_ImplGlfw_Data*)ImGui::GetIO().BackendPlatformUserData : NULL;
 }
@@ -537,8 +528,8 @@ void imguiCreate(GLFWwindow * window, bgfx::ViewId viewId, ImVec2 windowSize) {
     IM_ASSERT(io.BackendPlatformUserData == NULL && "Already initialized a platform backend!");
 
     // Setup backend capabilities flags
-    ImGui_ImplGlfw_Data* bd = IM_NEW(ImGui_ImplGlfw_Data)();
-    io.BackendPlatformUserData = (void*)bd;
+    ImGui_ImplGlfw_Data * bd = IM_NEW(ImGui_ImplGlfw_Data)();
+    io.BackendPlatformUserData = (void *)bd;
     io.BackendPlatformName = "imgui_impl_glfw";
     io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;         // We can honor GetMouseCursor() values (optional)
     io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;          // We can honor io.WantSetMousePos requests (optional, rarely used)
@@ -549,9 +540,6 @@ void imguiCreate(GLFWwindow * window, bgfx::ViewId viewId, ImVec2 windowSize) {
     io.SetClipboardTextFn = ImGui_ImplGlfw_SetClipboardText;
     io.GetClipboardTextFn = ImGui_ImplGlfw_GetClipboardText;
     io.ClipboardUserData = bd->Window;
-
-    bool install_callbacks = true;
-    GlfwClientApi client_api = GlfwClientApi_Unknown;
 
     // Set platform dependent data in viewport
 #if defined(_WIN32)
@@ -582,10 +570,8 @@ void imguiCreate(GLFWwindow * window, bgfx::ViewId viewId, ImVec2 windowSize) {
     glfwSetErrorCallback(prev_error_callback);
 
     // Chain GLFW callbacks: our callbacks will call the user's previously installed callbacks, if any.
-    if (install_callbacks)
-        ImGui_ImplGlfw_InstallCallbacks(window);
+    ImGui_ImplGlfw_InstallCallbacks(window);
 
-    bd->ClientApi = client_api;
 
 
     io.DisplaySize = windowSize;
