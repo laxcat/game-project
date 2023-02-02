@@ -52,12 +52,7 @@ struct ImGui_ImplGlfw_Data
 
     // Chain GLFW callbacks: our callbacks will call the user's previously installed callbacks, if any.
     GLFWwindowfocusfun      PrevUserCallbackWindowFocus;
-    GLFWcursorposfun        PrevUserCallbackCursorPos;
     GLFWcursorenterfun      PrevUserCallbackCursorEnter;
-    GLFWmousebuttonfun      PrevUserCallbackMousebutton;
-    GLFWscrollfun           PrevUserCallbackScroll;
-    GLFWkeyfun              PrevUserCallbackKey;
-    GLFWcharfun             PrevUserCallbackChar;
 
     ImGui_ImplGlfw_Data()   { memset(this, 0, sizeof(*this)); }
 };
@@ -273,11 +268,6 @@ void ImGui_ImplGlfw_InstallCallbacks(GLFWwindow* window)
 
     bd->PrevUserCallbackWindowFocus = glfwSetWindowFocusCallback(window, ImGui_ImplGlfw_WindowFocusCallback);
     bd->PrevUserCallbackCursorEnter = glfwSetCursorEnterCallback(window, ImGui_ImplGlfw_CursorEnterCallback);
-    // bd->PrevUserCallbackCursorPos = glfwSetCursorPosCallback(window, ImGui_ImplGlfw_CursorPosCallback);
-    // bd->PrevUserCallbackMousebutton = glfwSetMouseButtonCallback(window, ImGui_ImplGlfw_MouseButtonCallback);
-    // bd->PrevUserCallbackScroll = glfwSetScrollCallback(window, ImGui_ImplGlfw_ScrollCallback);
-    // bd->PrevUserCallbackKey = glfwSetKeyCallback(window, ImGui_ImplGlfw_KeyCallback);
-    // bd->PrevUserCallbackChar = glfwSetCharCallback(window, ImGui_ImplGlfw_CharCallback);
 }
 
 void ImGui_ImplGlfw_RestoreCallbacks(GLFWwindow* window)
@@ -287,18 +277,8 @@ void ImGui_ImplGlfw_RestoreCallbacks(GLFWwindow* window)
 
     glfwSetWindowFocusCallback(window, bd->PrevUserCallbackWindowFocus);
     glfwSetCursorEnterCallback(window, bd->PrevUserCallbackCursorEnter);
-    // glfwSetCursorPosCallback(window, bd->PrevUserCallbackCursorPos);
-    // glfwSetMouseButtonCallback(window, bd->PrevUserCallbackMousebutton);
-    // glfwSetScrollCallback(window, bd->PrevUserCallbackScroll);
-    // glfwSetKeyCallback(window, bd->PrevUserCallbackKey);
-    // glfwSetCharCallback(window, bd->PrevUserCallbackChar);
     bd->PrevUserCallbackWindowFocus = NULL;
     bd->PrevUserCallbackCursorEnter = NULL;
-    bd->PrevUserCallbackCursorPos = NULL;
-    bd->PrevUserCallbackMousebutton = NULL;
-    bd->PrevUserCallbackScroll = NULL;
-    bd->PrevUserCallbackKey = NULL;
-    bd->PrevUserCallbackChar = NULL;
 }
 
 
