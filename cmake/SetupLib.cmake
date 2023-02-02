@@ -150,7 +150,6 @@ macro(SetupLib_imgui)
         "${imgui_content_SOURCE_DIR}/imgui_draw.cpp"
         "${imgui_content_SOURCE_DIR}/imgui_tables.cpp"
         "${imgui_content_SOURCE_DIR}/imgui_widgets.cpp"
-        "${CMAKE_CURRENT_LIST_DIR}/common/imgui_bgfx_glfw/imgui_impl_glfw.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/common/imgui_bgfx_glfw/imgui_bgfx_glfw.cpp"
     )
 endmacro()
