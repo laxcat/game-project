@@ -1,6 +1,14 @@
 #pragma once
 #include <stdarg.h>
 
+/*
+
+Series of print functions designed to be slightly more conveient than standard
+stdio.h functions. Also allows interception of print calls in order to display
+stdout within the runtime, in something like a dev overlay (which is disabled atm).
+
+*/
+
 void vprint(char const * formatString, va_list args);
 
 inline void print(char const * formatString, ...) {
