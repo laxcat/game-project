@@ -1,3 +1,5 @@
+#pragma once
+
 // return 0-1. a must be positive. bigger a = slower approach
 // paste this: \frac{\left(a\ -\ \left(x+\frac{1}{a}\right)^{-1}\right)}{a}
 // here: https://www.desmos.com/calculator
