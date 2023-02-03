@@ -50,10 +50,10 @@ struct Event {
     int action = -1;
     int mods = -1;
     unsigned int codepoint = 0;
-    double x = -1.0;
-    double y = -1.0;
-    double scrollx = 0.0;
-    double scrolly = 0.0;
+    float x = -1.0;
+    float y = -1.0;
+    float scrollx = 0.0;
+    float scrolly = 0.0;
     int width = 0;
     int height = 0;
     bool consume = false;   // When true will be consumed by first processor.

@@ -56,8 +56,8 @@ static void glfw_charCallback(GLFWwindow * window, unsigned int codepoint) {
 static void glfw_mousePosCallback(GLFWwindow * window, double x, double y) {
     mm.eventQueue.push({
         .type = Event::MousePos,
-        .x = x,
-        .y = y,
+        .x = (float)x,
+        .y = (float)y,
         .consume = true,
     });
 }
@@ -75,8 +75,8 @@ static void glfw_mouseButtonCallback(GLFWwindow * window, int button, int action
 static void glfw_scrollCallback(GLFWwindow * window, double x, double y) {
     mm.eventQueue.push({
         .type = Event::MouseScroll,
-        .scrollx = x,
-        .scrolly = y,
+        .scrollx = (float)x,
+        .scrolly = (float)y,
         .consume = true,
     });
 }
@@ -171,13 +171,15 @@ int main_desktop(EngineSetup & setup) {
 
         glfwPollEvents();
 
+        // sets delta time (mm.dt)
         mm.beginFrame(glfwGetTime());
 
-        // dev interface not available or hidden but imgui is enabled
         #if ENABLE_IMGUI
+            // might consume events
             imguiBeginFrame(mm.windowSize, mm.eventQueue, mm.dt);
+            // handle what wasn't consumed
             mm.processEvents();
-            // full dev interface available and showing
+
             #if DEV_INTERFACE
             if (mm.devOverlay.isShowingImGUI()) {
                 if (mm.setup.preEditor) mm.setup.preEditor();
@@ -185,11 +187,12 @@ int main_desktop(EngineSetup & setup) {
                 if (mm.setup.postEditor) mm.setup.postEditor();
             }
             #endif // DEV_INTERFACE
+
             mm.tick();
-            imguiEndFrame(mm.guiView);
+            imguiEndFrame();
             mm.draw();
 
-        // no imgui at all
+        // not ENABLE_IMGUI
         #else
             mm.processEvents();
             mm.tick();

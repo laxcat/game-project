@@ -1,5 +1,6 @@
 #pragma once
 #include "types.h"
+// #include <functional>
 
 class EventQueue {
 public:
@@ -29,5 +30,12 @@ public:
         #endif // DEBUG
         count = 0;
     }
+
+    // void foreach(std::function<void(Event &)> const & fn) {
+    //     for (int i = 0; i < count; ++i) {
+    //         if (events[i].type == Event::None) continue;
+    //         fn(events[i]);
+    //     }
+    // }
 private:
 };

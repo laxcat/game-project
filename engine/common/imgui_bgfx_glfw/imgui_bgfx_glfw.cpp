@@ -36,6 +36,7 @@ static const bgfx::EmbeddedShader _embeddedShaders[] = {
 };
 
 static ImGuiContext *       _context = nullptr;
+static bgfx::ViewId         _viewId;
 static bgfx::VertexLayout   _vertexLayout;
 static bgfx::ProgramHandle  _mainProgram;
 static bgfx::ProgramHandle  _imageProgram;
@@ -60,7 +61,7 @@ static int translateUntranslatedKey(int key, int scancode);
 static void windowFocusCallback(GLFWwindow * window, int focused);
 static void cursorEnterCallback(GLFWwindow * window, int entered);
 static bool checkAvailTransientBuffers(uint32_t _numVertices, uint32_t _numIndices);
-static void render(bgfx::ViewId viewId, ImDrawData * drawData);
+static void render(ImDrawData * drawData);
 
 //
 // Public lifecycle functions
@@ -73,13 +74,13 @@ void imguiCreate(GLFWwindow * window, bgfx::ViewId viewId, ImVec2 windowSize) {
     _context = ImGui::CreateContext();
     ImGuiIO & io = ImGui::GetIO();
 
-
     // Setup backend capabilities flags
     io.BackendPlatformName = "imgui_bgfx_glfw";
     io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;         // We can honor GetMouseCursor() values (optional)
     io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;          // We can honor io.WantSetMousePos requests (optional, rarely used)
 
     _window = window;
+    _viewId = viewId;
     _time = 0.0;
 
     io.SetClipboardTextFn = setClipboardText;
@@ -119,8 +120,6 @@ void imguiCreate(GLFWwindow * window, bgfx::ViewId viewId, ImVec2 windowSize) {
     IM_ASSERT(_window == window);
     _prevUserCallbackWindowFocus = glfwSetWindowFocusCallback(window, windowFocusCallback);
     _prevUserCallbackCursorEnter = glfwSetCursorEnterCallback(window, cursorEnterCallback);
-
-
 
     io.DisplaySize = windowSize;
     // printl("imguiCreate, io.DisplaySize (%f, %f)", io.DisplaySize.x, io.DisplaySize.y);
@@ -193,7 +192,7 @@ void imguiDestroy() {
 }
 
 void imguiBeginFrame(size2 windowSize, EventQueue & events, double dt) {
-    IM_ASSERT(_window != NULL && "Did you initalize imgui?");
+    IM_ASSERT(_context != NULL && "Did you initalize imgui?");
     // printl("imguiBeginFrame dt %f", dt);
 
     ImGuiIO & io = ImGui::GetIO();
@@ -210,9 +209,9 @@ void imguiBeginFrame(size2 windowSize, EventQueue & events, double dt) {
         switch (e.type) {
 
         case Event::MousePos: {
-            io.AddMousePosEvent((float)e.x, (float)e.y);
+            io.AddMousePosEvent(e.x, e.y);
             // printf("cursorPosCallback %f, %f\n", x, y);
-            _lastValidMousePos = ImVec2((float)e.x, (float)e.y);
+            _lastValidMousePos = ImVec2(e.x, e.y);
             if (e.consume && io.WantCaptureMouse) e.type = Event::None;
             break;
         }
@@ -224,7 +223,7 @@ void imguiBeginFrame(size2 windowSize, EventQueue & events, double dt) {
             break;
         }
         case Event::MouseScroll: {
-            io.AddMouseWheelEvent((float)e.scrollx, (float)e.scrolly);
+        io.AddMouseWheelEvent(e.scrollx, e.scrolly);
             if (e.consume && io.WantCaptureMouse) e.type = Event::None;
             break;
         }
@@ -252,32 +251,33 @@ void imguiBeginFrame(size2 windowSize, EventQueue & events, double dt) {
         }
     }
 
-
     // updateMouseCursor
-    if ((io.ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange) || glfwGetInputMode(_window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED)
+    if ((io.ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange) ||
+        glfwGetInputMode(_window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED)
         return;
 
-    ImGuiMouseCursor imgui_cursor = ImGui::GetMouseCursor();
-    if (imgui_cursor == ImGuiMouseCursor_None || io.MouseDrawCursor)
-    {
+    ImGuiMouseCursor imguiCursor = ImGui::GetMouseCursor();
+    if (imguiCursor == ImGuiMouseCursor_None || io.MouseDrawCursor) {
         // Hide OS mouse cursor if imgui is drawing it or if it wants no cursor
         glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
     }
-    else
-    {
+    else {
         // Show OS mouse cursor
         // FIXME-PLATFORM: Unfocused windows seems to fail changing the mouse cursor with GLFW 3.2, but 3.3 works here.
-        glfwSetCursor(_window, _mouseCursors[imgui_cursor] ? _mouseCursors[imgui_cursor] : _mouseCursors[ImGuiMouseCursor_Arrow]);
+        glfwSetCursor(_window,
+            _mouseCursors[imguiCursor] ?
+                _mouseCursors[imguiCursor] :
+                _mouseCursors[ImGuiMouseCursor_Arrow]
+        );
         glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
-
 
     ImGui::NewFrame();
 }
 
-void imguiEndFrame(bgfx::ViewId viewId) {
+void imguiEndFrame() {
     ImGui::Render();
-    render(viewId, ImGui::GetDrawData());
+    render(ImGui::GetDrawData());
 }
 
 
@@ -291,15 +291,15 @@ static bool checkAvailTransientBuffers(uint32_t _numVertices, uint32_t _numIndic
         ;
 }
 
-static void render(bgfx::ViewId viewId, ImDrawData * drawData) {
+static void render(ImDrawData * drawData) {
     // Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates != framebuffer coordinates)
     int fb_width = (int)(drawData->DisplaySize.x * drawData->FramebufferScale.x);
     int fb_height = (int)(drawData->DisplaySize.y * drawData->FramebufferScale.y);
     if (fb_width <= 0 || fb_height <= 0)
         return;
 
-    bgfx::setViewName(viewId, "ImGui");
-    bgfx::setViewMode(viewId, bgfx::ViewMode::Sequential);
+    bgfx::setViewName(_viewId, "ImGui");
+    bgfx::setViewMode(_viewId, bgfx::ViewMode::Sequential);
 
     bgfx::Caps const * caps = bgfx::getCaps();
     {
@@ -310,8 +310,8 @@ static void render(bgfx::ViewId viewId, ImDrawData * drawData) {
         float height = drawData->DisplaySize.y;
 
         bx::mtxOrtho(ortho, x, x + width, y + height, y, 0.0f, 1000.0f, 0.0f, caps->homogeneousDepth);
-        bgfx::setViewTransform(viewId, NULL, ortho);
-        bgfx::setViewRect(viewId, 0, 0, uint16_t(width), uint16_t(height) );
+        bgfx::setViewTransform(_viewId, NULL, ortho);
+        bgfx::setViewRect(_viewId, 0, 0, uint16_t(width), uint16_t(height) );
     }
 
     const ImVec2 clipPos   = drawData->DisplayPos;       // (0,0) unless using multi-viewports
@@ -395,7 +395,7 @@ static void render(bgfx::ViewId viewId, ImDrawData * drawData) {
                     encoder->setTexture(0, _uniformSampler, th);
                     encoder->setVertexBuffer(0, &tvb, cmd->VtxOffset, numVertices);
                     encoder->setIndexBuffer(&tib, cmd->IdxOffset, cmd->ElemCount);
-                    encoder->submit(viewId, program);
+                    encoder->submit(_viewId, program);
                 }
             }
         }
