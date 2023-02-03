@@ -14,36 +14,36 @@ using namespace ImGui;
 static char scratchStr[32];
 MemMan * memMan = nullptr;
 
-struct LoadedGLTF {
+struct GLTFSlot {
     std::string label;
     std::string key;
     Path path;
 };
-std::vector<LoadedGLTF> loadedGLTFs;
+std::vector<GLTFSlot> gltfSlots;
 
-LoadedGLTF * loadedGLTFForKey(char const * key) {
-    for (LoadedGLTF & item : loadedGLTFs) {
-        if (item.key == key) {
-            return &item;
+GLTFSlot * gltfSlotForKey(char const * key) {
+    for (GLTFSlot & slot : gltfSlots) {
+        if (slot.key == key) {
+            return &slot;
         }
     }
     return nullptr;
 }
 
-bool setLoadedGLTFPath(char const * key, char const * path) {
-    for (LoadedGLTF & item : loadedGLTFs) {
-        if (item.key == key) {
-            item.path.setPath(path);
-            return true;
-        }
-    }
-    return false;
-}
+// bool setLoadedGLTFPath(char const * key, char const * path) {
+//     for (GLTFSlot & slot : gltfSlots) {
+//         if (slot.key == key) {
+//             slot.path.setPath(path);
+//             return true;
+//         }
+//     }
+//     return false;
+// }
 
 char const * filenameForLoadedGLTF(char const * key) {
-    for (LoadedGLTF & item : loadedGLTFs) {
-        if (item.key == key) {
-            return item.path.filenameOnly;
+    for (GLTFSlot & slot : gltfSlots) {
+        if (slot.key == key) {
+            return slot.path.filenameOnly;
         }
     }
     return "";
@@ -278,11 +278,11 @@ void Editor::guiHelpers() {
 
 void Editor::guiGLTFs() {
     if (CollapsingHeader("GLTFs")) {
-        for (auto const & loadedGLTF : loadedGLTFs) {
-            guiGLTF(loadedGLTF.label.c_str(), loadedGLTF.key.c_str());
+        for (auto const & gltfSlot : gltfSlots) {
+            guiGLTF(gltfSlot.label.c_str(), gltfSlot.key.c_str());
         }
 
-        if (loadedGLTFs.size() < 1000) {
+        if (gltfSlots.size() < 1000) {
             static char newLabel[64];
             PushItemWidth(200);
             InputText("GLTF Slot", newLabel, 64, ImGuiInputTextFlags_CharsNoBlank);
@@ -292,7 +292,7 @@ void Editor::guiGLTFs() {
                 std::string newKey{"editorLoaded_000"};
                 static size_t nextKey = 0;
                 sprintf((char *)newKey.c_str() + 13, "%03zu", nextKey++);
-                loadedGLTFs.push_back({newLabel, newKey});
+                gltfSlots.push_back({newLabel, newKey});
                 newLabel[0] = '\0';
             }
         }
@@ -308,25 +308,26 @@ void Editor::guiGLTF(char const * label, char const * key) {
     PushID(key);
 
     bool ready = mm.rendSys.isKeySafeToDrawOrLoad(key);
-    bool keyExists = mm.rendSys.keyExists(key);
+    bool keyExistsInRender = mm.rendSys.keyExists(key);
 
     TextUnformatted(label);
 
     BeginDisabled(!ready);
 
     char buttonLabel[100];
-    sprintf(buttonLabel, "%s GLTF###loadButton", keyExists ? "Swap":"Load");
+    sprintf(buttonLabel, "%s GLTF###loadButton", keyExistsInRender ? "Swap":"Load");
     if (Button(buttonLabel)) {
         nfdchar_t * outPath = NULL;
         nfdresult_t result = NFD_OpenDialog(NULL, ".", &outPath);
 
-        printl("GLTF SWAP FOR KEY: %s", key);
+        printl("GLTF %s FOR KEY: %s", keyExistsInRender ? "SWAP":"LOAD", key);
 
         if (result == NFD_OKAY) {
-            LoadedGLTF * item = loadedGLTFForKey(key);
-            if (item) {
-                item->path.setPath(outPath);
-                mm.rendSys.createFromGLTF(item->path.full, key);
+            GLTFSlot * slot = gltfSlotForKey(key);
+            printl("slot %p", slot);
+            if (slot) {
+                slot->path.setPath(outPath);
+                mm.rendSys.createFromGLTF(slot->path.full, key);
             }
             free(outPath);
         }
@@ -337,12 +338,11 @@ void Editor::guiGLTF(char const * label, char const * key) {
         }
     }
     
-    if (keyExists) {
+    if (keyExistsInRender) {
+        printl("keyExistsInRender %s", key);
         SameLine();
         TextUnformatted(ready ? filenameForLoadedGLTF(key) : "loading");
-    }
 
-    if (mm.rendSys.keyExists(key)){
         auto r = mm.rendSys.at(key);
         bool rotx = r->adjRotAxes[0];
         bool roty = r->adjRotAxes[1];
