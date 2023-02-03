@@ -14,9 +14,6 @@ https://github.com/bkaradzic/bgfx/tree/master/examples/common/imgui
 #include <bgfx/embedded_shader.h>
 #include <bx/math.h>
 #include <bx/timer.h>
-// #include <imgui_internal.h> // TODO: what do we need that isn't publically available?
-
-// #include "imgui_impl_glfw.h"
 
 #include "vs_ocornut_imgui.bin.h"
 #include "fs_ocornut_imgui.bin.h"
@@ -33,28 +30,23 @@ static const bgfx::EmbeddedShader s_embeddedShaders[] =
     BGFX_EMBEDDED_SHADER(fs_ocornut_imgui),
     BGFX_EMBEDDED_SHADER(vs_imgui_image),
     BGFX_EMBEDDED_SHADER(fs_imgui_image),
-
     BGFX_EMBEDDED_SHADER_END()
 };
-static ImGuiContext * context = nullptr;
-static bgfx::VertexLayout  vertexLayout;
-static bgfx::ProgramHandle mainProgram;
-static bgfx::ProgramHandle imageProgram;
-static bgfx::TextureHandle fontTexture;
-static bgfx::UniformHandle uniformSampler;
-static bgfx::UniformHandle uniformImageLodEnabled;
-static GLFWcursor * mouseCursors[ImGuiMouseCursor_COUNT];
 
-
-
-static GLFWwindow *         _window = NULL;
+static ImGuiContext *       _context = nullptr;
+static bgfx::VertexLayout   _vertexLayout;
+static bgfx::ProgramHandle  _mainProgram;
+static bgfx::ProgramHandle  _imageProgram;
+static bgfx::TextureHandle  _fontTexture;
+static bgfx::UniformHandle  _uniformSampler;
+static bgfx::UniformHandle  _uniformImageLodEnabled;
+static GLFWwindow *         _window = nullptr;
 static double               _time;
 static GLFWwindow *         _mouseWindow;
 static GLFWcursor *         _mouseCursors[ImGuiMouseCursor_COUNT];
 static ImVec2               _lastValidMousePos;
 static GLFWwindowfocusfun   _prevUserCallbackWindowFocus;
 static GLFWcursorenterfun   _prevUserCallbackCursorEnter;
-
 
 // Functions
 static const char * getClipboardText(void * userData)
@@ -250,13 +242,12 @@ static void cursorEnterCallback(GLFWwindow * window, int entered)
 
 
 void imguiCreate(GLFWwindow * window, bgfx::ViewId viewId, ImVec2 windowSize) {
-    assert(context == nullptr && "Already initialized imgui!");
+    IM_ASSERT(_context == nullptr && "Already initialized imgui!");
+    IM_ASSERT(window != nullptr && "Passed window is NULL!");
 
-    context = ImGui::CreateContext();
+    _context = ImGui::CreateContext();
     ImGuiIO & io = ImGui::GetIO();
 
-    IM_ASSERT(_window == NULL && "Already initialized!");
-    IM_ASSERT(window != NULL && "Passed window is NULL!");
 
     // Setup backend capabilities flags
     io.BackendPlatformName = "imgui_bgfx_glfw";
@@ -312,33 +303,33 @@ void imguiCreate(GLFWwindow * window, bgfx::ViewId viewId, ImVec2 windowSize) {
     io.IniFilename = NULL;
 
     bgfx::RendererType::Enum type = bgfx::getRendererType();
-    mainProgram = bgfx::createProgram(
+    _mainProgram = bgfx::createProgram(
         bgfx::createEmbeddedShader(s_embeddedShaders, type, "vs_ocornut_imgui"),
         bgfx::createEmbeddedShader(s_embeddedShaders, type, "fs_ocornut_imgui"),
         true
     );
 
-    uniformImageLodEnabled = bgfx::createUniform("u_imageLodEnabled", bgfx::UniformType::Vec4);
-    imageProgram = bgfx::createProgram(
+    _uniformImageLodEnabled = bgfx::createUniform("u_imageLodEnabled", bgfx::UniformType::Vec4);
+    _imageProgram = bgfx::createProgram(
         bgfx::createEmbeddedShader(s_embeddedShaders, type, "vs_imgui_image"),
         bgfx::createEmbeddedShader(s_embeddedShaders, type, "fs_imgui_image"),
         true
     );
 
-    vertexLayout
+    _vertexLayout
         .begin()
         .add(bgfx::Attrib::Position,  2, bgfx::AttribType::Float)
         .add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float)
         .add(bgfx::Attrib::Color0,    4, bgfx::AttribType::Uint8, true)
         .end();
 
-    uniformSampler = bgfx::createUniform("s_tex", bgfx::UniformType::Sampler);
+    _uniformSampler = bgfx::createUniform("s_tex", bgfx::UniformType::Sampler);
 
     uint8_t* data;
     int32_t width;
     int32_t height;
     io.Fonts->GetTexDataAsRGBA32(&data, &width, &height);
-    fontTexture = bgfx::createTexture2D(
+    _fontTexture = bgfx::createTexture2D(
         (uint16_t)width,
         (uint16_t)height,
         false,
@@ -366,17 +357,18 @@ void imguiDestroy() {
     io.BackendPlatformName = NULL;
     _window = NULL;
 
-    ImGui::DestroyContext(context);
+    ImGui::DestroyContext(_context);
 
-    bgfx::destroy(uniformSampler);
-    bgfx::destroy(fontTexture);
+    bgfx::destroy(_uniformSampler);
+    bgfx::destroy(_fontTexture);
 
-    bgfx::destroy(uniformImageLodEnabled);
-    bgfx::destroy(imageProgram);
-    bgfx::destroy(mainProgram);
+    bgfx::destroy(_uniformImageLodEnabled);
+    bgfx::destroy(_imageProgram);
+    bgfx::destroy(_mainProgram);
 }
 
 void imguiBeginFrame(size2 windowSize, EventQueue & events, double dt) {
+    IM_ASSERT(_window != NULL && "Did you initalize imgui?");
     // printl("imguiBeginFrame dt %f", dt);
 
     ImGuiIO & io = ImGui::GetIO();
@@ -385,9 +377,6 @@ void imguiBeginFrame(size2 windowSize, EventQueue & events, double dt) {
     // printl("imguiBeginFrame, io.DisplaySize (%f, %f)", io.DisplaySize.x, io.DisplaySize.y);
 
     io.DeltaTime = (float)dt;
-
-    IM_ASSERT(_window != NULL && "Did you call initForXXX()?");
-
 
     // process events
     // printl("imguiBeginFrame event count: %d", events.count);
@@ -461,13 +450,13 @@ void imguiBeginFrame(size2 windowSize, EventQueue & events, double dt) {
     ImGui::NewFrame();
 }
 
-bool checkAvailTransientBuffers(uint32_t _numVertices, uint32_t _numIndices) {
-    return _numVertices == bgfx::getAvailTransientVertexBuffer(_numVertices, vertexLayout)
+static bool checkAvailTransientBuffers(uint32_t _numVertices, uint32_t _numIndices) {
+    return _numVertices == bgfx::getAvailTransientVertexBuffer(_numVertices, _vertexLayout)
         && (0 == _numIndices || _numIndices == bgfx::getAvailTransientIndexBuffer(_numIndices) )
         ;
 }
 
-void render(bgfx::ViewId viewId, ImDrawData * drawData) {
+static void render(bgfx::ViewId viewId, ImDrawData * drawData) {
     // Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates != framebuffer coordinates)
     int fb_width = (int)(drawData->DisplaySize.x * drawData->FramebufferScale.x);
     int fb_height = (int)(drawData->DisplaySize.y * drawData->FramebufferScale.y);
@@ -507,7 +496,7 @@ void render(bgfx::ViewId viewId, ImDrawData * drawData) {
             break;
         }
 
-        bgfx::allocTransientVertexBuffer(&tvb, numVertices, vertexLayout);
+        bgfx::allocTransientVertexBuffer(&tvb, numVertices, _vertexLayout);
         bgfx::allocTransientIndexBuffer(&tib, numIndices, sizeof(ImDrawIdx) == 4);
 
         ImDrawVert* verts = (ImDrawVert*)tvb.data;
@@ -529,8 +518,8 @@ void render(bgfx::ViewId viewId, ImDrawData * drawData) {
                     | BGFX_STATE_MSAA
                     ;
 
-                bgfx::TextureHandle th = fontTexture;
-                bgfx::ProgramHandle program = mainProgram;
+                bgfx::TextureHandle th = _fontTexture;
+                bgfx::ProgramHandle program = _mainProgram;
 
                 if (NULL != cmd->TextureId) {
                     union { ImTextureID ptr; struct { bgfx::TextureHandle handle; uint8_t flags; uint8_t mip; } s; } texture = { cmd->TextureId };
@@ -541,8 +530,8 @@ void render(bgfx::ViewId viewId, ImDrawData * drawData) {
                     th = texture.s.handle;
                     if (0 != texture.s.mip) {
                         const float lodEnabled[4] = { float(texture.s.mip), 1.0f, 0.0f, 0.0f };
-                        bgfx::setUniform(uniformImageLodEnabled, lodEnabled);
-                        program = imageProgram;
+                        bgfx::setUniform(_uniformImageLodEnabled, lodEnabled);
+                        program = _imageProgram;
                     }
                 }
                 else {
@@ -568,7 +557,7 @@ void render(bgfx::ViewId viewId, ImDrawData * drawData) {
                             );
 
                     encoder->setState(state);
-                    encoder->setTexture(0, uniformSampler, th);
+                    encoder->setTexture(0, _uniformSampler, th);
                     encoder->setVertexBuffer(0, &tvb, cmd->VtxOffset, numVertices);
                     encoder->setIndexBuffer(&tib, cmd->IdxOffset, cmd->ElemCount);
                     encoder->submit(viewId, program);
