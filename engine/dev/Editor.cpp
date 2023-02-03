@@ -320,7 +320,7 @@ void Editor::guiGLTF(char const * label, char const * key) {
         nfdchar_t * outPath = NULL;
         nfdresult_t result = NFD_OpenDialog(NULL, ".", &outPath);
 
-        printf("GLTF SWAP FOR KEY: %s\n", key);
+        printl("GLTF SWAP FOR KEY: %s", key);
 
         if (result == NFD_OKAY) {
             LoadedGLTF * item = loadedGLTFForKey(key);
