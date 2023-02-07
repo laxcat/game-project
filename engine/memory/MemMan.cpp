@@ -17,7 +17,7 @@ void MemMan::init(size_t size) {
     _data = (byte_t *)malloc(size);
     _size = size;
     _blockHead = new (_data) Block();
-    _blockHead->size = size - BlockInfoSize;
+    _blockHead->_size = size - BlockInfoSize;
     _blockTail = _blockHead;
 }
 
@@ -30,7 +30,7 @@ void MemMan::shutdown() {
 Pool * MemMan::createPool(size_t objCount, size_t objSize) {
     Block * block = requestFreeBlock(objCount * objSize + sizeof(Pool));
     if (!block) return nullptr;
-    block->type = TYPE_POOL;
+    block->_type = TYPE_POOL;
     return new (block->data()) Pool{objCount, objSize};
 }
 
@@ -41,7 +41,7 @@ void MemMan::destroyPool(Pool * a) {
 Stack * MemMan::createStack(size_t size) {
     Block * block = requestFreeBlock(size + sizeof(Stack));
     if (!block) return nullptr;
-    block->type = TYPE_STACK;
+    block->_type = TYPE_STACK;
     return new (block->data()) Stack{size};
 }
 
@@ -69,7 +69,7 @@ File * MemMan::createFileHandle(char const * path, bool loadNow) {
 
     Block * block = requestFreeBlock(size + sizeof(File));
     if (!block) return nullptr;
-    block->type = TYPE_FILE;
+    block->_type = TYPE_FILE;
     File * f = new (block->data()) File{size, path};
 
     // load now if request. send fp to avoid opening twice
@@ -144,10 +144,10 @@ void MemMan::destroy(void * ptr) {
     // so we expect block info just prior to it
     Block * block = (Block *)((byte_t *)ptr - BlockInfoSize);
     // set block to free
-    block->type = TYPE_FREE;
+    block->_type = TYPE_FREE;
     // try to merge with neighboring blocks
     mergeBlockWithNext(block);
-    if (block->prev) mergeBlockWithNext(block->prev);
+    if (block->_prev) mergeBlockWithNext(block->_prev);
 }
 
 // block handling ------------------------------------------------------- //
@@ -157,8 +157,8 @@ MemMan::Block * MemMan::requestFreeBlock(size_t size) {
     size = ALIGN(size);
 
     Block * block = nullptr;
-    for (block = _blockHead; block; block = block->next) {
-        if (block->type == TYPE_FREE && block->dataSize() >= size) {
+    for (block = _blockHead; block; block = block->_next) {
+        if (block->_type == TYPE_FREE && block->dataSize() >= size) {
             break;
         }
     }
@@ -187,15 +187,15 @@ MemMan::Block * MemMan::splitBlock(Block * blockA, size_t blockANewSize) {
     // write block info into data space with defaults
     Block * blockB = new (newLoc) Block();
     // block blockB gets remaining space
-    blockB->size = blockA->dataSize() - BlockInfoSize - blockANewSize;
+    blockB->_size = blockA->dataSize() - BlockInfoSize - blockANewSize;
 
     // set this size
-    blockA->size = blockANewSize;
+    blockA->_size = blockANewSize;
 
     // link up
-    blockB->next = blockA->next;
-    blockB->prev = blockA;
-    blockA->next = blockB;
+    blockB->_next = blockA->_next;
+    blockB->_prev = blockA;
+    blockA->_next = blockB;
     if (_blockTail == blockA) _blockTail = blockB;
 
     return blockA;
@@ -204,13 +204,13 @@ MemMan::Block * MemMan::splitBlock(Block * blockA, size_t blockANewSize) {
 MemMan::Block * MemMan::splitBlockEnd(Block * blockA, size_t blockBNewSize) {
     if (blockBNewSize + BlockInfoSize > blockA->dataSize()) return nullptr;
     auto ret = splitBlock(blockA, blockA->dataSize() - BlockInfoSize - blockBNewSize);
-    return (ret) ? ret->next : nullptr;
+    return (ret) ? ret->_next : nullptr;
 }
 
 MemMan::Block * MemMan::mergeBlockWithNext(Block * blockA) {
-    if (blockA->type != TYPE_FREE || !blockA->next || blockA->next->type != TYPE_FREE) return nullptr;
-    blockA->size += blockA->next->totalSize();
-    blockA->next = blockA->next->next;
+    if (blockA->_type != TYPE_FREE || !blockA->_next || blockA->_next->_type != TYPE_FREE) return nullptr;
+    blockA->_size += blockA->_next->totalSize();
+    blockA->_next = blockA->_next->_next;
     return blockA;
 }
 
@@ -220,10 +220,10 @@ MemMan::Block * MemMan::resizeBlock(Block * block, size_t newSize) {
         return splitBlock(block, newSize);
     }
     // expand block
-    else if (block->next && block->next->type != TYPE_FREE) {
+    else if (block->_next && block->_next->_type != TYPE_FREE) {
         Block * newBlock = nullptr;
         // room enough to expand in place (returns same block)
-        if (block->dataSize() + block->next->totalSize() <= newSize) {
+        if (block->dataSize() + block->_next->totalSize() <= newSize) {
             mergeBlockWithNext(block);
             return resizeBlock(block, newSize);
         }
@@ -238,6 +238,15 @@ MemMan::Block * MemMan::resizeBlock(Block * block, size_t newSize) {
     // failed
     return nullptr;
 }
+
+MemMan::Block const * MemMan::firstBlock() const {
+    return _blockHead;
+}
+
+MemMan::Block const * MemMan::nextBlock(Block const & block) const {
+    return block._next;
+}
+
 
 void MemMan::assertWithinData(void * ptr, size_t size) {
     auto bptr = (byte_t *)ptr;
@@ -262,7 +271,7 @@ void * memManAlloc(size_t size, void * userData) {
         fprintf(stderr, "Unable to alloc memory: %zu\n", size);
         assert(false);
     }
-    block->type = MemMan::TYPE_EXTERNAL;
+    block->_type = MemMan::TYPE_EXTERNAL;
     return (block) ? block->data() : nullptr;
 }
 
@@ -295,7 +304,7 @@ void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * 
 
 void MemMan::getInfo(char * buf, int bufSize) {
     int blockCount = 0;
-    for (Block * b = _blockHead; b; b = b->next) {
+    for (Block * b = _blockHead; b; b = b->_next) {
         ++blockCount;
     }
 
@@ -313,7 +322,7 @@ void MemMan::getInfo(char * buf, int bufSize) {
     );
 
     int i = 0;
-    for (Block * b = _blockHead; b != nullptr; b = b->next, ++i) {
+    for (Block * b = _blockHead; b != nullptr; b = b->_next, ++i) {
         wrote += snprintf(
             buf + wrote,
             bufSize - wrote,
@@ -323,11 +332,11 @@ void MemMan::getInfo(char * buf, int bufSize) {
             "Base: %p, Data: %p, BlockDataSize: %zu\n"
             ,
             i,
-                (b->type == TYPE_FREE)     ? "FREE"  :
-                (b->type == TYPE_POOL)     ? "POOL"  :
-                (b->type == TYPE_STACK)    ? "STACK" :
-                (b->type == TYPE_FILE)     ? "FILE" :
-                (b->type == TYPE_EXTERNAL) ? "EXTERNAL" :
+                (b->_type == TYPE_FREE)     ? "FREE"  :
+                (b->_type == TYPE_POOL)     ? "POOL"  :
+                (b->_type == TYPE_STACK)    ? "STACK" :
+                (b->_type == TYPE_FILE)     ? "FILE" :
+                (b->_type == TYPE_EXTERNAL) ? "EXTERNAL" :
                 "(unknown type)"
             ,
             b,
@@ -335,9 +344,9 @@ void MemMan::getInfo(char * buf, int bufSize) {
             b->dataSize()
         );
 
-        if (b->type == TYPE_FREE) {
+        if (b->_type == TYPE_FREE) {
         }
-        else if (b->type == TYPE_POOL) {
+        else if (b->_type == TYPE_POOL) {
             Pool * pool = (Pool *)b->data();
             wrote += snprintf(
                 buf + wrote,
@@ -351,7 +360,7 @@ void MemMan::getInfo(char * buf, int bufSize) {
                 pool->freeIndex()
             );
         }
-        else if (b->type == TYPE_STACK) {
+        else if (b->_type == TYPE_STACK) {
             Stack * stack = (Stack *)b->data();
             wrote += snprintf(
                 buf + wrote,
@@ -363,7 +372,7 @@ void MemMan::getInfo(char * buf, int bufSize) {
                 stack->head()
             );
         }
-        else if (b->type == TYPE_FILE) {
+        else if (b->_type == TYPE_FILE) {
             File * file = (File *)b->data();
             wrote += snprintf(
                 buf + wrote,
@@ -379,7 +388,7 @@ void MemMan::getInfo(char * buf, int bufSize) {
                 file->path()
             );
         }
-        else if (b->type == TYPE_EXTERNAL) {
+        else if (b->_type == TYPE_EXTERNAL) {
         }
 
         wrote += snprintf(

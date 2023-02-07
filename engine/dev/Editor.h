@@ -17,5 +17,5 @@ public:
     void guiMem();
 
     // separate movable windows
-    void guiWinMem();
+    // void guiWinMem();
 };

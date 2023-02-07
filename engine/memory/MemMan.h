@@ -33,21 +33,23 @@ public:
         friend class MemMan;
         friend void * memManAlloc(size_t, void *);
 
-        size_t dataSize() const { return size; }
-        size_t totalSize()  const { return BlockInfoSize + size; }
-        byte_t * data() { return (byte_t *)this + BlockInfoSize; }
+        size_t   dataSize()  const  { return _size; }
+        size_t   totalSize() const  { return BlockInfoSize + _size; }
+        Type     type()      const  { return _type; }
+        byte_t * data()             { return (byte_t *)this + BlockInfoSize; }
+        byte_t const * data() const { return (byte_t const *)((byte_t *)this + BlockInfoSize); }
 
     private:
-        size_t size = 0; // this is data size, not total size!
-        Block * prev = nullptr;
-        Block * next = nullptr;
-        Type type = TYPE_FREE;
+        size_t _size = 0; // this is data size, not total size!
+        Block * _prev = nullptr;
+        Block * _next = nullptr;
+        Type _type = TYPE_FREE;
 
         // "info" could maybe be a magic string (for safety checks). or maybe additional info.
         // 8-byte allignment on personal development machine is forcing this Block to always be
         // 32 bytes anyway so this is here to make that explicit. We could even take more space
         // from type, which could easily be only 1 or 2 bytes.
-        byte_t info[4];
+        byte_t _info[4];
 
         Block() {}
     };
@@ -86,6 +88,10 @@ public:
     // resize block if possible
     Block * resizeBlock(Block * b, size_t newSize);
 
+    // block reading -------------------------------------------------------- //
+    Block const * firstBlock() const;
+    Block const * nextBlock(Block const & block) const;
+
     // checks and assertions ------------------------------------------------ //
     // check if random pointer is within managed range
     void assertWithinData(void * ptr, size_t size = 0);
@@ -107,7 +113,7 @@ template <typename T, typename ... TP>
 inline T * MemMan::create(size_t size, TP && ... params) {
     Block * block = requestFreeBlock(size + sizeof(T));
     if (!block) return nullptr;
-    block->type = TYPE_EXTERNAL;
+    block->_type = TYPE_EXTERNAL;
     return new (block->data()) T{static_cast<TP &&>(params)...};
 }
 

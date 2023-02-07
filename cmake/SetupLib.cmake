@@ -152,6 +152,14 @@ macro(SetupLib_imgui)
         "${imgui_content_SOURCE_DIR}/imgui_widgets.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/common/imgui_bgfx_glfw/imgui_bgfx_glfw.cpp"
     )
+    FetchContent_Declare(
+        imgui_memory_editor_content
+        GIT_REPOSITORY https://github.com/ocornut/imgui_club/
+        GIT_TAG        d4cd9896e15a03e92702a578586c3f91bbde01e8 # captured Feb.2023
+    )
+    FetchContent_MakeAvailable(imgui_memory_editor_content)
+    include_directories(${imgui_memory_editor_content_SOURCE_DIR})
+    list(APPEND SetupLib_include_dirs "${imgui_memory_editor_content_SOURCE_DIR}")
 endmacro()
 
 

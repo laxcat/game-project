@@ -3,6 +3,7 @@
 #include <vector>
 // #include <stdio.h>
 #include "../common/imgui_bgfx_glfw/imgui_bgfx_glfw.h"
+#include <imgui_memory_editor/imgui_memory_editor.h>
 #include <nfd.h>
 #include "../MrManager.h"
 #include "OriginWidget.h"
@@ -12,7 +13,7 @@
 // ImGuiTreeNodeFlags_DefaultOpen
 using namespace ImGui;
 static char scratchStr[32];
-MemMan * memMan = nullptr;
+// MemMan * memMan = nullptr;
 
 struct GLTFSlot {
     std::string label;
@@ -21,7 +22,7 @@ struct GLTFSlot {
 };
 std::vector<GLTFSlot> gltfSlots;
 
-GLTFSlot * gltfSlotForKey(char const * key) {
+static GLTFSlot * gltfSlotForKey(char const * key) {
     for (GLTFSlot & slot : gltfSlots) {
         if (slot.key == key) {
             return &slot;
@@ -30,7 +31,9 @@ GLTFSlot * gltfSlotForKey(char const * key) {
     return nullptr;
 }
 
-// bool setLoadedGLTFPath(char const * key, char const * path) {
+
+
+// bool setGLTFSlotPath(char const * key, char const * path) {
 //     for (GLTFSlot & slot : gltfSlots) {
 //         if (slot.key == key) {
 //             slot.path.setPath(path);
@@ -40,13 +43,28 @@ GLTFSlot * gltfSlotForKey(char const * key) {
 //     return false;
 // }
 
-char const * filenameForLoadedGLTF(char const * key) {
+static char const * filenameForLoadedGLTF(char const * key) {
     for (GLTFSlot & slot : gltfSlots) {
         if (slot.key == key) {
             return slot.path.filenameOnly;
         }
     }
     return "";
+}
+
+static char const * byteSizeStr(size_t byteSize) {
+    // " %.0f MB"
+    char * ret = mm.tempStr(16);
+    if (byteSize > 1024*1024) {
+        snprintf(ret, 16, "%.0f MB", round((double)byteSize/(1024*1024)));
+    }
+    else if (byteSize > 1024) {
+        snprintf(ret, 16, "%.0f KB", round((double)byteSize/1024));
+    }
+    else {
+        snprintf(ret, 16, "%.0f bytes", round((double)byteSize/1024));
+    }
+    return (char const *)ret;
 }
 
 void Editor::tick() {
@@ -73,7 +91,7 @@ void Editor::tick() {
 
     End();
 
-    guiWinMem();
+    // guiWinMem();
 }
 
 void Editor::guiRendering() {
@@ -339,7 +357,7 @@ void Editor::guiGLTF(char const * label, char const * key) {
     }
     
     if (keyExistsInRender) {
-        printl("keyExistsInRender %s", key);
+        // printl("keyExistsInRender %s", key);
         SameLine();
         TextUnformatted(ready ? filenameForLoadedGLTF(key) : "loading");
 
@@ -420,7 +438,7 @@ void Editor::guiFog() {
 }
 
 void Editor::guiColors() {
-    if (CollapsingHeader("Colors", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (CollapsingHeader("Colors")) {
         ColorEdit4("background", (float *)&mm.rendSys.colors.background.data, ImGuiColorEditFlags_DisplayHex);
 
         Dummy(ImVec2(0.0f, 20.0f));
@@ -428,24 +446,124 @@ void Editor::guiColors() {
 }
 
 void Editor::guiMem() {
-    if (CollapsingHeader("Memory")) {
-        Text("Total: %.0f MB", round((double)mm.memMan.size()/(1024*1024)));
-        if (Button("Show Memory")) {
-            memMan = &mm.memMan;
+    if (CollapsingHeader("Memory", ImGuiTreeNodeFlags_DefaultOpen)) {
+        // Text("Total: %.0f MB", round((double)mm.memMan.size()/(1024*1024)));
+        Text("Total: %s", byteSizeStr(mm.memMan.size()));
+
+        Indent();
+
+        static MemoryEditor mem_edit;
+
+
+        for (MemMan::Block const * b = mm.memMan.firstBlock(); b; b = mm.memMan.nextBlock(*b)) {
+            // calc block name
+            char * str = mm.tempStr(128);
+            snprintf(str, 128, "%s Block (%s)",
+                (b->type() == MemMan::TYPE_FREE)     ? "FREE"  :
+                (b->type() == MemMan::TYPE_POOL)     ? "POOL"  :
+                (b->type() == MemMan::TYPE_STACK)    ? "STACK" :
+                (b->type() == MemMan::TYPE_FILE)     ? "FILE" :
+                (b->type() == MemMan::TYPE_EXTERNAL) ? "EXTERNAL" :
+                "Unknown",
+                byteSizeStr(b->dataSize()));
+            // block
+            if (CollapsingHeader(str)) {
+                mem_edit.DrawContents((void *)b->data(), b->dataSize());
+            }
+
+
+
+            // wrote += snprintf(
+            //     buf + wrote,
+            //     bufSize - wrote,
+            //     "--------------------------------------------------------------------------------\n"
+            //     "Block %d, %s\n"
+            //     "--------------------\n"
+            //     "Base: %p, Data: %p, BlockDataSize: %zu\n"
+            //     ,
+            //     i,
+            //         (b->type == TYPE_FREE)     ? "FREE"  :
+            //         (b->type == TYPE_POOL)     ? "POOL"  :
+            //         (b->type == TYPE_STACK)    ? "STACK" :
+            //         (b->type == TYPE_FILE)     ? "FILE" :
+            //         (b->type == TYPE_EXTERNAL) ? "EXTERNAL" :
+            //         "(unknown type)"
+            //     ,
+            //     b,
+            //     b->data(),
+            //     b->dataSize()
+            // );
+
+            // if (b->type == TYPE_FREE) {
+            // }
+            // else if (b->type == TYPE_POOL) {
+            //     Pool * pool = (Pool *)b->data();
+            //     wrote += snprintf(
+            //         buf + wrote,
+            //         bufSize - wrote,
+            //         "PoolInfoSize: %zu, ObjSize: %zu, MaxCount/DataSize: *%zu=%zu, FirstFree: %zu\n"
+            //         ,
+            //         sizeof(Pool),
+            //         pool->objSize(),
+            //         pool->objMaxCount(),
+            //         pool->size(),
+            //         pool->freeIndex()
+            //     );
+            // }
+            // else if (b->type == TYPE_STACK) {
+            //     Stack * stack = (Stack *)b->data();
+            //     wrote += snprintf(
+            //         buf + wrote,
+            //         bufSize - wrote,
+            //         "StackInfoSize: %zu, DataSize: %zu, Head: %zu\n"
+            //         ,
+            //         sizeof(Stack),
+            //         stack->size(),
+            //         stack->head()
+            //     );
+            // }
+            // else if (b->type == TYPE_FILE) {
+            //     File * file = (File *)b->data();
+            //     wrote += snprintf(
+            //         buf + wrote,
+            //         bufSize - wrote,
+            //         "FileInfoSize: %zu, FileSize: %zu, DataSize: %zu, Head: %zu, Loaded: %s\n"
+            //         "Path: %s\n"
+            //         ,
+            //         sizeof(File),
+            //         file->fileSize(),
+            //         file->size(),
+            //         file->head(),
+            //         file->loaded()?"yes":"no",
+            //         file->path()
+            //     );
+            // }
+            // else if (b->type == TYPE_EXTERNAL) {
+            // }
+
+            // wrote += snprintf(
+            //     buf + wrote,
+            //     bufSize - wrote,
+            //     "--------------------------------------------------------------------------------\n"
+            // );
         }
+
+
+        // if (Button("Show Memory")) {
+        //     memMan = &mm.memMan;
+        // }
     }
 }
 
-void Editor::guiWinMem() {
-    if (!memMan) return;
+// void Editor::guiWinMem() {
+//     if (!memMan) return;
 
-    Begin("Memory2", NULL, ImGuiWindowFlags_NoCollapse);
+//     Begin("Memory###Window", NULL, ImGuiWindowFlags_NoCollapse);
 
-    Text("Do it");
 
-    if (Button("Close")) {
-        memMan = nullptr;
-    }
+//     if (Button("Close")) {
+//         memMan = nullptr;
+//     }
 
-    End();
-}
+//     End();
+// }
