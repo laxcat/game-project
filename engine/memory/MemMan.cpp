@@ -208,7 +208,10 @@ MemMan::Block * MemMan::splitBlockEnd(Block * blockA, size_t blockBNewSize) {
 }
 
 MemMan::Block * MemMan::mergeBlockWithNext(Block * blockA) {
-    if (blockA->_type != TYPE_FREE || !blockA->_next || blockA->_next->_type != TYPE_FREE) return nullptr;
+    if (blockA->_type != TYPE_FREE ||
+        !blockA->_next ||
+        blockA->_next->_type != TYPE_FREE)
+        return nullptr;
     blockA->_size += blockA->_next->totalSize();
     blockA->_next = blockA->_next->_next;
     return blockA;
@@ -272,7 +275,7 @@ void * memManAlloc(size_t size, void * userData) {
         assert(false);
     }
     block->_type = MemMan::TYPE_EXTERNAL;
-    return (block) ? block->data() : nullptr;
+    return block->data();
 }
 
 void * memManRealloc(void * ptr, size_t size, void * userData) {
