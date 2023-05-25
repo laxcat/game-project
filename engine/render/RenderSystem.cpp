@@ -29,7 +29,7 @@ void RenderSystem::init() {
 
     settings.init(mm.window, mm.windowSize, mm.setup.forceOpenGL);
     bxAllocator.memMan = &mm.memMan;
-    // settings.bgfxInit.allocator = &bxAllocator;
+    settings.bgfxInit.allocator = &bxAllocator;
     if (!bgfx::init(settings.bgfxInit))
         return;
 

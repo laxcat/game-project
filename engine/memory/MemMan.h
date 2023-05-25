@@ -84,7 +84,7 @@ public:
     // same as split but sizes and returns second block
     Block * splitBlockEnd(Block * b, size_t blockBNewSize);
     // merge this block with next block IF both are free
-    Block * mergeBlockWithNext(Block * b);
+    Block * mergeFreeBlocks(Block * b);
     // resize block if possible
     Block * resizeBlock(Block * b, size_t newSize);
 
@@ -107,6 +107,7 @@ private:
 
 public:
     void getInfo(char * buf, int bufSize);
+    void printInfo(char const * prefixMsg = nullptr);
 };
 
 template <typename T, typename ... TP>

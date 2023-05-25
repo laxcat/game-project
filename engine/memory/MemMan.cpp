@@ -11,11 +11,14 @@
 #include "File.h"
 #include "mem_align.h"
 
+constexpr static bool ShowMemManDbg = false;
+
 // lifecycle ------------------------------------------------------------ //
 
 void MemMan::init(size_t size) {
     _data = (byte_t *)malloc(size);
     _size = size;
+    printl("MEM MAN RANGE %*p—%*p", 8, _data, 8, _data+_size);
     _blockHead = new (_data) Block();
     _blockHead->_size = size - BlockInfoSize;
     _blockTail = _blockHead;
@@ -146,14 +149,16 @@ void MemMan::destroy(void * ptr) {
     // set block to free
     block->_type = TYPE_FREE;
     // try to merge with neighboring blocks
-    mergeBlockWithNext(block);
-    if (block->_prev) mergeBlockWithNext(block->_prev);
+    mergeFreeBlocks(block);
+    if (block->_prev) mergeFreeBlocks(block->_prev);
 }
 
 // block handling ------------------------------------------------------- //
 
 // find block with enough free space, split it to size, and return it
 MemMan::Block * MemMan::requestFreeBlock(size_t size) {
+    if constexpr (ShowMemManDbg) printInfo("REQUEST FREE BLOCK start");
+
     size = ALIGN(size);
 
     Block * block = nullptr;
@@ -162,7 +167,11 @@ MemMan::Block * MemMan::requestFreeBlock(size_t size) {
             break;
         }
     }
-    if (!block) return nullptr;
+    if (!block) {
+        if constexpr (ShowMemManDbg) printInfo("REQUEST FREE BLOCK no free block");
+
+        return nullptr;
+    }
 
     // We don't care if the split actually happens or not.
     // If it happened, we still return the first block and the 2nd is of no
@@ -171,16 +180,24 @@ MemMan::Block * MemMan::requestFreeBlock(size_t size) {
     // hold our data, but with not enough room to create a new block.
     splitBlock(block, size);
 
+    if constexpr (ShowMemManDbg) printInfo("REQUEST FREE BLOCK end");
+
     // the old block is returned.
     // it was (probably) shrunk to fit by splitBlock.
     return block;
 }
 
 MemMan::Block * MemMan::splitBlock(Block * blockA, size_t blockANewSize) {
+    if constexpr (ShowMemManDbg) printInfo("SPLIT BLOCK start");
+
     // block A (this) is not big enough.
     // equal data size also rejected because new block would have
     // 0 bytes for data.
-    if (blockA->dataSize() <= blockANewSize + BlockInfoSize) return nullptr;
+    if (blockA->dataSize() <= blockANewSize + BlockInfoSize) {
+        if constexpr (ShowMemManDbg) printInfo("SPLIT BLOCK block A not big enough");
+
+        return nullptr;
+    }
 
     // where to put the new block?
     byte_t * newLoc = blockA->data() + blockANewSize;
@@ -198,6 +215,8 @@ MemMan::Block * MemMan::splitBlock(Block * blockA, size_t blockANewSize) {
     blockA->_next = blockB;
     if (_blockTail == blockA) _blockTail = blockB;
 
+    if constexpr (ShowMemManDbg) printInfo("SPLIT BLOCK end");
+
     return blockA;
 }
 
@@ -207,36 +226,75 @@ MemMan::Block * MemMan::splitBlockEnd(Block * blockA, size_t blockBNewSize) {
     return (ret) ? ret->_next : nullptr;
 }
 
-MemMan::Block * MemMan::mergeBlockWithNext(Block * blockA) {
-    if (blockA->_type != TYPE_FREE ||
+MemMan::Block * MemMan::mergeFreeBlocks(Block * blockA) {
+    if constexpr (ShowMemManDbg) printInfo("MERGE BLOCK start");
+
+    // fail and bail if any these conditions are true
+    if (blockA->_type != TYPE_FREE || // blockA can be used (non-free), right?
         !blockA->_next ||
-        blockA->_next->_type != TYPE_FREE)
+        blockA->_next->_type != TYPE_FREE) {
+
+        if constexpr (ShowMemManDbg) printInfo("MERGE BLOCK failed");
+
         return nullptr;
+    }
     blockA->_size += blockA->_next->totalSize();
     blockA->_next = blockA->_next->_next;
+
+    if constexpr (ShowMemManDbg) printInfo("MERGE BLOCK end");
+
     return blockA;
 }
 
 MemMan::Block * MemMan::resizeBlock(Block * block, size_t newSize) {
+    if constexpr (ShowMemManDbg) printInfo("RESIZE BLOCK start");
+
+    // working variable
+    Block * newBlock = nullptr;
+
     // shrink block
     if (block->dataSize() >= newSize + BlockInfoSize) {
-        return splitBlock(block, newSize);
+        Block * ret = splitBlock(block, newSize);
+
+        if constexpr (ShowMemManDbg) printInfo("RESIZE BLOCK shrink block");
+
+        return ret;
     }
-    // expand block
-    else if (block->_next && block->_next->_type != TYPE_FREE) {
-        Block * newBlock = nullptr;
-        // room enough to expand in place (returns same block)
-        if (block->dataSize() + block->_next->totalSize() <= newSize) {
-            mergeBlockWithNext(block);
-            return resizeBlock(block, newSize);
-        }
+    // expand block in place
+    else if (
+        block->_next &&
+        block->_next->_type == TYPE_FREE &&
+        block->dataSize() + block->_next->totalSize() >= newSize
+    ) {
+        // how much are we taking from adjacent free block
+        size_t deltaSize = newSize - block->dataSize();
+        // new free block location
+        newBlock = (Block *)((byte_t *)block->_next + deltaSize);
+        // move free-block info into new location
+        memcpy(newBlock, block->_next, BlockInfoSize);
+        // update this block
+        block->_size = newSize;
+        block->_next = newBlock;
+
+        if constexpr (ShowMemManDbg) printInfo("RESIZE BLOCK expand in place");
+
+        return block;
+    }
+    // move block and free old location
+    else if ((newBlock = requestFreeBlock(newSize))) {
+        // update info of new block
+        newBlock->_type = block->_type;
+
         // copy to new place (frees old block, returns new block)
-        else if ((newBlock = requestFreeBlock(newSize))) {
-            memcpy(newBlock->data(), block->data(), block->dataSize());
-            destroy(block->data());
-            return newBlock;
-        }
+        memcpy(newBlock->data(), block->data(), block->dataSize());
+        destroy(block->data());
+
+        if constexpr (ShowMemManDbg) printInfo("RESIZE BLOCK copy to new place");
+
+        return newBlock;
     }
+
+    if constexpr (ShowMemManDbg) printInfo("RESIZE BLOCK failed\n%s");
 
     // failed
     return nullptr;
@@ -299,11 +357,41 @@ void memManFree(void * ptr, void * userData) {
 }
 
 void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * file, uint32_t line) {
+    if constexpr (ShowMemManDbg) print("BGFX ALLOC: "
+        "%p, "
+        "%*zu, "
+        "%*zu, "
+        "%s:%d ",
+        ptr,
+        10, size,
+        2, align,
+        file,
+        line
+    );
+
     assert(memMan && "Memory manager pointer not set in BXAllocator.");
-    return memManRealloc(ptr, size, (void *)memMan);
+    void * ret = memManRealloc(ptr, size, (void *)memMan);
+    if constexpr (ShowMemManDbg) printl("RETURN: %*p", 8, ret);
+    return ret;
 }
 
 // debug ---------------------------------------------------------------- //
+
+void MemMan::printInfo(char const * prefixMsg) {
+    #if DEBUG
+        constexpr static size_t InfoStrSz = 1024*1024;
+    #else
+        constexpr static size_t InfoStrSz = 0;
+        if (prefixMsg == nullptr) return;
+    #endif // DEBUG
+
+    char infoStr[InfoStrSz];
+
+    getInfo(infoStr, InfoStrSz);
+    if (prefixMsg)  printl("%s\n%s", prefixMsg, infoStr);
+    else            printl("%s", infoStr);
+}
+
 
 void MemMan::getInfo(char * buf, int bufSize) {
     int blockCount = 0;
