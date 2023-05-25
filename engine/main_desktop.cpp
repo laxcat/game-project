@@ -216,6 +216,10 @@ int main_desktop(EngineSetup & setup) {
 
     glfwDestroyWindow(mm.window);
     glfwTerminate();
+
+    // could maybe be in mm.shutdown(), but was crashing on exit once bgfx started
+    // utilizing memory manager. calling last thing to be extra safe.
+    mm.memMan.shutdown();
     return 0;
 }
 

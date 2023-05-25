@@ -49,7 +49,7 @@ void MrManager::shutdown() {
     if (setup.preShutdown) setup.preShutdown();
     rendSys.shutdown();
     camera.shutdown();
-    memMan.shutdown();
+    // memMan.shutdown(); // manually call this later
     if (setup.postShutdown) setup.postShutdown();
 }
 
