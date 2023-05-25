@@ -108,6 +108,7 @@ private:
 public:
     void getInfo(char * buf, int bufSize);
     void printInfo(char const * prefixMsg = nullptr);
+    void debugInfo(char const * prefixMsg = nullptr);
 };
 
 template <typename T, typename ... TP>
@@ -118,6 +119,7 @@ inline T * MemMan::create(size_t size, TP && ... params) {
     return new (block->data()) T{static_cast<TP &&>(params)...};
 }
 
+
 void * memManAlloc(size_t size, void * userData);
 void * memManRealloc(void * ptr, size_t size, void * userData);
 void memManFree(void * ptr, void * userData);
@@ -127,3 +129,4 @@ public:
     MemMan * memMan = nullptr;
     void * realloc(void *, size_t, size_t, char const *, uint32_t);
 };
+

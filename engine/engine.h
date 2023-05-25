@@ -1,5 +1,6 @@
 #pragma once
 #include "common/types.h"
+#include "common/debug_defines.h"
 
 /*
 Engine entry point.

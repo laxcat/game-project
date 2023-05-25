@@ -10,8 +10,11 @@
 #include "Pool.h"
 #include "File.h"
 #include "mem_align.h"
+#include "../common/debug_defines.h"
 
-constexpr static bool ShowMemManDbg = false;
+constexpr static bool ShowMemManDbg     = false;
+constexpr static bool ShowMemManInfoDbg = false;
+constexpr static bool ShowMemManBGFXDbg = false;
 
 // lifecycle ------------------------------------------------------------ //
 
@@ -157,7 +160,7 @@ void MemMan::destroy(void * ptr) {
 
 // find block with enough free space, split it to size, and return it
 MemMan::Block * MemMan::requestFreeBlock(size_t size) {
-    if constexpr (ShowMemManDbg) printInfo("REQUEST FREE BLOCK start");
+    if constexpr (ShowMemManDbg) debugInfo("REQUEST FREE BLOCK start");
 
     size = ALIGN(size);
 
@@ -168,7 +171,7 @@ MemMan::Block * MemMan::requestFreeBlock(size_t size) {
         }
     }
     if (!block) {
-        if constexpr (ShowMemManDbg) printInfo("REQUEST FREE BLOCK no free block");
+        if constexpr (ShowMemManDbg) debugInfo("REQUEST FREE BLOCK no free block");
 
         return nullptr;
     }
@@ -180,7 +183,7 @@ MemMan::Block * MemMan::requestFreeBlock(size_t size) {
     // hold our data, but with not enough room to create a new block.
     splitBlock(block, size);
 
-    if constexpr (ShowMemManDbg) printInfo("REQUEST FREE BLOCK end");
+    if constexpr (ShowMemManDbg) debugInfo("REQUEST FREE BLOCK end");
 
     // the old block is returned.
     // it was (probably) shrunk to fit by splitBlock.
@@ -188,13 +191,13 @@ MemMan::Block * MemMan::requestFreeBlock(size_t size) {
 }
 
 MemMan::Block * MemMan::splitBlock(Block * blockA, size_t blockANewSize) {
-    if constexpr (ShowMemManDbg) printInfo("SPLIT BLOCK start");
+    if constexpr (ShowMemManDbg) debugInfo("SPLIT BLOCK start");
 
     // block A (this) is not big enough.
     // equal data size also rejected because new block would have
     // 0 bytes for data.
     if (blockA->dataSize() <= blockANewSize + BlockInfoSize) {
-        if constexpr (ShowMemManDbg) printInfo("SPLIT BLOCK block A not big enough");
+        if constexpr (ShowMemManDbg) debugInfo("SPLIT BLOCK block A not big enough");
 
         return nullptr;
     }
@@ -215,7 +218,7 @@ MemMan::Block * MemMan::splitBlock(Block * blockA, size_t blockANewSize) {
     blockA->_next = blockB;
     if (_blockTail == blockA) _blockTail = blockB;
 
-    if constexpr (ShowMemManDbg) printInfo("SPLIT BLOCK end");
+    if constexpr (ShowMemManDbg) debugInfo("SPLIT BLOCK end");
 
     return blockA;
 }
@@ -227,27 +230,27 @@ MemMan::Block * MemMan::splitBlockEnd(Block * blockA, size_t blockBNewSize) {
 }
 
 MemMan::Block * MemMan::mergeFreeBlocks(Block * blockA) {
-    if constexpr (ShowMemManDbg) printInfo("MERGE BLOCK start");
+    if constexpr (ShowMemManDbg) debugInfo("MERGE BLOCK start");
 
     // fail and bail if any these conditions are true
     if (blockA->_type != TYPE_FREE || // blockA can be used (non-free), right?
         !blockA->_next ||
         blockA->_next->_type != TYPE_FREE) {
 
-        if constexpr (ShowMemManDbg) printInfo("MERGE BLOCK failed");
+        if constexpr (ShowMemManDbg) debugInfo("MERGE BLOCK failed");
 
         return nullptr;
     }
     blockA->_size += blockA->_next->totalSize();
     blockA->_next = blockA->_next->_next;
 
-    if constexpr (ShowMemManDbg) printInfo("MERGE BLOCK end");
+    if constexpr (ShowMemManDbg) debugInfo("MERGE BLOCK end");
 
     return blockA;
 }
 
 MemMan::Block * MemMan::resizeBlock(Block * block, size_t newSize) {
-    if constexpr (ShowMemManDbg) printInfo("RESIZE BLOCK start");
+    if constexpr (ShowMemManDbg) debugInfo("RESIZE BLOCK start");
 
     // working variable
     Block * newBlock = nullptr;
@@ -256,7 +259,7 @@ MemMan::Block * MemMan::resizeBlock(Block * block, size_t newSize) {
     if (block->dataSize() >= newSize + BlockInfoSize) {
         Block * ret = splitBlock(block, newSize);
 
-        if constexpr (ShowMemManDbg) printInfo("RESIZE BLOCK shrink block");
+        if constexpr (ShowMemManDbg) debugInfo("RESIZE BLOCK shrink block");
 
         return ret;
     }
@@ -276,7 +279,7 @@ MemMan::Block * MemMan::resizeBlock(Block * block, size_t newSize) {
         block->_size = newSize;
         block->_next = newBlock;
 
-        if constexpr (ShowMemManDbg) printInfo("RESIZE BLOCK expand in place");
+        if constexpr (ShowMemManDbg) debugInfo("RESIZE BLOCK expand in place");
 
         return block;
     }
@@ -289,12 +292,12 @@ MemMan::Block * MemMan::resizeBlock(Block * block, size_t newSize) {
         memcpy(newBlock->data(), block->data(), block->dataSize());
         destroy(block->data());
 
-        if constexpr (ShowMemManDbg) printInfo("RESIZE BLOCK copy to new place");
+        if constexpr (ShowMemManDbg) debugInfo("RESIZE BLOCK copy to new place");
 
         return newBlock;
     }
 
-    if constexpr (ShowMemManDbg) printInfo("RESIZE BLOCK failed\n%s");
+    if constexpr (ShowMemManDbg) debugInfo("RESIZE BLOCK failed\n%s");
 
     // failed
     return nullptr;
@@ -357,7 +360,7 @@ void memManFree(void * ptr, void * userData) {
 }
 
 void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * file, uint32_t line) {
-    if constexpr (ShowMemManDbg) print("BGFX ALLOC: "
+    if constexpr (ShowMemManBGFXDbg) print("BGFX ALLOC: "
         "%p, "
         "%*zu, "
         "%*zu, "
@@ -369,16 +372,26 @@ void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * 
         line
     );
 
-    assert(memMan && "Memory manager pointer not set in BXAllocator.");
+    #if DEBUG
+        assert(memMan && "Memory manager pointer not set in BXAllocator.");
+    #endif
+
     void * ret = memManRealloc(ptr, size, (void *)memMan);
-    if constexpr (ShowMemManDbg) printl("RETURN: %*p", 8, ret);
+
+    if constexpr (ShowMemManBGFXDbg) printl("RETURN: %*p", 8, ret);
     return ret;
 }
 
 // debug ---------------------------------------------------------------- //
 
+void MemMan::debugInfo(char const * prefixMsg) {
+    if constexpr (ShowMemManInfoDbg) printInfo(prefixMsg);
+    else printl(prefixMsg);
+}
+
 void MemMan::printInfo(char const * prefixMsg) {
     #if DEBUG
+        // constexpr static size_t InfoStrSz = 1024*1024;
         constexpr static size_t InfoStrSz = 1024*1024;
     #else
         constexpr static size_t InfoStrSz = 0;
@@ -388,12 +401,15 @@ void MemMan::printInfo(char const * prefixMsg) {
     char infoStr[InfoStrSz];
 
     getInfo(infoStr, InfoStrSz);
+
     if (prefixMsg)  printl("%s\n%s", prefixMsg, infoStr);
     else            printl("%s", infoStr);
 }
 
 
 void MemMan::getInfo(char * buf, int bufSize) {
+    if (bufSize <= 0) return;
+
     int blockCount = 0;
     for (Block * b = _blockHead; b; b = b->_next) {
         ++blockCount;
@@ -414,6 +430,8 @@ void MemMan::getInfo(char * buf, int bufSize) {
 
     int i = 0;
     for (Block * b = _blockHead; b != nullptr; b = b->_next, ++i) {
+        if (bufSize <= 0) return;
+
         wrote += snprintf(
             buf + wrote,
             bufSize - wrote,
