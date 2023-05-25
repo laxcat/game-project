@@ -62,7 +62,7 @@ static char const * byteSizeStr(size_t byteSize) {
         snprintf(ret, 16, "%.0f KB", round((double)byteSize/1024));
     }
     else {
-        snprintf(ret, 16, "%.0f bytes", round((double)byteSize/1024));
+        snprintf(ret, 16, "%.0f bytes", round((double)byteSize));
     }
     return (char const *)ret;
 }
@@ -452,24 +452,31 @@ void Editor::guiMem() {
 
         Indent();
 
+        if (Button("Print Info")) {
+            mm.memMan.printInfo();
+            // printl("wut.");
+        }
+
         static MemoryEditor mem_edit;
 
-
+        int i = 0;
         for (MemMan::Block const * b = mm.memMan.firstBlock(); b; b = mm.memMan.nextBlock(*b)) {
             // calc block name
             char * str = mm.tempStr(128);
-            snprintf(str, 128, "%s Block (%s)",
+            snprintf(str, 128, "%s Block (%s)##%d",
                 (b->type() == MemMan::TYPE_FREE)     ? "FREE"  :
                 (b->type() == MemMan::TYPE_POOL)     ? "POOL"  :
                 (b->type() == MemMan::TYPE_STACK)    ? "STACK" :
                 (b->type() == MemMan::TYPE_FILE)     ? "FILE" :
                 (b->type() == MemMan::TYPE_EXTERNAL) ? "EXTERNAL" :
                 "Unknown",
-                byteSizeStr(b->dataSize()));
+                byteSizeStr(b->dataSize()),
+                i);
             // block
             if (CollapsingHeader(str)) {
                 mem_edit.DrawContents((void *)b->data(), b->dataSize());
             }
+            ++i;
 
 
 
