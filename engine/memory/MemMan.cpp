@@ -193,7 +193,7 @@ MemMan::Block * MemMan::requestFreeBlock(size_t size) {
 MemMan::Block * MemMan::splitBlock(Block * blockA, size_t blockANewSize) {
     if constexpr (ShowMemManDbg) debugInfo("SPLIT BLOCK start");
 
-    // block A (this) is not big enough.
+    // block A is not big enough.
     // equal data size also rejected because new block would have
     // 0 bytes for data.
     if (blockA->dataSize() <= blockANewSize + BlockInfoSize) {
