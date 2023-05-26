@@ -326,12 +326,15 @@ void RenderSystem::reset(char const * key) {
     };
     for (auto & m : r.meshes) { handleM(m); }
     for (auto & m : r.meshesWithAlpha) { handleM(m); }
+    r.meshes.clear();
+    r.meshesWithAlpha.clear();
 
     if (r.buffer) {
         free(r.buffer);
         r.buffer = nullptr;
         r.bufferSize = 0;
     }
+
     for (auto & image : r.images) {
         if (image.data) {
             free(image.data);
@@ -339,9 +342,13 @@ void RenderSystem::reset(char const * key) {
             image.dataSize = 0;
         }
     }
+    r.images.clear();
+
     for (auto & texture : r.textures) {
         bgfx::destroy(texture);
     }
+    r.textures.clear();
+
     r.materials.clear();
 }
 
