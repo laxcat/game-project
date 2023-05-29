@@ -18,6 +18,10 @@ public:
         TYPE_STACK,
         TYPE_FILE,
         TYPE_ENTITY,
+        // special blocks for small allocations?
+        // TYPE_SMALL_ALLOC
+        // requested by BGFX. (no special treatment atm)
+        TYPE_BGFX,
         // externally requested of any type
         TYPE_EXTERNAL
     };
@@ -31,6 +35,7 @@ public:
     class Block {
     public:
         friend class MemMan;
+        friend class BXAllocator;
         friend void * memManAlloc(size_t, void *);
 
         size_t   dataSize()  const  { return _size; }
@@ -104,11 +109,9 @@ private:
     size_t _size = 0;
 
     // debug ---------------------------------------------------------------- //
-
 public:
     void getInfo(char * buf, int bufSize);
     void printInfo(char const * prefixMsg = nullptr);
-    void debugInfo(char const * prefixMsg = nullptr);
 };
 
 template <typename T, typename ... TP>
