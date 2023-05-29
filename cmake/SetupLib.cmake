@@ -140,7 +140,7 @@ macro(SetupLib_imgui)
     FetchContent_Declare(
         imgui_content
         GIT_REPOSITORY https://github.com/ocornut/imgui
-        GIT_TAG        c71a50deb5ddf1ea386b91e60fa2e4a26d080074 # 1.87, captured Feb.2022, https://github.com/ocornut/imgui/releases/tag/v1.87
+        GIT_TAG        1ebb91382757777382b3629ced2a573996e46453 # 1.89.5, captured May.2023, https://github.com/ocornut/imgui/releases/tag/v1.89.5
     )
     FetchContent_MakeAvailable(imgui_content)
     include_directories(${imgui_content_SOURCE_DIR})

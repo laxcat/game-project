@@ -3,7 +3,7 @@
 # 
 # Output:
 # BGFXShader_target
-# Use this target to add the compiled shaders as dependencies of another target.
+# Use this target to add the compiled shaders as dependencies of another target. (name can be configured)
 #
 function(BGFXCompileShaders)
     set(options
@@ -12,7 +12,7 @@ function(BGFXCompileShaders)
     set(oneValueArgs
         output_dir          # required if embed not set
         shaderc             # path to bgfx shader compiler binary "shaderc"
-        target              # target variable. target pointed to will depends on all outputs
+        target              # target variable. target pointed to will depend on all outputs
     )
     set(multiValueArgs
         shader_dirs         # list of shader directories
