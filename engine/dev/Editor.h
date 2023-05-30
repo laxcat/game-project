@@ -2,7 +2,8 @@
 
 class Editor {
 public:
-    
+    Editor();
+
     void tick();
 
     // main sidebar window
@@ -17,5 +18,6 @@ public:
     void guiMem();
 
     // separate movable windows
-    // void guiWinMem();
+    void guiWinMem();
+    void clearMemEditWindow();
 };

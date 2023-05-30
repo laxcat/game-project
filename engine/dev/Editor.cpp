@@ -14,6 +14,11 @@
 using namespace ImGui;
 static char scratchStr[32];
 // MemMan * memMan = nullptr;
+static MemoryEditor memEdit;
+static void * memEditPtr = nullptr;
+static size_t memEditSz  = 0;
+static char memEditTitle[64];
+
 
 struct GLTFSlot {
     std::string label;
@@ -67,6 +72,10 @@ static char const * byteSizeStr(size_t byteSize) {
     return (char const *)ret;
 }
 
+Editor::Editor() {
+    memEdit.OptShowDataPreview = true;
+}
+
 void Editor::tick() {
     if (!GetCurrentContext()) return;
 
@@ -91,7 +100,7 @@ void Editor::tick() {
 
     End();
 
-    // guiWinMem();
+    guiWinMem();
 }
 
 void Editor::guiRendering() {
@@ -457,25 +466,34 @@ void Editor::guiMem() {
             // printl("wut.");
         }
 
-        static MemoryEditor mem_edit;
-
         int i = 0;
         for (MemMan::Block const * b = mm.memMan.firstBlock(); b; b = mm.memMan.nextBlock(*b)) {
             // calc block name
             char * str = mm.tempStr(128);
-            snprintf(str, 128, "%s Block (%s)##%d",
+            snprintf(str, 128, "%03d: %s Block (%s)",
+                i,
                 (b->type() == MemMan::TYPE_FREE)     ? "FREE"  :
                 (b->type() == MemMan::TYPE_POOL)     ? "POOL"  :
                 (b->type() == MemMan::TYPE_STACK)    ? "STACK" :
                 (b->type() == MemMan::TYPE_FILE)     ? "FILE" :
+                (b->type() == MemMan::TYPE_BGFX)     ? "BGFX" :
                 (b->type() == MemMan::TYPE_EXTERNAL) ? "EXTERNAL" :
                 "Unknown",
-                byteSizeStr(b->dataSize()),
-                i);
-            // block
-            if (CollapsingHeader(str)) {
-                mem_edit.DrawContents((void *)b->data(), b->dataSize());
+                byteSizeStr(b->dataSize())
+                );
+            bool isSelected = ((void *)b == (void *)memEditPtr);
+            if (Selectable(str, isSelected)) {
+                if (isSelected) {
+                    clearMemEditWindow();
+                }
+                else {
+                    memEdit.Open = true;
+                    memEditPtr = (void *)b;
+                    memEditSz = b->totalSize();
+                    snprintf(memEditTitle, 64, "%s###memEditWindow", str);
+                }
             }
+            Separator();
             ++i;
 
 
@@ -562,15 +580,14 @@ void Editor::guiMem() {
     }
 }
 
-// void Editor::guiWinMem() {
-//     if (!memMan) return;
+void Editor::guiWinMem() {
+    if (memEditPtr && memEdit.Open == false) clearMemEditWindow();
+    if (memEditPtr == nullptr) return;
+    memEdit.DrawWindow(memEditTitle, memEditPtr, memEditSz);
+}
 
-//     Begin("Memory###Window", NULL, ImGuiWindowFlags_NoCollapse);
-
-
-//     if (Button("Close")) {
-//         memMan = nullptr;
-//     }
-
-//     End();
-// }
+void Editor::clearMemEditWindow() {
+    memEditPtr = nullptr;
+    memEditSz = 0;
+    snprintf(memEditTitle, 64, "");
+}
