@@ -26,6 +26,10 @@ public:
         TYPE_EXTERNAL
     };
 
+    // "MemB"
+    #define BLOCK_MAGIC_STRING {0x4D, 0x65, 0x6D, 0x42}
+    constexpr static byte_t BlockMagicString[4] = BLOCK_MAGIC_STRING; // "MemB"
+
     // Block, basic unit of all sub sections of the memory space.
     //
     // Each block will be placed in the large memory space, with an instance
@@ -44,6 +48,8 @@ public:
         byte_t * data()             { return (byte_t *)this + BlockInfoSize; }
         byte_t const * data() const { return (byte_t const *)((byte_t *)this + BlockInfoSize); }
 
+        bool assertMagicString() const;
+
     private:
         size_t _dataSize = 0;
         Block * _prev = nullptr;
@@ -54,7 +60,9 @@ public:
         // 8-byte allignment on personal development machine is forcing this Block to always be
         // 32 bytes anyway so this is here to make that explicit. We could even take more space
         // from type, which could easily be only 1 or 2 bytes.
-        byte_t _info[4] = {0};
+        // INGORE ABOVE. setting magic string for now:
+        // magic string: MemB
+        byte_t _info[4] = BLOCK_MAGIC_STRING;
 
         Block() {}
     };
@@ -94,6 +102,9 @@ public:
     Block * mergeFreeBlocks(Block * b);
     // resize block if possible
     Block * resizeBlock(Block * b, size_t newSize);
+
+    // return Block for generic ptr, where ptr is expected to be at block->data()
+    Block * blockForDataPtr(void * ptr);
 
     // block reading -------------------------------------------------------- //
     Block const * firstBlock() const;

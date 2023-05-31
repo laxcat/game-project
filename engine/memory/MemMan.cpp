@@ -23,12 +23,24 @@ template <typename ...TS> void debugInfo(void *, char const *, TS && ...);
 constexpr static bool ShowMemManInfoDbg = false;
 constexpr static bool ShowMemManBGFXDbg = false;
 
+// block ---------------------------------------------------------------- //
+
+bool MemMan::Block::assertMagicString() const {
+    return (memcmp(&BlockMagicString, _info, 4) == 0);
+}
+
+
 // lifecycle ------------------------------------------------------------ //
 
 void MemMan::init(size_t size) {
     _data = (byte_t *)malloc(size);
     _size = size;
+    #if DEBUG
+    memset(_data, 0, _size);
+    #endif // DEBUG
+
     printl("MEM MAN RANGE %*p—%*p", 8, _data, 8, _data+_size);
+
     _blockHead = new (_data) Block();
     _blockHead->_dataSize = size - BlockInfoSize;
     _blockTail = _blockHead;
@@ -155,9 +167,17 @@ void MemMan::destroy(void * ptr) {
 
     // we verified the ptr is in our expected memory space,
     // so we expect block info just prior to it
-    Block * block = (Block *)((byte_t *)ptr - BlockInfoSize);
+    Block * block = blockForDataPtr(ptr);
+    #if DEBUG
+    if (!block->assertMagicString()) printInfo();
+    assert(block->assertMagicString() && "Block magic string check failed. (destroy)");
+    #endif // DEBUG
     // set block to free
     block->_type = TYPE_FREE;
+    // zero out data (DEBUG)
+    #if DEBUG
+    memset(block->data(), 0, block->dataSize());
+    #endif // DEBUG
     // try to merge with neighboring blocks
     mergeFreeBlocks(block);
     if (block->_prev) mergeFreeBlocks(block->_prev);
@@ -167,15 +187,23 @@ void MemMan::destroy(void * ptr) {
 
 MemMan::Block * MemMan::findFree(size_t size) {
     Block * block = nullptr;
+    int i = 0;
     for (block = _blockHead; block; block = block->_next) {
         if (block->_type == TYPE_FREE && block->dataSize() >= size) {
             break;
         }
+        ++i;
     }
+    DEBUG_MSG("findFree looked at %d blocks", i);
     if (!block) {
         DEBUG_MSG("NO FREE BLOCK for size: %zu", size);
         return nullptr;
     }
+
+    #if DEBUG
+    assert(block->assertMagicString() && "Block magic string check failed. (findFree)");
+    #endif // DEBUG
+
     return block;
 }
 
@@ -206,6 +234,10 @@ MemMan::Block * MemMan::requestFreeBlock(size_t size) {
 MemMan::Block * MemMan::splitBlock(Block * blockA, size_t blockANewSize) {
     DEBUG_MSG("SPLIT BLOCK start");
 
+    #if DEBUG
+    assert(blockA->assertMagicString() && "BlockA magic string check failed. (splitBlock)");
+    #endif // DEBUG
+
     // blockA is not big enough.
     // equal data size also rejected because blockB would have
     // 0 bytes for data, and that would be pointless.
@@ -230,6 +262,12 @@ MemMan::Block * MemMan::splitBlock(Block * blockA, size_t blockANewSize) {
     blockA->_next = blockB;
     if (_blockTail == blockA) _blockTail = blockB;
 
+    #if DEBUG
+    memset(blockB->data(), 0, blockB->dataSize());
+    assert(blockA->assertMagicString() && "BlockA magic string check failed. (splitBlock)");
+    assert(blockB->assertMagicString() && "BlockB magic string check failed. (splitBlock)");
+    #endif // DEBUG
+
     DEBUG_MSG("SPLIT BLOCK end");
 
     return blockA;
@@ -244,6 +282,11 @@ MemMan::Block * MemMan::splitBlockEnd(Block * blockA, size_t blockBNewSize) {
 MemMan::Block * MemMan::mergeFreeBlocks(Block * blockA) {
     DEBUG_MSG("MERGE BLOCK start");
 
+    #if DEBUG
+    // printInfo();
+    assert(blockA->assertMagicString() && "BlockA magic string check failed. (mergeFreeBlocks)");
+    #endif // DEBUG
+
     // fail and bail if any these conditions are true
     if (blockA->_type != TYPE_FREE || // blockA can be used (non-free), right?
         blockA->_next == nullptr ||
@@ -252,8 +295,18 @@ MemMan::Block * MemMan::mergeFreeBlocks(Block * blockA) {
         DEBUG_MSG("MERGE BLOCK failed");
         return nullptr;
     }
+
+    #if DEBUG
+    assert(blockA->_next->assertMagicString() && "BlockA->_next magic string check failed. (mergeFreeBlocks)");
+    #endif // DEBUG
+
     blockA->_dataSize += blockA->_next->totalSize();
     blockA->_next = blockA->_next->_next;
+    if (blockA->_next) blockA->_next->_prev = blockA;
+
+    #if DEBUG
+    memset(blockA->data(), 0, blockA->dataSize());
+    #endif // DEBUG
 
     DEBUG_MSG("MERGE BLOCK end");
 
@@ -262,6 +315,10 @@ MemMan::Block * MemMan::mergeFreeBlocks(Block * blockA) {
 
 MemMan::Block * MemMan::resizeBlock(Block * block, size_t newSize) {
     DEBUG_MSG("RESIZE BLOCK start");
+
+    #if DEBUG
+    assert(block->assertMagicString() && "Block magic string check failed. (resizeBlock)");
+    #endif // DEBUG
 
     // working
     Block * newBlock = nullptr;
@@ -302,15 +359,28 @@ MemMan::Block * MemMan::resizeBlock(Block * block, size_t newSize) {
     ) {
         // how much are we taking from adjacent free block
         size_t deltaSize = newSize - block->dataSize();
-        // new free block location
-        newBlock = (Block *)((byte_t *)block->_next + deltaSize);
-        // move free-block info into new location
-        // overlap is possible, better use temp value to be safe
-        Block tempBlock = *block->_next;
-        memcpy(newBlock, &tempBlock, BlockInfoSize);
-        // update this block
-        block->_dataSize = newSize;
-        block->_next = newBlock;
+
+        // might fail, but we will consume all of block->_next either way.
+        // either a split happened and we consume the exact requested amount,
+        // or a split didn't happen and we consume the entire block with a little extra space in it.
+        splitBlock(block->_next, deltaSize);
+
+        // expand block
+        block->_dataSize += block->_next->totalSize();
+
+        // hang onto old next location
+        #if DEBUG
+        byte_t * oldNext = (byte_t *)block->_next;
+        #endif // DEBUG
+
+        // link up
+        block->_next = block->_next->_next;
+        if (block->_next) block->_next->_prev = block;
+
+        // zero out old block info
+        #if DEBUG
+        memset(oldNext, 0, BlockInfoSize);
+        #endif // DEBUG
 
         DEBUG_MSG("RESIZE BLOCK expand in place");
 
@@ -334,6 +404,16 @@ MemMan::Block * MemMan::resizeBlock(Block * block, size_t newSize) {
 
     // failed
     return nullptr;
+}
+
+MemMan::Block * MemMan::blockForDataPtr(void * ptr) {
+    Block * block = (Block *)((byte_t *)ptr - BlockInfoSize);
+
+    #if DEBUG
+    assert(block->assertMagicString() && "Block magic string check failed. (blockForData)");
+    #endif // DEBUG
+
+    return block;
 }
 
 MemMan::Block const * MemMan::firstBlock() const {
@@ -382,6 +462,11 @@ void * memManRealloc(void * ptr, size_t size, void * userData) {
     MemMan * memMan = (MemMan *)userData;
     memMan->assertWithinData(ptr, size);
     auto block = (MemMan::Block *)((byte_t *)ptr - MemMan::BlockInfoSize);
+
+    #if DEBUG
+    assert(block->assertMagicString() && "Block magic string check failed. (memManRealloc)");
+    #endif // DEBUG
+
     block = memMan->resizeBlock(block, size);
     return (block) ? block->data() : nullptr;
 }
