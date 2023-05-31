@@ -67,9 +67,9 @@ target_sources(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/common/string_utils.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/modp_b64.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/dev/print.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/memory/GLTF.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/memory/GLTFLoader2.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/memory/Entity.cpp
+    # ${CMAKE_CURRENT_SOURCE_DIR}/memory/GLTF.cpp
+    # ${CMAKE_CURRENT_SOURCE_DIR}/memory/GLTFLoader2.cpp
+    # ${CMAKE_CURRENT_SOURCE_DIR}/memory/Entity.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemMan.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/render/CameraControl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/render/GLTFLoader.cpp

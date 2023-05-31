@@ -13,10 +13,10 @@
 #include "../common/debug_defines.h"
 
 #if 0 // enable/disable DEBUG_MSG
-void debugInfo(void *, char const *);
-#define DEBUG_MSG(MSG) debugInfo(this, MSG)
+template <typename ...TS> void debugInfo(void *, char const *, TS && ...);
+#define DEBUG_MSG(...) debugInfo(this, __VA_ARGS__)
 #else
-#define DEBUG_MSG(MSG)
+#define DEBUG_MSG(...)
 #endif
 
 // some granular control of debug messages
@@ -30,7 +30,7 @@ void MemMan::init(size_t size) {
     _size = size;
     printl("MEM MAN RANGE %*p—%*p", 8, _data, 8, _data+_size);
     _blockHead = new (_data) Block();
-    _blockHead->_size = size - BlockInfoSize;
+    _blockHead->_dataSize = size - BlockInfoSize;
     _blockTail = _blockHead;
 }
 
@@ -165,12 +165,7 @@ void MemMan::destroy(void * ptr) {
 
 // block handling ------------------------------------------------------- //
 
-// find block with enough free space, split it to size, and return it
-MemMan::Block * MemMan::requestFreeBlock(size_t size) {
-    DEBUG_MSG("REQUEST FREE BLOCK start");
-
-    size = ALIGN(size);
-
+MemMan::Block * MemMan::findFree(size_t size) {
     Block * block = nullptr;
     for (block = _blockHead; block; block = block->_next) {
         if (block->_type == TYPE_FREE && block->dataSize() >= size) {
@@ -178,10 +173,21 @@ MemMan::Block * MemMan::requestFreeBlock(size_t size) {
         }
     }
     if (!block) {
-        DEBUG_MSG("REQUEST FREE BLOCK no free block");
-
+        DEBUG_MSG("NO FREE BLOCK for size: %zu", size);
         return nullptr;
     }
+    return block;
+}
+
+// find block with enough free space, split it to size, and return it
+MemMan::Block * MemMan::requestFreeBlock(size_t size) {
+    DEBUG_MSG("REQUEST FREE BLOCK start");
+
+    // TODO: reintroduce better alignment policy with broader scope
+    // size = ALIGN(size);
+
+    Block * block = findFree(size);
+    if (block == nullptr) return nullptr;
 
     // We don't care if the split actually happens or not.
     // If it happened, we still return the first block and the 2nd is of no
@@ -200,12 +206,11 @@ MemMan::Block * MemMan::requestFreeBlock(size_t size) {
 MemMan::Block * MemMan::splitBlock(Block * blockA, size_t blockANewSize) {
     DEBUG_MSG("SPLIT BLOCK start");
 
-    // block A is not big enough.
-    // equal data size also rejected because new block would have
-    // 0 bytes for data.
+    // blockA is not big enough.
+    // equal data size also rejected because blockB would have
+    // 0 bytes for data, and that would be pointless.
     if (blockA->dataSize() <= blockANewSize + BlockInfoSize) {
         DEBUG_MSG("SPLIT BLOCK block A not big enough");
-
         return nullptr;
     }
 
@@ -214,10 +219,10 @@ MemMan::Block * MemMan::splitBlock(Block * blockA, size_t blockANewSize) {
     // write block info into data space with defaults
     Block * blockB = new (newLoc) Block();
     // block blockB gets remaining space
-    blockB->_size = blockA->dataSize() - BlockInfoSize - blockANewSize;
+    blockB->_dataSize = blockA->dataSize() - BlockInfoSize - blockANewSize;
 
     // set this size
-    blockA->_size = blockANewSize;
+    blockA->_dataSize = blockANewSize;
 
     // link up
     blockB->_next = blockA->_next;
@@ -241,14 +246,13 @@ MemMan::Block * MemMan::mergeFreeBlocks(Block * blockA) {
 
     // fail and bail if any these conditions are true
     if (blockA->_type != TYPE_FREE || // blockA can be used (non-free), right?
-        !blockA->_next ||
-        blockA->_next->_type != TYPE_FREE) {
-
+        blockA->_next == nullptr ||
+        blockA->_next->_type != TYPE_FREE
+    ) {
         DEBUG_MSG("MERGE BLOCK failed");
-
         return nullptr;
     }
-    blockA->_size += blockA->_next->totalSize();
+    blockA->_dataSize += blockA->_next->totalSize();
     blockA->_next = blockA->_next->_next;
 
     DEBUG_MSG("MERGE BLOCK end");
@@ -259,31 +263,53 @@ MemMan::Block * MemMan::mergeFreeBlocks(Block * blockA) {
 MemMan::Block * MemMan::resizeBlock(Block * block, size_t newSize) {
     DEBUG_MSG("RESIZE BLOCK start");
 
-    // working variable
+    // working
     Block * newBlock = nullptr;
+    bool nextBlockFree = (block->_next && block->_next->_type == TYPE_FREE);
 
-    // shrink block
-    if (block->dataSize() >= newSize + BlockInfoSize) {
-        Block * ret = splitBlock(block, newSize);
-
-        DEBUG_MSG("RESIZE BLOCK shrink block");
-
-        return ret;
+    // do nothing; same size already
+    if (newSize == block->dataSize()) {
+        DEBUG_MSG("RESIZE BLOCK do nothing; same size: %zu", newSize);
+        return block;
     }
-    // expand block in place
+    // do nothing; shrinking; not enough room to create new block, and next block not free
+    else if (
+        !nextBlockFree &&
+        newSize < block->dataSize() &&
+        block->dataSize() - newSize <= BlockInfoSize
+    ) {
+        DEBUG_MSG("RESIZE BLOCK do nothing; shrinking by too little. "
+            "oldSize: %zu, newSize: %zu", block->dataSize(), newSize);
+        return block;
+    }
+    // shrink block; create new free block with extra space
+    else if (block->dataSize() >= newSize + BlockInfoSize) {
+        Block * shrunkBlock = splitBlock(block, newSize);
+        // splitBlock may have created a new free block; make sure it's merged if possible.
+        // mergeFreeBlocks will check if blocks are free
+        if (shrunkBlock->_next) {
+            mergeFreeBlocks(shrunkBlock->_next);
+        }
+        DEBUG_MSG("RESIZE BLOCK shrink block");
+        return shrunkBlock;
+    }
+    // expand block in place by eating into adjacent free block
     else if (
         block->_next &&
         block->_next->_type == TYPE_FREE &&
-        block->dataSize() + block->_next->totalSize() >= newSize
+        // newSize > block->dataSize() && // redundant check
+        newSize <= block->dataSize() + block->_next->totalSize()
     ) {
         // how much are we taking from adjacent free block
         size_t deltaSize = newSize - block->dataSize();
         // new free block location
         newBlock = (Block *)((byte_t *)block->_next + deltaSize);
         // move free-block info into new location
-        memcpy(newBlock, block->_next, BlockInfoSize);
+        // overlap is possible, better use temp value to be safe
+        Block tempBlock = *block->_next;
+        memcpy(newBlock, &tempBlock, BlockInfoSize);
         // update this block
-        block->_size = newSize;
+        block->_dataSize = newSize;
         block->_next = newBlock;
 
         DEBUG_MSG("RESIZE BLOCK expand in place");
@@ -394,10 +420,11 @@ void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * 
 
 // debug ---------------------------------------------------------------- //
 
-void debugInfo(void * userData, char const * prefixMsg) {
+template <typename ...TS>
+void debugInfo(void * userData, char const * prefixMsg, TS && ... params) {
     auto memMan = (MemMan *)userData;
-    if constexpr (ShowMemManInfoDbg) memMan->printInfo(prefixMsg);
-    else printl(prefixMsg);
+    if constexpr (ShowMemManInfoDbg) memMan->printInfo(prefixMsg, std::forward<TS>(params)...);
+    else printl(prefixMsg, std::forward<TS>(params)...);
 }
 
 void MemMan::printInfo(char const * prefixMsg) {

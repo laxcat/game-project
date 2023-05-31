@@ -38,14 +38,14 @@ public:
         friend class BXAllocator;
         friend void * memManAlloc(size_t, void *);
 
-        size_t   dataSize()  const  { return _size; }
-        size_t   totalSize() const  { return BlockInfoSize + _size; }
+        size_t   dataSize()  const  { return _dataSize; }
+        size_t   totalSize() const  { return BlockInfoSize + _dataSize; }
         Type     type()      const  { return _type; }
         byte_t * data()             { return (byte_t *)this + BlockInfoSize; }
         byte_t const * data() const { return (byte_t const *)((byte_t *)this + BlockInfoSize); }
 
     private:
-        size_t _size = 0; // this is data size, not total size!
+        size_t _dataSize = 0;
         Block * _prev = nullptr;
         Block * _next = nullptr;
         Type _type = TYPE_FREE;
@@ -82,6 +82,8 @@ public:
     void destroy(void * ptr);
 
     // block handling ------------------------------------------------------- //
+    // find block with enough free space
+    Block * findFree(size_t size);
     // find block with enough free space, split it to size, and return it
     Block * requestFreeBlock(size_t size);
     // split block A into block A (with requested data size) and block B with what remains.
@@ -123,8 +125,11 @@ inline T * MemMan::create(size_t size, TP && ... params) {
 }
 
 
+// requires size (and userData must be pointer to MemMan)
 void * memManAlloc(size_t size, void * userData);
+// general purpose to handle all cases. requires ptr OR size (and userData must be pointer to MemMan)
 void * memManRealloc(void * ptr, size_t size, void * userData);
+// requires ptr (and userData must be pointer to MemMan)
 void memManFree(void * ptr, void * userData);
 
 class BXAllocator : public bx::AllocatorI {
