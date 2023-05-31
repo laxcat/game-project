@@ -496,7 +496,7 @@ void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * 
 
     void * ret = memManRealloc(ptr, size, (void *)memMan);
     if (ptr == nullptr && size) {
-        // ((MemMan::Block *)ret)->_type = MemMan::TYPE_BGFX;
+        memMan->blockForDataPtr(ret)->_type = MemMan::TYPE_BGFX;
     }
 
     if constexpr (ShowMemManBGFXDbg) printl("RETURN: %*p", 8, ret);

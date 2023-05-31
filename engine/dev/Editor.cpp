@@ -466,6 +466,9 @@ void Editor::guiMem() {
             // printl("wut.");
         }
 
+        ImGuiStyle * style = &ImGui::GetStyle();
+        ImVec4 defaultTextColor = style->Colors[ImGuiCol_Text];
+
         int i = 0;
         for (MemMan::Block const * b = mm.memMan.firstBlock(); b; b = mm.memMan.nextBlock(*b)) {
             // calc block name
@@ -482,6 +485,9 @@ void Editor::guiMem() {
                 byteSizeStr(b->dataSize())
                 );
             bool isSelected = ((void *)b == (void *)memEditPtr);
+            if (b->type() == MemMan::TYPE_FREE) {
+                style->Colors[ImGuiCol_Text] = ImVec4(0.6f, 0.7f, 1.0f, 1.00f);
+            }
             if (Selectable(str, isSelected)) {
                 if (isSelected) {
                     clearMemEditWindow();
@@ -493,6 +499,7 @@ void Editor::guiMem() {
                     snprintf(memEditTitle, 64, "%s###memEditWindow", str);
                 }
             }
+            style->Colors[ImGuiCol_Text] = defaultTextColor;
             Separator();
             ++i;
 
