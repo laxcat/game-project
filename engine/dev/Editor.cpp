@@ -476,6 +476,7 @@ void Editor::guiMem() {
             snprintf(str, 128, "%03d: %s Block (%s)",
                 i,
                 (b->type() == MemMan::TYPE_FREE)     ? "FREE"  :
+                (b->type() == MemMan::TYPE_CLAIMED)  ? "CLAIMED" :
                 (b->type() == MemMan::TYPE_POOL)     ? "POOL"  :
                 (b->type() == MemMan::TYPE_STACK)    ? "STACK" :
                 (b->type() == MemMan::TYPE_FILE)     ? "FILE" :
@@ -487,6 +488,9 @@ void Editor::guiMem() {
             bool isSelected = ((void *)b == (void *)memEditPtr);
             if (b->type() == MemMan::TYPE_FREE) {
                 style->Colors[ImGuiCol_Text] = ImVec4(0.6f, 0.7f, 1.0f, 1.00f);
+            }
+            else if (b->type() == MemMan::TYPE_CLAIMED) {
+                style->Colors[ImGuiCol_Text] = ImVec4(0.9f, 0.5f, 0.5f, 1.00f);
             }
             if (Selectable(str, isSelected)) {
                 if (isSelected) {

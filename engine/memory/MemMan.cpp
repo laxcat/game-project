@@ -23,12 +23,6 @@ template <typename ...TS> void debugInfo(void *, char const *, TS && ...);
 constexpr static bool ShowMemManInfoDbg = false;
 constexpr static bool ShowMemManBGFXDbg = false;
 
-// block ---------------------------------------------------------------- //
-
-bool MemMan::Block::assertMagicString() const {
-    return (memcmp(&BlockMagicString, _info, 4) == 0);
-}
-
 
 // lifecycle ------------------------------------------------------------ //
 
@@ -44,6 +38,7 @@ void MemMan::init(size_t size) {
     _blockHead = new (_data) Block();
     _blockHead->_dataSize = size - BlockInfoSize;
     _blockTail = _blockHead;
+    // _firstFree = _blockHead;
 }
 
 void MemMan::shutdown() {
@@ -56,6 +51,7 @@ Pool * MemMan::createPool(size_t objCount, size_t objSize) {
     Block * block = requestFreeBlock(objCount * objSize + sizeof(Pool));
     if (!block) return nullptr;
     block->_type = TYPE_POOL;
+    // updateFirstFree(block);
     return new (block->data()) Pool{objCount, objSize};
 }
 
@@ -67,6 +63,7 @@ Stack * MemMan::createStack(size_t size) {
     Block * block = requestFreeBlock(size + sizeof(Stack));
     if (!block) return nullptr;
     block->_type = TYPE_STACK;
+    // updateFirstFree(block);
     return new (block->data()) Stack{size};
 }
 
@@ -95,6 +92,7 @@ File * MemMan::createFileHandle(char const * path, bool loadNow) {
     Block * block = requestFreeBlock(size + sizeof(File));
     if (!block) return nullptr;
     block->_type = TYPE_FILE;
+    // updateFirstFree(block);
     File * f = new (block->data()) File{size, path};
 
     // load now if request. send fp to avoid opening twice
@@ -163,29 +161,40 @@ void MemMan::destroyFileHandle(File * f) {
 // }
 
 void MemMan::destroy(void * ptr) {
+    guard_t guard{mainMutex};
+
     assertWithinData((byte_t *)ptr);
 
     // we verified the ptr is in our expected memory space,
     // so we expect block info just prior to it
     Block * block = blockForDataPtr(ptr);
     #if DEBUG
-    if (!block->assertMagicString()) printInfo();
-    assert(block->assertMagicString() && "Block magic string check failed. (destroy)");
+    if (!isValidBlock(block)) printInfo();
+    assert(isValidBlock(block) && "Block not valid. (destroy)");
     #endif // DEBUG
     // set block to free
     block->_type = TYPE_FREE;
+    // updateFirstFree(block);
     // zero out data (DEBUG)
     #if DEBUG
     memset(block->data(), 0, block->dataSize());
+    assert(isValidBlock(block) && "Block not valid. (destroy)");
     #endif // DEBUG
     // try to merge with neighboring blocks
     mergeFreeBlocks(block);
-    if (block->_prev) mergeFreeBlocks(block->_prev);
+    if (block->_prev) {
+        #if DEBUG
+        assert(isValidBlock(block->_prev) && "Block not valid. (destroy)");
+        #endif // DEBUG
+        mergeFreeBlocks(block->_prev);
+    }
 }
 
 // block handling ------------------------------------------------------- //
 
 MemMan::Block * MemMan::findFree(size_t size) {
+    guard_t guard{mainMutex};
+
     Block * block = nullptr;
     int i = 0;
     for (block = _blockHead; block; block = block->_next) {
@@ -201,7 +210,7 @@ MemMan::Block * MemMan::findFree(size_t size) {
     }
 
     #if DEBUG
-    assert(block->assertMagicString() && "Block magic string check failed. (findFree)");
+    assert(isValidBlock(block) && "Block not valid. (findFree)");
     #endif // DEBUG
 
     return block;
@@ -209,6 +218,8 @@ MemMan::Block * MemMan::findFree(size_t size) {
 
 // find block with enough free space, split it to size, and return it
 MemMan::Block * MemMan::requestFreeBlock(size_t size) {
+    guard_t guard{mainMutex};
+
     DEBUG_MSG("REQUEST FREE BLOCK start");
 
     // TODO: reintroduce better alignment policy with broader scope
@@ -216,6 +227,10 @@ MemMan::Block * MemMan::requestFreeBlock(size_t size) {
 
     Block * block = findFree(size);
     if (block == nullptr) return nullptr;
+
+    // it might be a few cycles until actual type is set, so to be absolutely
+    // safe and prevent multiple threads claiming a free block...
+    block->_type = TYPE_CLAIMED;
 
     // We don't care if the split actually happens or not.
     // If it happened, we still return the first block and the 2nd is of no
@@ -232,10 +247,12 @@ MemMan::Block * MemMan::requestFreeBlock(size_t size) {
 }
 
 MemMan::Block * MemMan::splitBlock(Block * blockA, size_t blockANewSize) {
+    guard_t guard{mainMutex};
+
     DEBUG_MSG("SPLIT BLOCK start");
 
     #if DEBUG
-    assert(blockA->assertMagicString() && "BlockA magic string check failed. (splitBlock)");
+    assert(isValidBlock(blockA) && "BlockA not valid. (splitBlock)");
     #endif // DEBUG
 
     // blockA is not big enough.
@@ -264,8 +281,8 @@ MemMan::Block * MemMan::splitBlock(Block * blockA, size_t blockANewSize) {
 
     #if DEBUG
     memset(blockB->data(), 0, blockB->dataSize());
-    assert(blockA->assertMagicString() && "BlockA magic string check failed. (splitBlock)");
-    assert(blockB->assertMagicString() && "BlockB magic string check failed. (splitBlock)");
+    assert(isValidBlock(blockA) && "BlockA not valid. (splitBlock)");
+    assert(isValidBlock(blockB) && "BlockB not valid. (splitBlock)");
     #endif // DEBUG
 
     DEBUG_MSG("SPLIT BLOCK end");
@@ -274,50 +291,71 @@ MemMan::Block * MemMan::splitBlock(Block * blockA, size_t blockANewSize) {
 }
 
 MemMan::Block * MemMan::splitBlockEnd(Block * blockA, size_t blockBNewSize) {
+    guard_t guard{mainMutex};
+
     if (blockBNewSize + BlockInfoSize > blockA->dataSize()) return nullptr;
     auto ret = splitBlock(blockA, blockA->dataSize() - BlockInfoSize - blockBNewSize);
     return (ret) ? ret->_next : nullptr;
 }
 
-MemMan::Block * MemMan::mergeFreeBlocks(Block * blockA) {
+MemMan::Block * MemMan::mergeFreeBlocks(Block * block) {
+    guard_t guard{mainMutex};
+
     DEBUG_MSG("MERGE BLOCK start");
 
     #if DEBUG
     // printInfo();
-    assert(blockA->assertMagicString() && "BlockA magic string check failed. (mergeFreeBlocks)");
+    assert(isValidBlock(block) && "Block not valid. (mergeFreeBlocks)");
     #endif // DEBUG
 
     // fail and bail if any these conditions are true
-    if (blockA->_type != TYPE_FREE || // blockA can be used (non-free), right?
-        blockA->_next == nullptr ||
-        blockA->_next->_type != TYPE_FREE
+    if (block->_type != TYPE_FREE ||
+        block->_next == nullptr ||
+        block->_next->_type != TYPE_FREE
     ) {
         DEBUG_MSG("MERGE BLOCK failed");
         return nullptr;
     }
 
     #if DEBUG
-    assert(blockA->_next->assertMagicString() && "BlockA->_next magic string check failed. (mergeFreeBlocks)");
+    assert(isValidBlock(block->_next) && "Block->_next not valid. (mergeFreeBlocks)");
     #endif // DEBUG
 
-    blockA->_dataSize += blockA->_next->totalSize();
-    blockA->_next = blockA->_next->_next;
-    if (blockA->_next) blockA->_next->_prev = blockA;
+    // expand block to encompas next block, which is free
+    block->_dataSize += block->_next->totalSize();
+
+    // relink everything
+    if (block->_next == _blockTail) _blockTail = block;
+    block->_next = block->_next->_next;
+    if (block->_next) block->_next->_prev = block;
 
     #if DEBUG
-    memset(blockA->data(), 0, blockA->dataSize());
+    memset(block->data(), 0, block->dataSize());
+    assert(isValidBlock(block) && "Block not valid. (mergeFreeBlocks after linkage)");
+    if (block->_prev) {
+        assert(isValidBlock(block->_prev) &&
+            "Block->_prev not valid. (mergeFreeBlocks after linkage)");
+    }
+    if (block->_next) {
+        assert(isValidBlock(block->_next) &&
+            "Block->_next not valid. (mergeFreeBlocks after linkage)");
+    }
     #endif // DEBUG
+
+    // updateFirstFree(block);
 
     DEBUG_MSG("MERGE BLOCK end");
 
-    return blockA;
+    return block;
 }
 
 MemMan::Block * MemMan::resizeBlock(Block * block, size_t newSize) {
+    guard_t guard{mainMutex};
+
     DEBUG_MSG("RESIZE BLOCK start");
 
     #if DEBUG
-    assert(block->assertMagicString() && "Block magic string check failed. (resizeBlock)");
+    assert(isValidBlock(block) && "Block not valid. (resizeBlock)");
     #endif // DEBUG
 
     // working
@@ -380,9 +418,12 @@ MemMan::Block * MemMan::resizeBlock(Block * block, size_t newSize) {
         // zero out old block info
         #if DEBUG
         memset(oldNext, 0, BlockInfoSize);
+        assert(isValidBlock(block) && "Block not valid. (resize expand in place)")
         #endif // DEBUG
 
         DEBUG_MSG("RESIZE BLOCK expand in place");
+
+        // updateFirstFree(block);
 
         return block;
     }
@@ -390,12 +431,17 @@ MemMan::Block * MemMan::resizeBlock(Block * block, size_t newSize) {
     else if ((newBlock = requestFreeBlock(newSize))) {
         // update info of new block
         newBlock->_type = block->_type;
+        // updateFirstFree(newBlock);
 
         // copy to new place (frees old block, returns new block)
         memcpy(newBlock->data(), block->data(), block->dataSize());
         destroy(block->data());
 
         DEBUG_MSG("RESIZE BLOCK copy to new place");
+
+        #if DEBUG
+        assert(isValidBlock(newBlock) && "Block not valid. (resize expand in place)");
+        #endif // DEBUG
 
         return newBlock;
     }
@@ -407,10 +453,12 @@ MemMan::Block * MemMan::resizeBlock(Block * block, size_t newSize) {
 }
 
 MemMan::Block * MemMan::blockForDataPtr(void * ptr) {
+    guard_t guard{mainMutex};
+
     Block * block = (Block *)((byte_t *)ptr - BlockInfoSize);
 
     #if DEBUG
-    assert(block->assertMagicString() && "Block magic string check failed. (blockForData)");
+    assert(isValidBlock(block) && "Block not valid. (blockForData)");
     #endif // DEBUG
 
     return block;
@@ -425,7 +473,7 @@ MemMan::Block const * MemMan::nextBlock(Block const & block) const {
 }
 
 
-void MemMan::assertWithinData(void * ptr, size_t size) {
+void MemMan::assertWithinData(void * ptr, size_t size) const {
     auto bptr = (byte_t *)ptr;
     // within range
     if (bptr >= _data && bptr + size <= _data + _size) {
@@ -440,6 +488,44 @@ void MemMan::assertWithinData(void * ptr, size_t size) {
     assert(false);
 }
 
+// void MemMan::updateFirstFree (Block * block) {
+//     guard_t guard{mainMutex};
+
+//     if (block == _firstFree && block->type() != TYPE_FREE) {
+//         for (Block * b = block->_next; b; b = b->_next) {
+//             if (b->_type == TYPE_FREE) {
+//                 _firstFree = b;
+//                 break;
+//             }
+//         }
+//     }
+//     else if ((byte_t *)block < (byte_t *)_firstFree) {
+//         _firstFree = block;
+//     }
+//     // #if DEBUG
+//     // int i = 0;
+//     // for (Block * b = _blockHead; b; b = b->_next, ++i) {
+//     //     if (b == _firstFree) {
+//     //         printl("New _firstFree: %d", i);
+//     //         break;
+//     //     }
+//     // }
+//     // #endif // DEBUG
+// }
+
+bool MemMan::isValidBlock(Block * block) const {
+    guard_t guard{mainMutex};
+
+    if (!block) return false;
+    if (memcmp(&BlockMagicString, block->_info, 4) != 0) return false;
+    if (!block->_next && block != _blockTail) return false;
+    if (!block->_prev && block != _blockHead) return false;
+    if (block->_dataSize == 0) return false;
+    if ((byte_t *)block + block->totalSize() > _data + _size) return false;
+    return true;
+}
+
+
 void * memManAlloc(size_t size, void * userData) {
     if (!size || !userData) return nullptr;
     MemMan * memMan = (MemMan *)userData;
@@ -449,6 +535,7 @@ void * memManAlloc(size_t size, void * userData) {
         assert(false);
     }
     block->_type = MemMan::TYPE_EXTERNAL;
+    // memMan->updateFirstFree(block);
     return block->data();
 }
 
@@ -464,7 +551,7 @@ void * memManRealloc(void * ptr, size_t size, void * userData) {
     auto block = (MemMan::Block *)((byte_t *)ptr - MemMan::BlockInfoSize);
 
     #if DEBUG
-    assert(block->assertMagicString() && "Block magic string check failed. (memManRealloc)");
+    assert(memMan->isValidBlock(block) && "Block not valid. (memManRealloc)");
     #endif // DEBUG
 
     block = memMan->resizeBlock(block, size);
@@ -528,7 +615,6 @@ void MemMan::printInfo(char const * prefixMsg) {
     if (prefixMsg)  printl("%s\n%s", prefixMsg, infoStr);
     else            printl("%s", infoStr);
 }
-
 
 void MemMan::getInfo(char * buf, int bufSize) {
     if (bufSize <= 0) return;

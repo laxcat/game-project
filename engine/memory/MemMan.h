@@ -2,17 +2,23 @@
 #include "../common/types.h"
 #include <stdio.h>
 #include <bx/allocator.h>
+#include <mutex>
 #include "File.h"
 #include "Pool.h"
 #include "Stack.h"
 
 class MemMan {
 public:
-    // types ---------------------------------------------------------------- //
+    // friends -------------------------------------------------------------- //
+    friend void * memManAlloc(size_t, void *);
+    friend void * memManRealloc(void *, size_t, void *);
+    friend void memManFree(void *, void *);
 
+    // types ---------------------------------------------------------------- //
     enum Type {
-        // empty space to be claimed
-        TYPE_FREE,
+        // unsued
+        TYPE_FREE,    // empty space to be claimed
+        TYPE_CLAIMED, // claimed but type not set yet
         // internal types, with special treatment
         TYPE_POOL,
         TYPE_STACK,
@@ -25,6 +31,8 @@ public:
         // externally requested of any type
         TYPE_EXTERNAL
     };
+
+    using guard_t = std::lock_guard<std::recursive_mutex>;
 
     // "MemB"
     #define BLOCK_MAGIC_STRING {0x4D, 0x65, 0x6D, 0x42}
@@ -48,8 +56,6 @@ public:
         byte_t * data()             { return (byte_t *)this + BlockInfoSize; }
         byte_t const * data() const { return (byte_t const *)((byte_t *)this + BlockInfoSize); }
 
-        bool assertMagicString() const;
-
     private:
         size_t _dataSize = 0;
         Block * _prev = nullptr;
@@ -70,7 +76,6 @@ public:
 
     // info/access ---------------------------------------------------------- //
     size_t size() const { return _size; }
-    
 
     // lifecycle ------------------------------------------------------------ //
     void init(size_t size);
@@ -112,14 +117,23 @@ public:
 
     // checks and assertions ------------------------------------------------ //
     // check if random pointer is within managed range
-    void assertWithinData(void * ptr, size_t size = 0);
+    void assertWithinData(void * ptr, size_t size = 0) const;
 
     // storage -------------------------------------------------------------- //
 private:
     byte_t * _data = nullptr;
     Block * _blockHead = nullptr;
     Block * _blockTail = nullptr;
+    // Block * _firstFree = nullptr;
     size_t _size = 0;
+    mutable std::recursive_mutex mainMutex;
+
+    // internal ------------------------------------------------------------- //
+private:
+    // update location of _firstFree. block is starting point to search
+    // void updateFirstFree(Block * block);
+    // used for interal debug assertions
+    bool isValidBlock(Block * block) const;
 
     // debug ---------------------------------------------------------------- //
 public:
