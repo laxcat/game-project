@@ -465,6 +465,10 @@ void Editor::guiMem() {
             mm.memMan.printInfo();
             // printl("wut.");
         }
+        SameLine();
+        if (Button("Check Blocks")) {
+            mm.memMan.checkAllBlocks();
+        }
 
         ImGuiStyle * style = &ImGui::GetStyle();
         ImVec4 defaultTextColor = style->Colors[ImGuiCol_Text];

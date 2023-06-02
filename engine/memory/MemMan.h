@@ -6,6 +6,7 @@
 #include "File.h"
 #include "Pool.h"
 #include "Stack.h"
+#include "../common/debug_defines.h"
 
 class MemMan {
 public:
@@ -13,6 +14,7 @@ public:
     friend void * memManAlloc(size_t, void *);
     friend void * memManRealloc(void *, size_t, void *);
     friend void memManFree(void *, void *);
+    friend class BXAllocator;
 
     // types ---------------------------------------------------------------- //
     enum Type {
@@ -70,6 +72,14 @@ public:
         // magic string: MemB
         byte_t _info[4] = BLOCK_MAGIC_STRING;
 
+        // expand Block for debug purposes
+        #if DEBUG
+        size_t debug_index = SIZE_MAX;
+        size_t debug_unused1 = SIZE_MAX;
+        size_t debug_unused2 = SIZE_MAX;
+        size_t debug_unused3 = SIZE_MAX;
+        #endif // DEBUG
+
         Block() {}
     };
     constexpr static size_t BlockInfoSize = sizeof(Block);
@@ -117,21 +127,24 @@ public:
 
     // checks and assertions ------------------------------------------------ //
     // check if random pointer is within managed range
-    void assertWithinData(void * ptr, size_t size = 0) const;
+    bool isWithinData(void * ptr, size_t size = 0) const;
+
+    bool checkAllBlocks();
 
     // storage -------------------------------------------------------------- //
 private:
     byte_t * _data = nullptr;
     Block * _blockHead = nullptr;
     Block * _blockTail = nullptr;
-    // Block * _firstFree = nullptr;
     size_t _size = 0;
     mutable std::recursive_mutex mainMutex;
 
     // internal ------------------------------------------------------------- //
 private:
-    // update location of _firstFree. block is starting point to search
-    // void updateFirstFree(Block * block);
+    #if DEBUG
+    // create index for all in linked list for debuging purposes
+    void reindexBlocks();
+    #endif // DEBUG
     // used for interal debug assertions
     bool isValidBlock(Block * block) const;
 
