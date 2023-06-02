@@ -37,7 +37,6 @@ void MemMan::init(size_t size) {
 
     _blockHead = new (_data) Block();
     _blockHead->_dataSize = size - BlockInfoSize;
-    _blockTail = _blockHead;
 }
 
 void MemMan::shutdown() {
@@ -273,9 +272,7 @@ MemMan::Block * MemMan::splitBlock(Block * blockA, size_t blockANewSize) {
 
     // link up
     blockB->_next = blockA->_next;
-    blockB->_prev = blockA;
     blockA->_next = blockB;
-    if (_blockTail == blockA) _blockTail = blockB;
 
     #if DEBUG
     memset(blockB->data(), 0, blockB->dataSize());
@@ -324,17 +321,11 @@ MemMan::Block * MemMan::mergeFreeBlocks(Block * block) {
     block->_dataSize += block->_next->totalSize();
 
     // relink everything
-    if (block->_next == _blockTail) _blockTail = block;
     block->_next = block->_next->_next;
-    if (block->_next) block->_next->_prev = block;
 
     #if DEBUG
     memset(block->data(), 0, block->dataSize());
     assert(isValidBlock(block) && "Block not valid. (mergeFreeBlocks after linkage)");
-    if (block->_prev) {
-        assert(isValidBlock(block->_prev) &&
-            "Block->_prev not valid. (mergeFreeBlocks after linkage)");
-    }
     if (block->_next) {
         assert(isValidBlock(block->_next) &&
             "Block->_next not valid. (mergeFreeBlocks after linkage)");
@@ -413,7 +404,6 @@ MemMan::Block * MemMan::resizeBlock(Block * block, size_t newSize) {
 
         // link up
         block->_next = block->_next->_next;
-        if (block->_next) block->_next->_prev = block;
 
         // zero out old block info
         #if DEBUG
@@ -510,21 +500,8 @@ bool MemMan::isValidBlock(Block * block) const {
             block->_info[0], block->_info[1], block->_info[2], block->_info[3]);
         return false;
     }
-    if (!block->_next && block != _blockTail) {
-        fprintf(stderr, "isValidBlock failed: no next and not tail\n");
-        return false;
-    }
-    if (!block->_prev && block != _blockHead) {
-        fprintf(stderr, "isValidBlock failed: no prev and not head\n");
-        return false;
-    }
     if (block->_next && !isWithinData(block->_next, block->_next->totalSize())) {
         fprintf(stderr, "isValidBlock failed: next not within data range\n");
-        return false;
-    }
-    if (block->_prev && !isWithinData(block->_prev, block->_prev->totalSize())) {
-        fprintf(stderr, "isValidBlock failed: prev not within data range %p, %zu\n",
-            block->_prev, block->_prev->totalSize());
         return false;
     }
     if (block->_dataSize == 0) {

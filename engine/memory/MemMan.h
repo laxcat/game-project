@@ -60,7 +60,6 @@ public:
 
     private:
         size_t _dataSize = 0;
-        Block * _prev = nullptr;
         Block * _next = nullptr;
         Type _type = TYPE_FREE;
 
@@ -75,9 +74,6 @@ public:
         // expand Block for debug purposes
         #if DEBUG
         size_t debug_index = SIZE_MAX;
-        size_t debug_unused1 = SIZE_MAX;
-        size_t debug_unused2 = SIZE_MAX;
-        size_t debug_unused3 = SIZE_MAX;
         #endif // DEBUG
 
         Block() {}
@@ -135,7 +131,7 @@ public:
 private:
     byte_t * _data = nullptr;
     Block * _blockHead = nullptr;
-    Block * _blockTail = nullptr;
+    // Block * _blockTail = nullptr;
     size_t _size = 0;
     mutable std::recursive_mutex mainMutex;
 
