@@ -345,7 +345,7 @@ void Editor::guiGLTF(char const * label, char const * key) {
     sprintf(buttonLabel, "%s GLTF###loadButton", keyExistsInRender ? "Swap":"Load");
     if (Button(buttonLabel)) {
         nfdchar_t * outPath = NULL;
-        nfdresult_t result = NFD_OpenDialog(NULL, ".", &outPath);
+        nfdresult_t result = NFD_OpenDialog(NULL, "/Users/Shared/Dev/gltf_assets", &outPath);
 
         printl("GLTF %s FOR KEY: %s", keyExistsInRender ? "SWAP":"LOAD", key);
 

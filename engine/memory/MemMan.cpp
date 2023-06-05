@@ -503,11 +503,13 @@ bool MemMan::isValidBlock(Block * block) const {
         fprintf(stderr, "isValidBlock failed: not within data range\n");
         return false;
     }
+    #if DEBUG
     if (memcmp(&BlockMagicString, block->_info, 4) != 0) {
         fprintf(stderr, "isValidBlock failed: magic string invalid: %c%c%c%c\n",
             block->_info[0], block->_info[1], block->_info[2], block->_info[3]);
         return false;
     }
+    #endif // DEBUG
     if (block->_next && !isWithinData(block->_next, block->_next->totalSize())) {
         fprintf(stderr, "isValidBlock failed: next not within data range\n");
         return false;
