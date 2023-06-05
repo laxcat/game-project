@@ -25,18 +25,26 @@ constexpr static bool ShowMemManBGFXDbg = false;
 
 // lifecycle ------------------------------------------------------------ //
 
-void MemMan::init(size_t size) {
-    _data = (byte_t *)malloc(size);
-    _size = size;
+void MemMan::init(EngineSetup const & setup) {
+    _size = setup.memManSize;
+    _data = (byte_t *)malloc(_size);
     #if DEBUG
     memset(_data, 0, _size);
     #endif // DEBUG
+    _blockHead = new (_data) Block();
+    _blockHead->_dataSize = _size - BlockInfoSize;
+
+    // loop through setup data and create init blocks
+    for (int i = 0; setup.memManInitBlocks[i].type != MEM_BLOCK_FREE; ++i) {
+        if (setup.memManInitBlocks[i].type == MEM_BLOCK_STACK) {
+            createStack(setup.memManInitBlocks[i].size);
+        }
+    }
 
     printl("MEM MAN RANGE %*p—%*p", 8, _data, 8, _data+_size);
     printl("BlockInfoSize %zu", BlockInfoSize);
-
-    _blockHead = new (_data) Block();
-    _blockHead->_dataSize = size - BlockInfoSize;
+    printl("MemBlockSetup struct size: %zu", sizeof(MemBlockSetup));
+    printl("Block struct size: %zu", sizeof(Block));
 }
 
 void MemMan::shutdown() {
@@ -48,7 +56,7 @@ void MemMan::shutdown() {
 Pool * MemMan::createPool(size_t objCount, size_t objSize) {
     Block * block = requestFreeBlock(objCount * objSize + sizeof(Pool));
     if (!block) return nullptr;
-    block->_type = TYPE_POOL;
+    block->_type = MEM_BLOCK_POOL;
     return new (block->data()) Pool{objCount, objSize};
 }
 
@@ -59,7 +67,7 @@ void MemMan::destroyPool(Pool * a) {
 Stack * MemMan::createStack(size_t size) {
     Block * block = requestFreeBlock(size + sizeof(Stack));
     if (!block) return nullptr;
-    block->_type = TYPE_STACK;
+    block->_type = MEM_BLOCK_STACK;
     return new (block->data()) Stack{size};
 }
 
@@ -87,7 +95,7 @@ File * MemMan::createFileHandle(char const * path, bool loadNow) {
 
     Block * block = requestFreeBlock(size + sizeof(File));
     if (!block) return nullptr;
-    block->_type = TYPE_FILE;
+    block->_type = MEM_BLOCK_FILE;
     File * f = new (block->data()) File{size, path};
 
     // load now if request. send fp to avoid opening twice
@@ -130,7 +138,7 @@ void MemMan::destroyFileHandle(File * f) {
 //     // // create block from size
 //     // Block * block = requestFreeBlock(gltfSize + sizeof(Entity));
 //     // if (!block) return nullptr;
-//     // block->type = TYPE_ENTITY;
+//     // block->type = MEM_BLOCK_ENTITY;
 //     // Entity * entity = new (block->data()) Entity{path};
 
 //     // // seek back to start of file
@@ -168,7 +176,7 @@ void MemMan::destroy(void * ptr) {
     assert(isValidBlock(block) && "Block not valid. (destroy)");
     #endif // DEBUG
     // set block to free
-    block->_type = TYPE_FREE;
+    block->_type = MEM_BLOCK_FREE;
     // zero out data (DEBUG)
     #if DEBUG
     memset(block->data(), 0, block->dataSize());
@@ -195,7 +203,7 @@ MemMan::Block * MemMan::findFree(size_t size) {
     Block * block = nullptr;
     int i = 0;
     for (block = _blockHead; block; block = block->_next) {
-        if (block->_type == TYPE_FREE && block->dataSize() >= size) {
+        if (block->_type == MEM_BLOCK_FREE && block->dataSize() >= size) {
             break;
         }
         ++i;
@@ -227,7 +235,7 @@ MemMan::Block * MemMan::requestFreeBlock(size_t size) {
 
     // it might be a few cycles until actual type is set, so to be absolutely
     // safe and prevent multiple threads claiming a free block...
-    block->_type = TYPE_CLAIMED;
+    block->_type = MEM_BLOCK_CLAIMED;
 
     // We don't care if the split actually happens or not.
     // If it happened, we still return the first block and the 2nd is of no
@@ -305,9 +313,9 @@ MemMan::Block * MemMan::mergeFreeBlocks(Block * block) {
     #endif // DEBUG
 
     // fail and bail if any these conditions are true
-    if (block->_type != TYPE_FREE ||
+    if (block->_type != MEM_BLOCK_FREE ||
         block->_next == nullptr ||
-        block->_next->_type != TYPE_FREE
+        block->_next->_type != MEM_BLOCK_FREE
     ) {
         DEBUG_MSG("MERGE BLOCK failed");
         return nullptr;
@@ -348,7 +356,7 @@ MemMan::Block * MemMan::resizeBlock(Block * block, size_t newSize) {
 
     // working
     Block * newBlock = nullptr;
-    bool nextBlockFree = (block->_next && block->_next->_type == TYPE_FREE);
+    bool nextBlockFree = (block->_next && block->_next->_type == MEM_BLOCK_FREE);
 
     // do nothing; same size already
     if (newSize == block->dataSize()) {
@@ -382,7 +390,7 @@ MemMan::Block * MemMan::resizeBlock(Block * block, size_t newSize) {
     // expand block in place by eating into adjacent free block
     else if (
         block->_next &&
-        block->_next->_type == TYPE_FREE &&
+        block->_next->_type == MEM_BLOCK_FREE &&
         // newSize > block->dataSize() && // redundant check
         newSize <= block->dataSize() + block->_next->totalSize()
     ) {
@@ -541,7 +549,7 @@ void * memManAlloc(size_t size, void * userData) {
         fprintf(stderr, "Unable to alloc memory: %zu\n", size);
         assert(false);
     }
-    block->_type = MemMan::TYPE_EXTERNAL;
+    block->_type = MEM_BLOCK_EXTERNAL;
     // memMan->updateFirstFree(block);
     return block->data();
 }
@@ -599,7 +607,7 @@ void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * 
 
     void * ret = memManRealloc(ptr, size, (void *)memMan);
     if (ptr == nullptr && size) {
-        memMan->blockForDataPtr(ret)->_type = MemMan::TYPE_BGFX;
+        memMan->blockForDataPtr(ret)->_type = MEM_BLOCK_BGFX;
     }
 
     if constexpr (ShowMemManBGFXDbg) printl("RETURN: %*p", 8, ret);
@@ -666,13 +674,13 @@ void MemMan::getInfo(char * buf, int bufSize) {
             "Base: %p, Data: %p, BlockDataSize: %zu\n"
             ,
             i,
-                (b->_type == TYPE_FREE)     ? "FREE"  :
-                (b->_type == TYPE_CLAIMED)  ? "CLAIMED"  :
-                (b->_type == TYPE_POOL)     ? "POOL"  :
-                (b->_type == TYPE_STACK)    ? "STACK" :
-                (b->_type == TYPE_FILE)     ? "FILE" :
-                (b->_type == TYPE_BGFX)     ? "BGFX" :
-                (b->_type == TYPE_EXTERNAL) ? "EXTERNAL" :
+                (b->_type == MEM_BLOCK_FREE)     ? "FREE"  :
+                (b->_type == MEM_BLOCK_CLAIMED)  ? "CLAIMED"  :
+                (b->_type == MEM_BLOCK_POOL)     ? "POOL"  :
+                (b->_type == MEM_BLOCK_STACK)    ? "STACK" :
+                (b->_type == MEM_BLOCK_FILE)     ? "FILE" :
+                (b->_type == MEM_BLOCK_BGFX)     ? "BGFX" :
+                (b->_type == MEM_BLOCK_EXTERNAL) ? "EXTERNAL" :
                 "(unknown type)"
             ,
             b,
@@ -680,9 +688,9 @@ void MemMan::getInfo(char * buf, int bufSize) {
             b->dataSize()
         );
 
-        if (b->_type == TYPE_FREE) {
+        if (b->_type == MEM_BLOCK_FREE) {
         }
-        else if (b->_type == TYPE_POOL) {
+        else if (b->_type == MEM_BLOCK_POOL) {
             Pool * pool = (Pool *)b->data();
             wrote += snprintf(
                 buf + wrote,
@@ -696,7 +704,7 @@ void MemMan::getInfo(char * buf, int bufSize) {
                 pool->freeIndex()
             );
         }
-        else if (b->_type == TYPE_STACK) {
+        else if (b->_type == MEM_BLOCK_STACK) {
             Stack * stack = (Stack *)b->data();
             wrote += snprintf(
                 buf + wrote,
@@ -708,7 +716,7 @@ void MemMan::getInfo(char * buf, int bufSize) {
                 stack->head()
             );
         }
-        else if (b->_type == TYPE_FILE) {
+        else if (b->_type == MEM_BLOCK_FILE) {
             File * file = (File *)b->data();
             wrote += snprintf(
                 buf + wrote,
@@ -724,7 +732,7 @@ void MemMan::getInfo(char * buf, int bufSize) {
                 file->path()
             );
         }
-        else if (b->_type == TYPE_EXTERNAL) {
+        else if (b->_type == MEM_BLOCK_EXTERNAL) {
         }
 
         wrote += snprintf(

@@ -479,21 +479,21 @@ void Editor::guiMem() {
             char * str = mm.tempStr(128);
             snprintf(str, 128, "%03d: %s Block (%s)",
                 i,
-                (b->type() == MemMan::TYPE_FREE)     ? "FREE"  :
-                (b->type() == MemMan::TYPE_CLAIMED)  ? "CLAIMED" :
-                (b->type() == MemMan::TYPE_POOL)     ? "POOL"  :
-                (b->type() == MemMan::TYPE_STACK)    ? "STACK" :
-                (b->type() == MemMan::TYPE_FILE)     ? "FILE" :
-                (b->type() == MemMan::TYPE_BGFX)     ? "BGFX" :
-                (b->type() == MemMan::TYPE_EXTERNAL) ? "EXTERNAL" :
+                (b->type() == MEM_BLOCK_FREE)     ? "FREE"  :
+                (b->type() == MEM_BLOCK_CLAIMED)  ? "CLAIMED" :
+                (b->type() == MEM_BLOCK_POOL)     ? "POOL"  :
+                (b->type() == MEM_BLOCK_STACK)    ? "STACK" :
+                (b->type() == MEM_BLOCK_FILE)     ? "FILE" :
+                (b->type() == MEM_BLOCK_BGFX)     ? "BGFX" :
+                (b->type() == MEM_BLOCK_EXTERNAL) ? "EXTERNAL" :
                 "Unknown",
                 byteSizeStr(b->dataSize())
                 );
             bool isSelected = ((void *)b == (void *)memEditPtr);
-            if (b->type() == MemMan::TYPE_FREE) {
+            if (b->type() == MEM_BLOCK_FREE) {
                 style->Colors[ImGuiCol_Text] = ImVec4(0.6f, 0.7f, 1.0f, 1.00f);
             }
-            else if (b->type() == MemMan::TYPE_CLAIMED) {
+            else if (b->type() == MEM_BLOCK_CLAIMED) {
                 style->Colors[ImGuiCol_Text] = ImVec4(0.9f, 0.5f, 0.5f, 1.00f);
             }
             if (Selectable(str, isSelected)) {
@@ -522,11 +522,11 @@ void Editor::guiMem() {
             //     "Base: %p, Data: %p, BlockDataSize: %zu\n"
             //     ,
             //     i,
-            //         (b->type == TYPE_FREE)     ? "FREE"  :
-            //         (b->type == TYPE_POOL)     ? "POOL"  :
-            //         (b->type == TYPE_STACK)    ? "STACK" :
-            //         (b->type == TYPE_FILE)     ? "FILE" :
-            //         (b->type == TYPE_EXTERNAL) ? "EXTERNAL" :
+            //         (b->type == MEM_BLOCK_FREE)     ? "FREE"  :
+            //         (b->type == MEM_BLOCK_POOL)     ? "POOL"  :
+            //         (b->type == MEM_BLOCK_STACK)    ? "STACK" :
+            //         (b->type == MEM_BLOCK_FILE)     ? "FILE" :
+            //         (b->type == MEM_BLOCK_EXTERNAL) ? "EXTERNAL" :
             //         "(unknown type)"
             //     ,
             //     b,
@@ -534,9 +534,9 @@ void Editor::guiMem() {
             //     b->dataSize()
             // );
 
-            // if (b->type == TYPE_FREE) {
+            // if (b->type == MEM_BLOCK_FREE) {
             // }
-            // else if (b->type == TYPE_POOL) {
+            // else if (b->type == MEM_BLOCK_POOL) {
             //     Pool * pool = (Pool *)b->data();
             //     wrote += snprintf(
             //         buf + wrote,
@@ -550,7 +550,7 @@ void Editor::guiMem() {
             //         pool->freeIndex()
             //     );
             // }
-            // else if (b->type == TYPE_STACK) {
+            // else if (b->type == MEM_BLOCK_STACK) {
             //     Stack * stack = (Stack *)b->data();
             //     wrote += snprintf(
             //         buf + wrote,
@@ -562,7 +562,7 @@ void Editor::guiMem() {
             //         stack->head()
             //     );
             // }
-            // else if (b->type == TYPE_FILE) {
+            // else if (b->type == MEM_BLOCK_FILE) {
             //     File * file = (File *)b->data();
             //     wrote += snprintf(
             //         buf + wrote,
@@ -578,7 +578,7 @@ void Editor::guiMem() {
             //         file->path()
             //     );
             // }
-            // else if (b->type == TYPE_EXTERNAL) {
+            // else if (b->type == MEM_BLOCK_EXTERNAL) {
             // }
 
             // wrote += snprintf(

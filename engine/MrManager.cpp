@@ -17,9 +17,9 @@ int MrManager::init(EngineSetup const & setup) {
     thisTime = setup.startTime;
     prevTime = setup.startTime;
 
-    memMan.init(setup.memSysSize);
-    if (setup.frameStackSize) {
-        frameStack = memMan.createStack(setup.frameStackSize);
+    memMan.init(setup);
+    if (memMan.firstBlock()->type() == MEM_BLOCK_STACK) {
+        frameStack = memMan.getBlockDataAt<Stack>(0);
     }
     rendSys.init();
     camera.init(windowSize);

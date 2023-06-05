@@ -56,8 +56,13 @@ struct EngineSetup {
 
     WindowLimits windowLimits;
 
-    size_t memSysSize = 1024*1024*500;
-    size_t frameStackSize = 1024*1024*10;
+    size_t memManSize = 1024*1024*500;
+    MemBlockSetup memManInitBlocks[16] = {
+        [0] = { .type = MEM_BLOCK_STACK, .size = 1024*1024*10, }, // frame stack
+    };
+
+    // size_t memSysSize = 1024*1024*500;
+    // size_t frameStackSize = 1024*1024*10;
 
     bool transparentFramebuffer = false;
 

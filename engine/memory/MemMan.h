@@ -1,12 +1,11 @@
 #pragma once
-#include "../common/types.h"
 #include <stdio.h>
 #include <bx/allocator.h>
 #include <mutex>
+#include "../engine.h"
 #include "File.h"
 #include "Pool.h"
 #include "Stack.h"
-#include "../common/debug_defines.h"
 
 class MemMan {
 public:
@@ -17,23 +16,6 @@ public:
     friend class BXAllocator;
 
     // types ---------------------------------------------------------------- //
-    enum Type {
-        // unsued
-        TYPE_FREE,    // empty space to be claimed
-        TYPE_CLAIMED, // claimed but type not set yet
-        // internal types, with special treatment
-        TYPE_POOL,
-        TYPE_STACK,
-        TYPE_FILE,
-        TYPE_ENTITY,
-        // special blocks for small allocations?
-        // TYPE_SMALL_ALLOC
-        // requested by BGFX. (no special treatment atm)
-        TYPE_BGFX,
-        // externally requested of any type
-        TYPE_EXTERNAL
-    };
-
     using guard_t = std::lock_guard<std::recursive_mutex>;
 
     // "MemB"
@@ -52,27 +34,23 @@ public:
         friend class BXAllocator;
         friend void * memManAlloc(size_t, void *);
 
-        size_t   dataSize()  const  { return _dataSize; }
-        size_t   totalSize() const  { return BlockInfoSize + _dataSize; }
-        Type     type()      const  { return _type; }
-        byte_t * data()             { return (byte_t *)this + BlockInfoSize; }
-        byte_t const * data() const { return (byte_t const *)((byte_t *)this + BlockInfoSize); }
+        size_t          dataSize()  const  { return _dataSize; }
+        size_t          totalSize() const  { return BlockInfoSize + _dataSize; }
+        MemBlockType    type()      const  { return _type; }
+        byte_t *        data()             { return (byte_t *)this + BlockInfoSize; }
+        byte_t const *  data()      const  { return (byte_t const *)((byte_t *)this + BlockInfoSize); }
 
     private:
         size_t _dataSize = 0;
         Block * _next = nullptr;
-        Type _type = TYPE_FREE;
-
-        // "info" could maybe be a magic string (for safety checks). or maybe additional info.
-        // 8-byte allignment on personal development machine is forcing this Block to always be
-        // 32 bytes anyway so this is here to make that explicit. We could even take more space
-        // from type, which could easily be only 1 or 2 bytes.
-        // INGORE ABOVE. setting magic string for now:
-        // magic string: MemB
-        byte_t _info[4] = BLOCK_MAGIC_STRING;
+        MemBlockType _type = MEM_BLOCK_FREE;
+        uint8_t _subBlockSize = 0;
+        uint8_t _subBlockInfo = 0;
+        uint16_t _nSubBlocks = 0;
 
         // expand Block for debug purposes
         #if DEBUG
+        byte_t _info[4] = BLOCK_MAGIC_STRING;
         size_t debug_index = SIZE_MAX;
         #endif // DEBUG
 
@@ -84,7 +62,7 @@ public:
     size_t size() const { return _size; }
 
     // lifecycle ------------------------------------------------------------ //
-    void init(size_t size);
+    void init(EngineSetup const & setup);
     void shutdown();
 
     // create/destroy for internal types ------------------------------------ //
@@ -121,6 +99,10 @@ public:
     Block const * firstBlock() const;
     Block const * nextBlock(Block const & block) const;
 
+    // Data/type access
+    template <typename T>
+    T * getBlockDataAt(int index);
+
     // checks and assertions ------------------------------------------------ //
     // check if random pointer is within managed range
     bool isWithinData(void * ptr, size_t size = 0) const;
@@ -154,8 +136,18 @@ template <typename T, typename ... TP>
 inline T * MemMan::create(size_t size, TP && ... params) {
     Block * block = requestFreeBlock(size + sizeof(T));
     if (!block) return nullptr;
-    block->_type = TYPE_EXTERNAL;
+    block->_type = MEM_BLOCK_EXTERNAL;
     return new (block->data()) T{static_cast<TP &&>(params)...};
+}
+
+template <typename T>
+inline T * MemMan::getBlockDataAt(int index) {
+    int i = 0;
+    for (Block * block = _blockHead; block; block = block->_next) {
+        if (i == index) return (T *)block->data();
+        ++i;
+    }
+    return nullptr;
 }
 
 

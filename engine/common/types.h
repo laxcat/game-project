@@ -60,3 +60,28 @@ struct Event {
                             // For example debug UI might consume input events,
                             // so the main game doesn't even see them.
 };
+
+enum MemBlockType {
+    // unsued
+    MEM_BLOCK_FREE,    // empty space to be claimed
+    MEM_BLOCK_CLAIMED, // claimed but type not set yet
+    // Special Fixed Sized Allocator type
+    // if FSA blocks are configured at init, special checks will happen at new allocation/lookup
+    MEM_BLOCK_FSA,
+    // internal types, with special treatment
+    MEM_BLOCK_POOL,
+    MEM_BLOCK_STACK,
+    MEM_BLOCK_FILE,
+    MEM_BLOCK_ENTITY,
+    // requested by BGFX. (no special treatment atm)
+    MEM_BLOCK_BGFX,
+    // externally requested of any type
+    MEM_BLOCK_EXTERNAL
+};
+
+struct MemBlockSetup {
+    size_t size = 0;
+    MemBlockType type = MEM_BLOCK_FREE;
+    uint8_t subBlockSize = 0;
+    uint16_t nSubBlocks = 0;
+};
