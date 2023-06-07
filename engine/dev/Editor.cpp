@@ -479,13 +479,16 @@ void Editor::guiMem() {
             char * str = mm.tempStr(128);
             snprintf(str, 128, "%03d: %s Block (%s)",
                 i,
-                (b->type() == MEM_BLOCK_FREE)     ? "FREE"  :
-                (b->type() == MEM_BLOCK_CLAIMED)  ? "CLAIMED" :
-                (b->type() == MEM_BLOCK_POOL)     ? "POOL"  :
-                (b->type() == MEM_BLOCK_STACK)    ? "STACK" :
-                (b->type() == MEM_BLOCK_FILE)     ? "FILE" :
-                (b->type() == MEM_BLOCK_BGFX)     ? "BGFX" :
-                (b->type() == MEM_BLOCK_EXTERNAL) ? "EXTERNAL" :
+                (b->type() == MEM_BLOCK_FREE)       ? "FREE"  :
+                (b->type() == MEM_BLOCK_CLAIMED)    ? "CLAIMED" :
+                (b->type() == MEM_BLOCK_FSA)        ? "FSA" :
+                (b->type() == MEM_BLOCK_POOL)       ? "POOL"  :
+                (b->type() == MEM_BLOCK_STACK)      ? "STACK" :
+                (b->type() == MEM_BLOCK_BPMAP)      ? "BPMAP" :
+                (b->type() == MEM_BLOCK_FILE)       ? "FILE" :
+                (b->type() == MEM_BLOCK_GOBJ)       ? "GOBJ" :
+                (b->type() == MEM_BLOCK_BGFX)       ? "BGFX" :
+                (b->type() == MEM_BLOCK_EXTERNAL)   ? "EXTERNAL" :
                 "Unknown",
                 byteSizeStr(b->dataSize())
                 );

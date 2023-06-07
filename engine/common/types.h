@@ -71,8 +71,9 @@ enum MemBlockType {
     // internal types, with special treatment
     MEM_BLOCK_POOL,
     MEM_BLOCK_STACK,
+    MEM_BLOCK_BPMAP,
     MEM_BLOCK_FILE,
-    MEM_BLOCK_ENTITY,
+    MEM_BLOCK_GOBJ,
     // requested by BGFX. (no special treatment atm)
     MEM_BLOCK_BGFX,
     // externally requested of any type
