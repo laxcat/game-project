@@ -3,9 +3,10 @@
 #include <bx/allocator.h>
 #include <mutex>
 #include "../engine.h"
-#include "File.h"
-#include "Pool.h"
 #include "Stack.h"
+#include "Pool.h"
+#include "File.h"
+#include "FSA.h"
 
 class MemMan {
 public:
@@ -44,9 +45,6 @@ public:
         size_t _dataSize = 0;
         Block * _next = nullptr;
         MemBlockType _type = MEM_BLOCK_FREE;
-        uint8_t _subBlockSize = 0;
-        uint8_t _subBlockInfo = 0;
-        uint16_t _nSubBlocks = 0;
 
         // expand Block for debug purposes
         #if DEBUG
@@ -72,6 +70,9 @@ public:
     void destroyStack(Stack * s);
     File * createFileHandle(char const * path, bool loadNow = false);
     void destroyFileHandle(File * f);
+    FSA * createFSA(uint8_t subBlockByteSize, uint16_t subBlockCount);
+    void destroyFSA(FSA * fsa);
+
     // Entity * createEntity(char const * path, bool loadNow = false);
     // void destroyEntity(Entity * f);
     template <typename T, typename ... TP>
@@ -115,6 +116,9 @@ private:
     Block * _blockHead = nullptr;
     // Block * _blockTail = nullptr;
     size_t _size = 0;
+    FSAMap * _fsaMap = nullptr;
+    byte_t * _fsaRangeBegin = nullptr;
+    byte_t * _fsaRangeEnd = nullptr;
     mutable std::recursive_mutex mainMutex;
 
     // internal ------------------------------------------------------------- //

@@ -58,7 +58,9 @@ struct EngineSetup {
 
     size_t memManSize = 1024*1024*500;
     MemBlockSetup memManInitBlocks[16] = {
-        [0] = { .type = MEM_BLOCK_STACK, .size = 1024*1024*10, }, // frame stack
+        // stack at index 0 automatically becomes frame stack
+        { .type = MEM_BLOCK_STACK, .size = 1024*1024*10, },
+        { .type = MEM_BLOCK_FSA, .subBlockSize = 8, .nSubBlocks = 64, }
     };
 
     // size_t memSysSize = 1024*1024*500;
