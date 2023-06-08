@@ -165,52 +165,6 @@ void MemMan::destroyFSA(FSA * fsa) {
     destroy(fsa);
 }
 
-
-// MemMan::Entity * MemMan::createEntity(char const * path, bool loadNow) {
-//     File * f = createFileHandle(path, true);
-
-
-//     // // open to deternmine size, and also maybe load
-//     // errno = 0;
-//     // FILE * fp = fopen(path, "r");
-//     // if (!fp) {
-//     //     fprintf(stderr, "Error loading file \"%s\": %d\n", path, errno);
-//     //     return nullptr;
-//     // }
-
-//     // // calc size
-//     // auto counter = Entity::getMemorySize(fp);
-//     // size_t gltfSize = counter.totalSize();
-//     // printl("gltf %s memory size %zu", path, gltfSize);
-
-//     // // create block from size
-//     // Block * block = requestFreeBlock(gltfSize + sizeof(Entity));
-//     // if (!block) return nullptr;
-//     // block->type = MEM_BLOCK_ENTITY;
-//     // Entity * entity = new (block->data()) Entity{path};
-
-//     // // seek back to start of file
-//     // int fseekError = fseek(fp, 0L, 0);
-//     // if (fseekError) {
-//     //     fprintf(stderr, "Error seeking in file \"%s\": %d\n", path, fseekError);
-//     //     return nullptr;
-//     // }
-
-//     // // load it into memory
-//     // entity->load(fp, entity->data(), gltfSize, counter);
-
-//     // // close fp
-//     // fclose(fp);
-
-//     // entity->printGLTF();
-
-//     return nullptr;
-// }
-
-// void MemMan::destroyEntity(Entity * f) {
-//     destroy(f);
-// }
-
 void MemMan::destroy(void * ptr) {
     guard_t guard{mainMutex};
 
@@ -639,11 +593,13 @@ void memManFree(void * ptr, void * userData) {
 void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * file, uint32_t line) {
     MemMan::guard_t guard{memMan->mainMutex};
 
-    if constexpr (ShowMemManBGFXDbg) print("BGFX ALLOC: "
-        "%p, "
+    if constexpr (ShowMemManBGFXDbg) printl(
+        "(%05zu) BGFX ALLOC: "
+        "%011p, "
         "%*zu, "
         "%*zu, "
         "%s:%d ",
+        memMan->frame,
         ptr,
         10, size,
         2, align,
@@ -660,7 +616,7 @@ void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * 
         memMan->blockForDataPtr(ret)->_type = MEM_BLOCK_BGFX;
     }
 
-    if constexpr (ShowMemManBGFXDbg) printl("RETURN: %*p", 8, ret);
+    if constexpr (ShowMemManBGFXDbg) printl("          (RETURNS: %011p)", ret);
     return ret;
 }
 

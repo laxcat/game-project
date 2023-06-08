@@ -32,6 +32,7 @@ public:
     double thisTime;
     double prevTime;
     double dt;
+    size_t frame = 0;
     EngineSetup setup;
 
     EventQueue eventQueue;

@@ -54,6 +54,9 @@ void MrManager::shutdown() {
 }
 
 void MrManager::beginFrame(double nowInSeconds) {
+    // update frame
+    ++frame;
+    memMan.frame = frame;
     // update time
     prevTime = thisTime;
     thisTime = nowInSeconds;

@@ -110,6 +110,8 @@ public:
 
     bool checkAllBlocks();
 
+    size_t frame;
+
     // storage -------------------------------------------------------------- //
 private:
     byte_t * _data = nullptr;
