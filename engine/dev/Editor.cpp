@@ -456,7 +456,6 @@ void Editor::guiColors() {
 
 void Editor::guiMem() {
     if (CollapsingHeader("Memory", ImGuiTreeNodeFlags_DefaultOpen)) {
-        // Text("Total: %.0f MB", round((double)mm.memMan.size()/(1024*1024)));
         Text("Total: %s", byteSizeStr(mm.memMan.size()));
 
         Indent();
@@ -513,88 +512,7 @@ void Editor::guiMem() {
             style->Colors[ImGuiCol_Text] = defaultTextColor;
             Separator();
             ++i;
-
-
-
-            // wrote += snprintf(
-            //     buf + wrote,
-            //     bufSize - wrote,
-            //     "--------------------------------------------------------------------------------\n"
-            //     "Block %d, %s\n"
-            //     "--------------------\n"
-            //     "Base: %p, Data: %p, BlockDataSize: %zu\n"
-            //     ,
-            //     i,
-            //         (b->type == MEM_BLOCK_FREE)     ? "FREE"  :
-            //         (b->type == MEM_BLOCK_POOL)     ? "POOL"  :
-            //         (b->type == MEM_BLOCK_STACK)    ? "STACK" :
-            //         (b->type == MEM_BLOCK_FILE)     ? "FILE" :
-            //         (b->type == MEM_BLOCK_EXTERNAL) ? "EXTERNAL" :
-            //         "(unknown type)"
-            //     ,
-            //     b,
-            //     b->data(),
-            //     b->dataSize()
-            // );
-
-            // if (b->type == MEM_BLOCK_FREE) {
-            // }
-            // else if (b->type == MEM_BLOCK_POOL) {
-            //     Pool * pool = (Pool *)b->data();
-            //     wrote += snprintf(
-            //         buf + wrote,
-            //         bufSize - wrote,
-            //         "PoolInfoSize: %zu, ObjSize: %zu, MaxCount/DataSize: *%zu=%zu, FirstFree: %zu\n"
-            //         ,
-            //         sizeof(Pool),
-            //         pool->objSize(),
-            //         pool->objMaxCount(),
-            //         pool->size(),
-            //         pool->freeIndex()
-            //     );
-            // }
-            // else if (b->type == MEM_BLOCK_STACK) {
-            //     Stack * stack = (Stack *)b->data();
-            //     wrote += snprintf(
-            //         buf + wrote,
-            //         bufSize - wrote,
-            //         "StackInfoSize: %zu, DataSize: %zu, Head: %zu\n"
-            //         ,
-            //         sizeof(Stack),
-            //         stack->size(),
-            //         stack->head()
-            //     );
-            // }
-            // else if (b->type == MEM_BLOCK_FILE) {
-            //     File * file = (File *)b->data();
-            //     wrote += snprintf(
-            //         buf + wrote,
-            //         bufSize - wrote,
-            //         "FileInfoSize: %zu, FileSize: %zu, DataSize: %zu, Head: %zu, Loaded: %s\n"
-            //         "Path: %s\n"
-            //         ,
-            //         sizeof(File),
-            //         file->fileSize(),
-            //         file->size(),
-            //         file->head(),
-            //         file->loaded()?"yes":"no",
-            //         file->path()
-            //     );
-            // }
-            // else if (b->type == MEM_BLOCK_EXTERNAL) {
-            // }
-
-            // wrote += snprintf(
-            //     buf + wrote,
-            //     bufSize - wrote,
-            //     "--------------------------------------------------------------------------------\n"
-            // );
         }
-
-
-        // if (Button("Show Memory")) {
-        //     memMan = &mm.memMan;
-        // }
     }
 }
 
@@ -609,3 +527,99 @@ void Editor::clearMemEditWindow() {
     memEditSz = 0;
     snprintf(memEditTitle, 64, "");
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// wrote += snprintf(
+//     buf + wrote,
+//     bufSize - wrote,
+//     "--------------------------------------------------------------------------------\n"
+//     "Block %d, %s\n"
+//     "--------------------\n"
+//     "Base: %p, Data: %p, BlockDataSize: %zu\n"
+//     ,
+//     i,
+//         (b->type == MEM_BLOCK_FREE)     ? "FREE"  :
+//         (b->type == MEM_BLOCK_POOL)     ? "POOL"  :
+//         (b->type == MEM_BLOCK_STACK)    ? "STACK" :
+//         (b->type == MEM_BLOCK_FILE)     ? "FILE" :
+//         (b->type == MEM_BLOCK_EXTERNAL) ? "EXTERNAL" :
+//         "(unknown type)"
+//     ,
+//     b,
+//     b->data(),
+//     b->dataSize()
+// );
+
+// if (b->type == MEM_BLOCK_FREE) {
+// }
+// else if (b->type == MEM_BLOCK_POOL) {
+//     Pool * pool = (Pool *)b->data();
+//     wrote += snprintf(
+//         buf + wrote,
+//         bufSize - wrote,
+//         "PoolInfoSize: %zu, ObjSize: %zu, MaxCount/DataSize: *%zu=%zu, FirstFree: %zu\n"
+//         ,
+//         sizeof(Pool),
+//         pool->objSize(),
+//         pool->objMaxCount(),
+//         pool->size(),
+//         pool->freeIndex()
+//     );
+// }
+// else if (b->type == MEM_BLOCK_STACK) {
+//     Stack * stack = (Stack *)b->data();
+//     wrote += snprintf(
+//         buf + wrote,
+//         bufSize - wrote,
+//         "StackInfoSize: %zu, DataSize: %zu, Head: %zu\n"
+//         ,
+//         sizeof(Stack),
+//         stack->size(),
+//         stack->head()
+//     );
+// }
+// else if (b->type == MEM_BLOCK_FILE) {
+//     File * file = (File *)b->data();
+//     wrote += snprintf(
+//         buf + wrote,
+//         bufSize - wrote,
+//         "FileInfoSize: %zu, FileSize: %zu, DataSize: %zu, Head: %zu, Loaded: %s\n"
+//         "Path: %s\n"
+//         ,
+//         sizeof(File),
+//         file->fileSize(),
+//         file->size(),
+//         file->head(),
+//         file->loaded()?"yes":"no",
+//         file->path()
+//     );
+// }
+// else if (b->type == MEM_BLOCK_EXTERNAL) {
+// }
+
+// wrote += snprintf(
+//     buf + wrote,
+//     bufSize - wrote,
+//     "--------------------------------------------------------------------------------\n"
+// );
