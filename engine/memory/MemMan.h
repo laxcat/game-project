@@ -41,9 +41,19 @@ public:
         byte_t *        data()             { return (byte_t *)this + BlockInfoSize; }
         byte_t const *  data()      const  { return (byte_t const *)((byte_t *)this + BlockInfoSize); }
 
+        // aligned functions
+        size_t alignPadding(size_t align) const {
+            size_t dataPtrAsNum = (size_t)(byte_t *)this + BlockInfoSize;
+            size_t remainder = dataPtrAsNum % align;
+            return (remainder) ? align - remainder : 0;
+        }
+        size_t alignDataSize(size_t align) const { return alignPadding(align) + _dataSize; }
+        void setAlignPadding(size_t align) { _padding = alignPadding(align); }
+
     private:
         size_t _dataSize = 0;
         Block * _next = nullptr;
+        size_t _padding = 0;
         MemBlockType _type = MEM_BLOCK_FREE;
 
         // expand Block for debug purposes
@@ -70,8 +80,6 @@ public:
     void destroyStack(Stack * s);
     File * createFileHandle(char const * path, bool loadNow = false);
     void destroyFileHandle(File * f);
-    FSA * createFSA(uint8_t subBlockByteSize, uint16_t subBlockCount);
-    void destroyFSA(FSA * fsa);
 
     // Entity * createEntity(char const * path, bool loadNow = false);
     // void destroyEntity(Entity * f);
@@ -121,10 +129,14 @@ private:
     FSAMap * _fsaMap = nullptr;
     byte_t * _fsaRangeBegin = nullptr;
     byte_t * _fsaRangeEnd = nullptr;
-    mutable std::recursive_mutex mainMutex;
+    mutable std::recursive_mutex _mainMutex;
 
     // internal ------------------------------------------------------------- //
 private:
+    // only allowed from init
+    FSA * createFSA(uint8_t subBlockByteSize, uint16_t subBlockCount);
+    void destroyFSA(FSA * fsa);
+
     #if DEBUG
     // create index for all in linked list for debuging purposes
     void reindexBlocks();

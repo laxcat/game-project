@@ -55,14 +55,26 @@ void MemMan::init(EngineSetup const & setup) {
                 assert(fsaMapBlock && "Failed to create FSA map.");
                 fsaMapBlock->_type = MEM_BLOCK_BPMAP;
                 _fsaMap = (FSAMap *)fsaMapBlock->data();
+                printl("FSAMap: %p", _fsaMap);
+
+                // printl("fsa dataSize")
+                printl("fsa alignPadding(64) %zu", fsaMapBlock->alignPadding(64));
             }
-            FSA * fsa = createFSA(blockSetup.subBlockSize, blockSetup.nSubBlocks);
-            assert(fsa && "Failed to create FSA.");
-            Block * fsaBlock = blockForDataPtr(fsa);
-            if (_fsaRangeBegin == nullptr) {
-                _fsaRangeBegin = (byte_t * )fsaBlock;
-            }
-            _fsaRangeEnd = (byte_t * )fsaBlock + fsaBlock->totalSize();
+
+
+            // Block * tempBlock = requestFreeBlock(524);
+            // assert(tempBlock && "Failed to create temp block");
+            // tempBlock->_type = MEM_BLOCK_STACK;
+
+            // FSA * fsa = createFSA(blockSetup.subBlockSize, blockSetup.nSubBlocks);
+            // assert(fsa && "Failed to create FSA.");
+            // Block * fsaBlock = blockForDataPtr(fsa);
+            // printl("FSABlock: %p", fsaBlock);
+            // printl("FSA: %p", fsa);
+            // if (_fsaRangeBegin == nullptr) {
+            //     _fsaRangeBegin = (byte_t * )fsaBlock;
+            // }
+            // _fsaRangeEnd = (byte_t * )fsaBlock + fsaBlock->totalSize();
         }
         else {
             assert(false && "Unsupported MemMan init block type.");
@@ -72,13 +84,15 @@ void MemMan::init(EngineSetup const & setup) {
     // printl("FSAMap min/max bytes %d—%d", FSAMap::MinBytes, FSAMap::MaxBytes);
     // FSAMap map;
     // for (int i = FSAMap::MinBytes; i <= FSAMap::MaxBytes; ++i) {
-    //     int b = map.indexForByteSize(i); // private
-    //     int bs = map.blockByteSizeForSize(i);
+    //     int b = FSAMap::IndexForByteSize(i); // private
+    //     int bs = FSAMap::ActualByteSizeForByteSize(i);
     //     printl("indexForByteSize(%d) : %d, acutal block size: %d", i, b, bs);
     // }
+    BitArray bitArray(12);
     printl("MEM MAN RANGE %*p—%*p", 8, _data, 8, _data+_size);
     printl("BlockInfoSize %zu", BlockInfoSize);
     printl("MemBlockSetup struct size: %zu", sizeof(MemBlockSetup));
+    printl("bit array (%d) (sizeof(BitArray) = %zu) %p, %p", bitArray.size(), sizeof(BitArray), &bitArray, bitArray.data());
 }
 
 void MemMan::shutdown() {
@@ -153,8 +167,12 @@ void MemMan::destroyFileHandle(File * f) {
 }
 
 FSA * MemMan::createFSA(uint8_t subBlockByteSize, uint16_t subBlockCount) {
-    size_t size = FSA::TotalBlockSize(subBlockByteSize, subBlockCount);
-    printl("size of FSA block: %zu", size);
+    size_t size = FSA::BlockByteSize(subBlockByteSize, subBlockCount);
+    printl("size of FSA block (given %d, %d): %zu", subBlockByteSize, subBlockCount, size);
+    printl("sizeof(FSA) %zu +", sizeof(FSA));
+    printl("BitArray::ByteSizeForSize(subBlockCount) %zu +", BitArray::ByteSizeForSize(subBlockCount));
+    printl("FSAMap::ActualByteSizeForByteSize(subBlockByteSize) %zu * subBlockCount %d",
+        FSAMap::ActualByteSizeForByteSize(subBlockByteSize), subBlockCount);
     Block * block = requestFreeBlock(size);
     if (!block) return nullptr;
     block->_type = MEM_BLOCK_FSA;
@@ -166,7 +184,7 @@ void MemMan::destroyFSA(FSA * fsa) {
 }
 
 void MemMan::destroy(void * ptr) {
-    guard_t guard{mainMutex};
+    guard_t guard{_mainMutex};
 
     assert(isWithinData((byte_t *)ptr));
 
@@ -200,7 +218,7 @@ void MemMan::destroy(void * ptr) {
 // block handling ------------------------------------------------------- //
 
 MemMan::Block * MemMan::findFree(size_t size) {
-    guard_t guard{mainMutex};
+    guard_t guard{_mainMutex};
 
     Block * block = nullptr;
     int i = 0;
@@ -225,7 +243,7 @@ MemMan::Block * MemMan::findFree(size_t size) {
 
 // find block with enough free space, split it to size, and return it
 MemMan::Block * MemMan::requestFreeBlock(size_t size) {
-    guard_t guard{mainMutex};
+    guard_t guard{_mainMutex};
 
     DEBUG_MSG("REQUEST FREE BLOCK start");
 
@@ -239,6 +257,7 @@ MemMan::Block * MemMan::requestFreeBlock(size_t size) {
     // safe and prevent multiple threads claiming a free block...
     block->_type = MEM_BLOCK_CLAIMED;
 
+    // Get our main block and split the rest off as free remainder.
     // We don't care if the split actually happens or not.
     // If it happened, we still return the first block and the 2nd is of no
     // concern.
@@ -254,7 +273,7 @@ MemMan::Block * MemMan::requestFreeBlock(size_t size) {
 }
 
 MemMan::Block * MemMan::splitBlock(Block * blockA, size_t blockANewSize) {
-    guard_t guard{mainMutex};
+    guard_t guard{_mainMutex};
 
     DEBUG_MSG("SPLIT BLOCK start");
 
@@ -297,7 +316,7 @@ MemMan::Block * MemMan::splitBlock(Block * blockA, size_t blockANewSize) {
 }
 
 MemMan::Block * MemMan::splitBlockEnd(Block * blockA, size_t blockBNewSize) {
-    guard_t guard{mainMutex};
+    guard_t guard{_mainMutex};
 
     if (blockBNewSize + BlockInfoSize > blockA->dataSize()) return nullptr;
     auto ret = splitBlock(blockA, blockA->dataSize() - BlockInfoSize - blockBNewSize);
@@ -305,7 +324,7 @@ MemMan::Block * MemMan::splitBlockEnd(Block * blockA, size_t blockBNewSize) {
 }
 
 MemMan::Block * MemMan::mergeFreeBlocks(Block * block) {
-    guard_t guard{mainMutex};
+    guard_t guard{_mainMutex};
 
     DEBUG_MSG("MERGE BLOCK start");
 
@@ -348,7 +367,7 @@ MemMan::Block * MemMan::mergeFreeBlocks(Block * block) {
 }
 
 MemMan::Block * MemMan::resizeBlock(Block * block, size_t newSize) {
-    guard_t guard{mainMutex};
+    guard_t guard{_mainMutex};
 
     DEBUG_MSG("RESIZE BLOCK start");
 
@@ -452,7 +471,7 @@ MemMan::Block * MemMan::resizeBlock(Block * block, size_t newSize) {
 }
 
 MemMan::Block * MemMan::blockForDataPtr(void * ptr) {
-    guard_t guard{mainMutex};
+    guard_t guard{_mainMutex};
 
     Block * block = (Block *)((byte_t *)ptr - BlockInfoSize);
 
@@ -524,7 +543,7 @@ bool MemMan::isValidBlock(Block * block) const {
 }
 
 bool MemMan::checkAllBlocks() {
-    guard_t guard{mainMutex};
+    guard_t guard{_mainMutex};
 
     bool ret = true;
     int i = 0;
@@ -545,7 +564,7 @@ void * memManAlloc(size_t size, void * userData) {
     if (!userData) return nullptr;
     MemMan * memMan = (MemMan *)userData;
 
-    MemMan::guard_t guard{memMan->mainMutex};
+    MemMan::guard_t guard{memMan->_mainMutex};
 
     if (!size) return nullptr;
     MemMan::Block * block = memMan->requestFreeBlock(size);
@@ -562,7 +581,7 @@ void * memManRealloc(void * ptr, size_t size, void * userData) {
     if (!userData) return nullptr;
     MemMan * memMan = (MemMan *)userData;
 
-    MemMan::guard_t guard{memMan->mainMutex};
+    MemMan::guard_t guard{memMan->_mainMutex};
 
     if (ptr == nullptr) return memManAlloc(size, userData);
     if (size == 0) {
@@ -584,14 +603,17 @@ void memManFree(void * ptr, void * userData) {
     if (!userData) return;
     MemMan * memMan = (MemMan *)userData;
 
-    MemMan::guard_t guard{memMan->mainMutex};
+    MemMan::guard_t guard{memMan->_mainMutex};
 
     if (!ptr) return;
     memMan->destroy(ptr);
 }
 
 void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * file, uint32_t line) {
-    MemMan::guard_t guard{memMan->mainMutex};
+    #if DEBUG
+        assert(memMan && "Memory manager pointer not set in BXAllocator.");
+    #endif
+    MemMan::guard_t guard{memMan->_mainMutex};
 
     if constexpr (ShowMemManBGFXDbg) printl(
         "(%05zu) BGFX ALLOC: "
@@ -606,10 +628,6 @@ void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * 
         file,
         line
     );
-
-    #if DEBUG
-        assert(memMan && "Memory manager pointer not set in BXAllocator.");
-    #endif
 
     void * ret = memManRealloc(ptr, size, (void *)memMan);
     if (ptr == nullptr && size) {
