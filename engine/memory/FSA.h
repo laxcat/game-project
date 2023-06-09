@@ -1,24 +1,5 @@
 #pragma once
-
-class FSA {
-public:
-    static size_t constexpr TotalBlockSize(uint8_t subBlockByteSize, uint16_t subBlockCount) {
-        assert(subBlockCount / 8 * 8 == subBlockCount && "subBlockCount must be multiple of 8.");
-        return
-            sizeof(FSA) +
-            subBlockCount / 8 +
-            subBlockByteSize * subBlockCount;
-    }
-
-    FSA(uint8_t subBlockByteSize, uint16_t subBlockCount) {
-        assert(subBlockCount / 8 * 8 == subBlockCount && "subBlockCount must be multiple of 8.");
-    }
-
-private:
-    uint8_t _subBlockSize = 0;
-    uint16_t _nSubBlocks = 0;
-};
-
+#include "BitArray.h"
 
 /*
 Map designed to lookup FSA locations in memory given requested byte size.
@@ -33,7 +14,7 @@ public:
     static int constexpr MaxBlocks = 12;
 
     byte_t * activePtrForByteSize(uint16_t byteSize) {
-        uint8_t ideal = indexForByteSize(byteSize);
+        uint8_t ideal = IndexForByteSize(byteSize);
         while (ideal < MaxBlocks && _ptrs[ideal] == nullptr) {
             ++ideal;
         }
@@ -43,27 +24,27 @@ public:
     }
 
     byte_t * ptrForByteSize(uint16_t byteSize) {
-        return _ptrs[indexForByteSize(byteSize)];
+        return _ptrs[IndexForByteSize(byteSize)];
     }
 
     void setPtrForByteSize(uint16_t byteSize, byte_t * ptr) {
-        _ptrs[indexForByteSize(byteSize)] = ptr;
+        _ptrs[IndexForByteSize(byteSize)] = ptr;
     }
 
     bool hasPtrForByteSize(uint16_t byteSize) {
-        return (_ptrs[indexForByteSize(byteSize)] != nullptr);
+        return (_ptrs[IndexForByteSize(byteSize)] != nullptr);
     }
 
-    size_t blockByteSizeForSize(uint16_t byteSize) {
-        uint8_t exp = indexForByteSize(byteSize) + 1;
+    static size_t constexpr ActualByteSizeForByteSize(uint16_t byteSize) {
+        uint8_t exp = IndexForByteSize(byteSize) + 1;
         return (size_t)((uint16_t)1 << exp);
     }
 
-// private:
+private:
     byte_t * _ptrs[MaxBlocks] = {nullptr};   // pointers
 
     // returns 0-11, given byteSize range MinBytes-MaxBytes
-    uint8_t indexForByteSize(uint16_t byteSize) {
+    static uint8_t constexpr IndexForByteSize(uint16_t byteSize) {
         assert(byteSize >= MinBytes && byteSize <= MaxBytes && "Invalid byte size.");
         byteSize -= 1;
         int index = 0;
@@ -79,9 +60,31 @@ SOME TEST CODE:
 printl("FSAMap min/max bytes %d—%d", FSAMap::MinBytes, FSAMap::MaxBytes);
 FSAMap map;
 for (int i = FSAMap::MinBytes; i <= FSAMap::MaxBytes; ++i) {
-    int b = map.indexForByteSize(i); // private
-    int bs = map.blockByteSizeForSize(i);
-    printl("indexForByteSize(%d) : %d, acutal block size: %d", i, b, bs);
+    int b = map.IndexForByteSize(i); // private
+    int bs = map.ActualByteSizeForByteSize(i);
+    printl("IndexForByteSize(%d) : %d, acutal block size: %d", i, b, bs);
 }
 
 */
+
+
+class FSA {
+public:
+    static size_t constexpr BlockByteSize(uint8_t subBlockByteSize, uint16_t subBlockCount) {
+        assert(subBlockCount / 8 * 8 == subBlockCount && "subBlockCount must be multiple of 8.");
+        return
+            sizeof(FSA) +
+            BitArray::ByteSizeForSize(subBlockCount) +
+            FSAMap::ActualByteSizeForByteSize(subBlockByteSize) * subBlockCount;
+    }
+
+    FSA(uint8_t subBlockByteSize, uint16_t subBlockCount) {
+        assert(subBlockCount / 8 * 8 == subBlockCount && "subBlockCount must be multiple of 8.");
+    }
+
+private:
+    uint8_t _subBlockSize = 0;
+    uint16_t _nSubBlocks = 0;
+};
+
+
