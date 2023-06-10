@@ -88,11 +88,11 @@ void MemMan::init(EngineSetup const & setup) {
     //     int bs = FSAMap::ActualByteSizeForByteSize(i);
     //     printl("indexForByteSize(%d) : %d, acutal block size: %d", i, b, bs);
     // }
-    BitArray bitArray(12);
-    printl("MEM MAN RANGE %*p—%*p", 8, _data, 8, _data+_size);
-    printl("BlockInfoSize %zu", BlockInfoSize);
-    printl("MemBlockSetup struct size: %zu", sizeof(MemBlockSetup));
-    printl("bit array (%d) (sizeof(BitArray) = %zu) %p, %p", bitArray.size(), sizeof(BitArray), &bitArray, bitArray.data());
+    // BitArray bitArray(12);
+    // printl("MEM MAN RANGE %*p—%*p", 8, _data, 8, _data+_size);
+    // printl("BlockInfoSize %zu", BlockInfoSize);
+    // printl("MemBlockSetup struct size: %zu", sizeof(MemBlockSetup));
+    // printl("bit array (%d) (sizeof(BitArray) = %zu) %p, %p", bitArray.size(), sizeof(BitArray), &bitArray, bitArray.data());
 }
 
 void MemMan::shutdown() {

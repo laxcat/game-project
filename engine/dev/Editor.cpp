@@ -8,6 +8,7 @@
 #include "../MrManager.h"
 #include "OriginWidget.h"
 #include "../common/Path.h"
+#include "../memory/memutils.h"
 // #include "../dev/print.h"
 
 // ImGuiTreeNodeFlags_DefaultOpen
@@ -96,6 +97,7 @@ void Editor::tick() {
     guiFog();
     guiColors();
     guiMem();
+    guiMem2();
     if (mm.setup.appendInsideEditor) mm.setup.appendInsideEditor();
 
     End();
@@ -455,7 +457,7 @@ void Editor::guiColors() {
 }
 
 void Editor::guiMem() {
-    if (CollapsingHeader("Memory", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (CollapsingHeader("Memory")) {
         Text("Total: %s", byteSizeStr(mm.memMan.size()));
 
         Indent();
@@ -478,17 +480,7 @@ void Editor::guiMem() {
             char * str = mm.tempStr(128);
             snprintf(str, 128, "%03d: %s Block (%s)",
                 i,
-                (b->type() == MEM_BLOCK_FREE)       ? "FREE"  :
-                (b->type() == MEM_BLOCK_CLAIMED)    ? "CLAIMED" :
-                (b->type() == MEM_BLOCK_FSA)        ? "FSA" :
-                (b->type() == MEM_BLOCK_POOL)       ? "POOL"  :
-                (b->type() == MEM_BLOCK_STACK)      ? "STACK" :
-                (b->type() == MEM_BLOCK_BPMAP)      ? "BPMAP" :
-                (b->type() == MEM_BLOCK_FILE)       ? "FILE" :
-                (b->type() == MEM_BLOCK_GOBJ)       ? "GOBJ" :
-                (b->type() == MEM_BLOCK_BGFX)       ? "BGFX" :
-                (b->type() == MEM_BLOCK_EXTERNAL)   ? "EXTERNAL" :
-                "Unknown",
+                memBlockTypeStr(b->type()),
                 byteSizeStr(b->dataSize())
                 );
             bool isSelected = ((void *)b == (void *)memEditPtr);
@@ -515,6 +507,70 @@ void Editor::guiMem() {
         }
     }
 }
+
+
+void Editor::guiMem2() {
+    if (CollapsingHeader("Mem 2", ImGuiTreeNodeFlags_DefaultOpen)) {
+        MemMan2 & memMan = mm.memMan2;
+
+        {
+            static int size = 1024*1024;
+            InputInt("Init size:", &size, 1024, 1024*1024);
+            SameLine();
+            if (Button("Init")) {
+                EngineSetup setup;
+                setup.memManSize = size;
+                memMan.init(setup);
+            }
+        }
+        if (memMan.firstBlock()) {
+            static int sizeAlign[] = {1024, 0};
+            InputInt2("Size:", sizeAlign);
+            SameLine();
+            if (Button("Request")) {
+                memMan.request(sizeAlign[0], sizeAlign[1]);
+            }
+            Separator();
+        }
+
+        ImGuiStyle * style = &ImGui::GetStyle();
+        ImVec4 defaultTextColor = style->Colors[ImGuiCol_Text];
+        int i = 0;
+        for (MemMan2::BlockInfo const * b = memMan.firstBlock(); b; b = memMan.nextBlock(b)) {
+            // calc block name
+            char * str = mm.tempStr(128);
+            snprintf(str, 128, "%03d: %s Block [%s][%s]",
+                i,
+                memBlockTypeStr(b->type()),
+                byteSizeStr(b->paddingSize()),
+                byteSizeStr(b->dataSize())
+            );
+            bool isSelected = ((void *)b == (void *)memEditPtr);
+            if (b->type() == MEM_BLOCK_FREE) {
+                style->Colors[ImGuiCol_Text] = ImVec4(0.6f, 0.7f, 1.0f, 1.00f);
+            }
+            else if (b->type() == MEM_BLOCK_CLAIMED) {
+                style->Colors[ImGuiCol_Text] = ImVec4(0.9f, 0.5f, 0.5f, 1.00f);
+            }
+            if (Selectable(str, isSelected)) {
+                if (isSelected) {
+                    clearMemEditWindow();
+                }
+                else {
+                    memEdit.Open = true;
+                    memEditPtr = (void *)b->basePtr();
+                    memEditSz = b->blockSize();
+                    snprintf(memEditTitle, 64, "%s###memEditWindow", str);
+                }
+            }
+            style->Colors[ImGuiCol_Text] = defaultTextColor;
+            Separator();
+            ++i;
+        }
+
+    }
+}
+
 
 void Editor::guiWinMem() {
     if (memEditPtr && memEdit.Open == false) clearMemEditWindow();

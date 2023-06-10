@@ -3,6 +3,7 @@
 #include "engine.h"
 #include "common/EventQueue.h"
 #include "memory/MemMan.h"
+#include "memory/MemMan2.h"
 #include "render/Camera.h"
 #include "render/CameraControl.h"
 #include "render/RenderSystem.h"
@@ -38,6 +39,7 @@ public:
     EventQueue eventQueue;
 
     MemMan memMan;
+    MemMan2 memMan2;
     Stack * frameStack = nullptr;
     RenderSystem rendSys;
 

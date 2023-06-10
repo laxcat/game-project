@@ -57,6 +57,7 @@ void MrManager::beginFrame(double nowInSeconds) {
     // update frame
     ++frame;
     memMan.frame = frame;
+    memMan2.startFrame(frame);
     // update time
     prevTime = thisTime;
     thisTime = nowInSeconds;
@@ -65,6 +66,7 @@ void MrManager::beginFrame(double nowInSeconds) {
 
 void MrManager::endFrame() {
     if (frameStack) frameStack->reset();
+    memMan2.endFrame();
 }
 
 void MrManager::tick() {
