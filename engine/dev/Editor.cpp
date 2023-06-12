@@ -513,7 +513,7 @@ void Editor::guiMem2() {
     if (CollapsingHeader("Mem 2", ImGuiTreeNodeFlags_DefaultOpen)) {
         MemMan2 & memMan = mm.memMan2;
 
-        {
+        if (!memMan.firstBlock()) {
             static int size = 1024*1024;
             InputInt("Init size:", &size, 1024, 1024*1024);
             SameLine();
@@ -523,7 +523,11 @@ void Editor::guiMem2() {
                 memMan.init(setup);
             }
         }
-        if (memMan.firstBlock()) {
+        else {
+            if (Button("Shutdown")) {
+                memMan.shutdown();
+            }
+
             static int sizeAlign[] = {1024, 0};
             InputInt2("Size:", sizeAlign);
             SameLine();

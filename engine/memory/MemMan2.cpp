@@ -77,6 +77,8 @@ bool MemMan2::BlockInfo::isValid() const {
 #endif // DEBUG
 
 void MemMan2::init(EngineSetup const & setup) {
+    if (setup.memManSize == 0) return;
+
     _size = setup.memManSize;
     _data = (byte_t *)malloc(_size);
     #if DEBUG
@@ -118,6 +120,9 @@ void MemMan2::shutdown() {
     free(_data);
     _data = nullptr;
     _size = 0;
+    _head = nullptr;
+    _tail = nullptr;
+    _firstFree = nullptr;
 }
 
 MemMan2::BlockInfo * MemMan2::firstBlock() const {
@@ -148,6 +153,10 @@ MemMan2::BlockInfo * MemMan2::request(size_t size, size_t align) {
                 break;
             }
         }
+    }
+
+    if (found == nullptr) {
+        fprintf(stderr, "No block found to meet request of size %zu, align %zu\n", size, align);
     }
 
     return found;
@@ -308,7 +317,7 @@ MemMan2::BlockInfo * MemMan2::shrink(BlockInfo * block, size_t smallerSize) {
 
     byte_t * newBlockLoc = block->data() + smallerSize;
     BlockInfo * newBlock = new (newBlockLoc) BlockInfo();
-    newBlock->_dataSize = block->_dataSize - smallerSize - BlockInfoSize;
+newBlock->_dataSize = block->_dataSize - smallerSize - BlockInfoSize;
     block->_dataSize = smallerSize;
     block->_next = newBlock;
     newBlock->_prev = block;
