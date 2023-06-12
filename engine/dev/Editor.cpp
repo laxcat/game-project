@@ -505,6 +505,8 @@ void Editor::guiMem() {
             Separator();
             ++i;
         }
+
+        Unindent();
     }
 }
 
