@@ -126,11 +126,19 @@ void MemMan2::shutdown() {
     _firstFree = nullptr;
 }
 
-MemMan2::BlockInfo * MemMan2::firstBlock() {
+byte_t const * MemMan2::data() const {
+    return _data;
+}
+
+size_t MemMan2::size() const {
+    return _size;
+}
+
+MemMan2::BlockInfo * MemMan2::firstBlock() const {
     return _head;
 }
 
-MemMan2::BlockInfo * MemMan2::nextBlock(BlockInfo * block) {
+MemMan2::BlockInfo * MemMan2::nextBlock(BlockInfo const * block) const {
     return block->_next;
 }
 

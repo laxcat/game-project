@@ -62,7 +62,7 @@ struct Event {
 };
 
 enum MemBlockType {
-    // unsued
+    // free
     MEM_BLOCK_FREE,    // empty space to be claimed
     MEM_BLOCK_CLAIMED, // claimed but type not set yet
     // Special Fixed Sized Allocator type

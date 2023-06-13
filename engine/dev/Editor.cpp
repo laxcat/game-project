@@ -20,7 +20,7 @@ static MemoryEditor memEdit;
 // used for guiWinMem
 static void * memEditPtr = nullptr;
 static size_t memEditSz  = 0;
-static char memEditTitle[64];
+static char memEditTitle[128];
 
 // used for guiWinMem2 (better, newer)
 static MemMan2::BlockInfo const * memEditBlock = nullptr;
@@ -522,6 +522,7 @@ void Editor::guiMem2() {
     if (CollapsingHeader("Mem 2", ImGuiTreeNodeFlags_DefaultOpen)) {
         MemMan2 & memMan = mm.memMan2;
 
+        // not initialized
         if (!memMan.firstBlock()) {
             static int size = 1024*1024;
             InputInt("Init size:", &size, 1024, 1024*1024);
@@ -532,13 +533,28 @@ void Editor::guiMem2() {
                 memMan.init(setup);
             }
         }
+        // initialized
         else {
+            Text("%p - %p", memMan.data(), memMan.data() + memMan.size());
+            SameLine();
             if (Button("Shutdown")) {
                 memMan.shutdown();
             }
 
             static int sizeAlign[] = {1024, 0};
+            PushItemWidth(150);
+            int selectedType = MEM_BLOCK_CLAIMED;
+            if (BeginCombo("###MemBlockType", memBlockTypeStr(MEM_BLOCK_CLAIMED))) {
+                for (int i = MEM_BLOCK_CLAIMED; i <= MEM_BLOCK_EXTERNAL; ++i) {
+                    if (Selectable(memBlockTypeStr((MemBlockType)i))) {
+                        selectedType = i;
+                    }
+                }
+                EndCombo();
+            }
+            SameLine();
             InputInt2("Size:", sizeAlign);
+            PopItemWidth();
             SameLine();
             if (Button("Request")) {
                 clearMemEditWindow();
@@ -557,9 +573,9 @@ void Editor::guiMem2() {
 
             // calc block name
             char * str = mm.tempStr(128);
-            snprintf(str, 128, "%03d (%p): %s Block [%s][%s]",
+            snprintf(str, 128, "%03d (0x%06X): %s Block [%s][%s]",
                 i,
-                basePtr,
+                (uint32_t)((size_t)basePtr & 0xffffff),
                 memBlockTypeStr(b->type()),
                 byteSizeStr(b->paddingSize()),
                 byteSizeStr(b->dataSize())
@@ -583,7 +599,7 @@ void Editor::guiMem2() {
                 else {
                     memEdit.Open = true;
                     memEditBlock = b;
-                    snprintf(memEditTitle, 64, "%s###memEditWindow", str);
+                    snprintf(memEditTitle, 128, "%s###memEditWindow", str);
                 }
             }
             if (b->type() != MEM_BLOCK_FREE) {

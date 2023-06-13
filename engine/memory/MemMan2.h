@@ -39,7 +39,7 @@ public:
         byte_t * data();
 
         // STORAGE
-    // private:
+    private:
         size_t _dataSize = 0;
         BlockInfo * _next;
         BlockInfo * _prev;
@@ -52,7 +52,7 @@ public:
         #endif // DEBUG
 
         // INTERNALS
-    // private:
+    private:
         // align functions
         byte_t const * calcUnalignedDataLoc() const;
         size_t calcAlignPaddingSize(size_t align) const;
@@ -88,8 +88,10 @@ public:
     void endFrame();
     void shutdown();
 
-    BlockInfo * firstBlock();
-    BlockInfo * nextBlock(BlockInfo * block);
+    byte_t const * data() const;
+    size_t size() const;
+    BlockInfo * firstBlock() const;
+    BlockInfo * nextBlock(BlockInfo const * block) const;
 
     // finds free block of size
     BlockInfo * request(size_t size, size_t align = 0);
