@@ -20,9 +20,9 @@ class MemMan2 {
 public:
     using guard_t = std::lock_guard<std::recursive_mutex>;
 
-    // "MemB"
-    #define BLOCK_MAGIC_STRING {0x4D, 0x65, 0x6D, 0x42}
-    constexpr static byte_t BlockMagicString[4] = BLOCK_MAGIC_STRING; // "MemB"
+    // "MemBlock"
+    #define BLOCK_MAGIC_STRING2 {0x4D, 0x65, 0x6D, 0x42, 0x6C, 0x6F, 0x63, 0x6B}
+    constexpr static byte_t BlockMagicString[8] = BLOCK_MAGIC_STRING2; // "MemBlock"
 
     class BlockInfo {
         // API
@@ -39,7 +39,7 @@ public:
         byte_t * data();
 
         // STORAGE
-    private:
+    // private:
         size_t _dataSize = 0;
         BlockInfo * _next;
         BlockInfo * _prev;
@@ -48,11 +48,11 @@ public:
 
         #if DEBUG
         size_t _debug_index = SIZE_MAX;
-        byte_t _debug_magic[4] = BLOCK_MAGIC_STRING;
+        byte_t _debug_magic[8] = BLOCK_MAGIC_STRING2;
         #endif // DEBUG
 
         // INTERNALS
-    private:
+    // private:
         // align functions
         byte_t const * calcUnalignedDataLoc() const;
         size_t calcAlignPaddingSize(size_t align) const;
@@ -87,18 +87,19 @@ public:
     void startFrame(size_t frame);
     void endFrame();
     void shutdown();
-    BlockInfo * firstBlock() const;
-    BlockInfo * nextBlock(BlockInfo const * block) const;
+
+    BlockInfo * firstBlock();
+    BlockInfo * nextBlock(BlockInfo * block);
 
     // finds free block of size
     BlockInfo * request(size_t size, size_t align = 0);
+    // set type to free and reset padding
+    BlockInfo * release(BlockInfo * block);
 
     // INTERNALS
 private:
     // alters _padding and _dataSize to align data() to alignment
     BlockInfo * claim(BlockInfo * block, size_t size, size_t align = 0);
-    // set type to free and reset padding
-    BlockInfo * release(BlockInfo * block);
     // consumes next block if free
     BlockInfo * mergeWithNext(BlockInfo * block);
     // realigns block in place
@@ -111,8 +112,10 @@ private:
     BlockInfo * resize(BlockInfo * block, size_t newSize, size_t align = 0);
     // combine adjacent free blocks
     void mergeAllAdjacentFree();
-    // traverse nodes backwards to find first free
-    void updateFirstFree();
+
+    // // traverse nodes backwards to find first free
+    // NOTE: WE SHOULDN'T NEED THIS IF HANDLED PROPERLY IN RELEASE
+    // void updateFirstFree();
 
     #if DEBUG
     // validate all blocks, update debug info like _debug_index

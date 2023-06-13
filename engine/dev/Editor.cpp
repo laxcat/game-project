@@ -14,11 +14,16 @@
 // ImGuiTreeNodeFlags_DefaultOpen
 using namespace ImGui;
 static char scratchStr[32];
-// MemMan * memMan = nullptr;
+
 static MemoryEditor memEdit;
+
+// used for guiWinMem
 static void * memEditPtr = nullptr;
 static size_t memEditSz  = 0;
 static char memEditTitle[64];
+
+// used for guiWinMem2 (better, newer)
+static MemMan2::BlockInfo const * memEditBlock = nullptr;
 
 
 struct GLTFSlot {
@@ -75,6 +80,8 @@ static char const * byteSizeStr(size_t byteSize) {
 
 Editor::Editor() {
     memEdit.OptShowDataPreview = true;
+    // memEdit.ReadOnly = true;
+    memEdit.OptAddrDigitsCount = 4;
 }
 
 void Editor::tick() {
@@ -102,7 +109,7 @@ void Editor::tick() {
 
     End();
 
-    guiWinMem();
+    guiWinMem2();
 }
 
 void Editor::guiRendering() {
@@ -534,6 +541,7 @@ void Editor::guiMem2() {
             InputInt2("Size:", sizeAlign);
             SameLine();
             if (Button("Request")) {
+                clearMemEditWindow();
                 memMan.request(sizeAlign[0], sizeAlign[1]);
             }
             Separator();
@@ -542,36 +550,54 @@ void Editor::guiMem2() {
         ImGuiStyle * style = &ImGui::GetStyle();
         ImVec4 defaultTextColor = style->Colors[ImGuiCol_Text];
         int i = 0;
-        for (MemMan2::BlockInfo const * b = memMan.firstBlock(); b; b = memMan.nextBlock(b)) {
+        for (MemMan2::BlockInfo * b = memMan.firstBlock(); b; b = memMan.nextBlock(b)) {
+            PushID(i);
+
+            void * basePtr = (void *)((MemMan2::BlockInfo const *)b)->basePtr();
+
             // calc block name
             char * str = mm.tempStr(128);
-            snprintf(str, 128, "%03d: %s Block [%s][%s]",
+            snprintf(str, 128, "%03d (%p): %s Block [%s][%s]",
                 i,
+                basePtr,
                 memBlockTypeStr(b->type()),
                 byteSizeStr(b->paddingSize()),
                 byteSizeStr(b->dataSize())
             );
-            bool isSelected = ((void *)b == (void *)memEditPtr);
+
+            bool isSelected = (b == memEditBlock);
+            ImVec2 selSize = ImVec2{GetWindowContentRegionMax().x - 50.f, 0.f};
+
             if (b->type() == MEM_BLOCK_FREE) {
                 style->Colors[ImGuiCol_Text] = ImVec4(0.6f, 0.7f, 1.0f, 1.00f);
+                selSize = {};
             }
             else if (b->type() == MEM_BLOCK_CLAIMED) {
                 style->Colors[ImGuiCol_Text] = ImVec4(0.9f, 0.5f, 0.5f, 1.00f);
             }
-            if (Selectable(str, isSelected)) {
+
+            if (Selectable(str, isSelected, 0, selSize)) {
                 if (isSelected) {
                     clearMemEditWindow();
                 }
                 else {
                     memEdit.Open = true;
-                    memEditPtr = (void *)b->basePtr();
-                    memEditSz = b->blockSize();
+                    memEditBlock = b;
                     snprintf(memEditTitle, 64, "%s###memEditWindow", str);
                 }
             }
+            if (b->type() != MEM_BLOCK_FREE) {
+                SameLine();
+                if (Button("Free", ImVec2{0.f, 16.f})) {
+                    b = memMan.release(b);
+                }
+            }
+
             style->Colors[ImGuiCol_Text] = defaultTextColor;
             Separator();
             ++i;
+
+            PopID();
         }
 
     }
@@ -584,9 +610,29 @@ void Editor::guiWinMem() {
     memEdit.DrawWindow(memEditTitle, memEditPtr, memEditSz);
 }
 
+void Editor::guiWinMem2() {
+    if (memEditBlock && memEdit.Open == false) clearMemEditWindow();
+    if (memEditBlock == nullptr) return;
+    size_t basePtr = (size_t)memEditBlock->basePtr();
+    size_t memEditPtrRounded = basePtr & (size_t)0xfffffffffffffff0;
+    size_t memEditRoundedDif = basePtr - memEditPtrRounded;
+    // printl("ptr %p, rounded: %p, (diff=%zu)", memEditPtr, (void *)memEditPtrRounded, memEditRoundedDif);
+    memEdit.DrawWindow(
+        memEditTitle,
+        (void *)memEditPtrRounded,
+        memEditBlock->blockSize() + memEditRoundedDif,
+        memEditPtrRounded & 0xffff
+    );
+    // memEdit.DrawWindow(memEditTitle, memEditPtr, memEditSz, (size_t)memEditPtr);
+    memEdit.GotoAddrAndHighlight(
+        basePtr,
+        basePtr + memEditBlock->blockSize());
+}
+
 void Editor::clearMemEditWindow() {
     memEditPtr = nullptr;
     memEditSz = 0;
+    memEditBlock = nullptr;
     snprintf(memEditTitle, 64, "");
 }
 

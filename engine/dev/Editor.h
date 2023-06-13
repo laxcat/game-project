@@ -20,5 +20,6 @@ public:
 
     // separate movable windows
     void guiWinMem();
+    void guiWinMem2();
     void clearMemEditWindow();
 };
