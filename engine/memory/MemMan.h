@@ -6,7 +6,6 @@
 #include "Stack.h"
 #include "Pool.h"
 #include "File.h"
-#include "FSA.h"
 
 class MemMan {
 public:
@@ -126,7 +125,6 @@ private:
     Block * _blockHead = nullptr;
     // Block * _blockTail = nullptr;
     size_t _size = 0;
-    FSAMap * _fsaMap = nullptr;
     byte_t * _fsaRangeBegin = nullptr;
     byte_t * _fsaRangeEnd = nullptr;
     mutable std::recursive_mutex _mainMutex;
@@ -134,8 +132,6 @@ private:
     // internal ------------------------------------------------------------- //
 private:
     // only allowed from init
-    FSA * createFSA(uint8_t subBlockByteSize, uint16_t subBlockCount);
-    void destroyFSA(FSA * fsa);
 
     #if DEBUG
     // create index for all in linked list for debuging purposes

@@ -71,7 +71,6 @@ enum MemBlockType {
     // internal types, with special treatment
     MEM_BLOCK_POOL,
     MEM_BLOCK_STACK,
-    MEM_BLOCK_BPMAP,
     MEM_BLOCK_FILE,
     MEM_BLOCK_GOBJ,
     // requested by BGFX. (no special treatment atm)
@@ -80,9 +79,24 @@ enum MemBlockType {
     MEM_BLOCK_EXTERNAL
 };
 
-struct MemBlockSetup {
-    size_t size = 0;
-    MemBlockType type = MEM_BLOCK_FREE;
-    uint8_t subBlockSize = 0;
-    uint16_t nSubBlocks = 0;
+struct MemManFSASetup {
+    static constexpr size_t Max = 12;
+    union {
+        struct {
+            uint16_t n2byteSubBlocks;
+            uint16_t n4byteSubBlocks;
+            uint16_t n8byteSubBlocks;
+            uint16_t n16byteSubBlocks;
+            uint16_t n32byteSubBlocks;
+            uint16_t n64byteSubBlocks;
+            uint16_t n128byteSubBlocks;
+            uint16_t n256byteSubBlocks;
+            uint16_t n512byteSubBlocks;
+            uint16_t n1024byteSubBlocks;
+            uint16_t n2048byteSubBlocks;
+            uint16_t n4096byteSubBlocks;
+        };
+        uint16_t nSubBlocks[Max] = {0};
+    };
+    size_t align = 0;
 };

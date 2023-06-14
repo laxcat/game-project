@@ -57,10 +57,12 @@ struct EngineSetup {
     WindowLimits windowLimits;
 
     size_t memManSize = 1024*1024*500;
-    MemBlockSetup memManInitBlocks[16] = {
-        // stack at index 0 automatically becomes frame stack
-        { .type = MEM_BLOCK_STACK, .size = 1024*1024*10, },
-        { .type = MEM_BLOCK_FSA, .subBlockSize = 8, .nSubBlocks = 64, }
+    size_t memManFrameStackSize = 1024*1024*10;
+    MemManFSASetup memManFSA{
+        .n2byteSubBlocks = 8,
+        .n4byteSubBlocks = 320,
+        .n8byteSubBlocks = 16,
+        .align = 64,
     };
 
     // size_t memSysSize = 1024*1024*500;

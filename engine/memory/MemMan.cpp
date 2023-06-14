@@ -33,52 +33,8 @@ void MemMan::init(EngineSetup const & setup) {
     _blockHead = new (_data) Block();
     _blockHead->_dataSize = _size - BlockInfoSize;
 
-    // loop through setup data and create init blocks
-    for (int i = 0; setup.memManInitBlocks[i].type != MEM_BLOCK_FREE; ++i) {
-        MemBlockSetup const & blockSetup = setup.memManInitBlocks[i];
-        // set up a stack. index 0 is expected to be the frame stack.
-        if (blockSetup.type == MEM_BLOCK_STACK) {
-            createStack(blockSetup.size);
-        }
-        // set up a FSA block. first one will
-        else if (blockSetup.type == MEM_BLOCK_FSA) {
-            // check to make sure all FSA blocks are sequential.
-            if (i > 0 && _fsaRangeBegin != nullptr) {
-                assert(setup.memManInitBlocks[i-1].type == MEM_BLOCK_FSA &&
-                    "FSA Blocks must be sequential.");
-            }
-            // if this is the first FSA block...
-            if (_fsaMap == nullptr) {
-                // create FSA map that will direct the requested byte size to
-                // the appropriate FSA for look up.
-                Block * fsaMapBlock = requestFreeBlock(sizeof(FSAMap));
-                assert(fsaMapBlock && "Failed to create FSA map.");
-                fsaMapBlock->_type = MEM_BLOCK_BPMAP;
-                _fsaMap = (FSAMap *)fsaMapBlock->data();
-                printl("FSAMap: %p", _fsaMap);
-
-                // printl("fsa dataSize")
-                printl("fsa alignPadding(64) %zu", fsaMapBlock->alignPadding(64));
-            }
-
-
-            // Block * tempBlock = requestFreeBlock(524);
-            // assert(tempBlock && "Failed to create temp block");
-            // tempBlock->_type = MEM_BLOCK_STACK;
-
-            // FSA * fsa = createFSA(blockSetup.subBlockSize, blockSetup.nSubBlocks);
-            // assert(fsa && "Failed to create FSA.");
-            // Block * fsaBlock = blockForDataPtr(fsa);
-            // printl("FSABlock: %p", fsaBlock);
-            // printl("FSA: %p", fsa);
-            // if (_fsaRangeBegin == nullptr) {
-            //     _fsaRangeBegin = (byte_t * )fsaBlock;
-            // }
-            // _fsaRangeEnd = (byte_t * )fsaBlock + fsaBlock->totalSize();
-        }
-        else {
-            assert(false && "Unsupported MemMan init block type.");
-        }
+    if (setup.memManFrameStackSize) {
+        createStack(setup.memManFrameStackSize);
     }
 
     // printl("FSAMap min/max bytes %d—%d", FSAMap::MinBytes, FSAMap::MaxBytes);
@@ -166,22 +122,6 @@ void MemMan::destroyFileHandle(File * f) {
     destroy(f);
 }
 
-FSA * MemMan::createFSA(uint8_t subBlockByteSize, uint16_t subBlockCount) {
-    size_t size = FSA::BlockByteSize(subBlockByteSize, subBlockCount);
-    printl("size of FSA block (given %d, %d): %zu", subBlockByteSize, subBlockCount, size);
-    printl("sizeof(FSA) %zu +", sizeof(FSA));
-    printl("BitArray::ByteSizeForSize(subBlockCount) %zu +", BitArray::ByteSizeForSize(subBlockCount));
-    printl("FSAMap::ActualByteSizeForByteSize(subBlockByteSize) %zu * subBlockCount %d",
-        FSAMap::ActualByteSizeForByteSize(subBlockByteSize), subBlockCount);
-    Block * block = requestFreeBlock(size);
-    if (!block) return nullptr;
-    block->_type = MEM_BLOCK_FSA;
-    return new (block->data()) FSA{subBlockByteSize, subBlockCount};
-}
-
-void MemMan::destroyFSA(FSA * fsa) {
-    destroy(fsa);
-}
 
 void MemMan::destroy(void * ptr) {
     guard_t guard{_mainMutex};
