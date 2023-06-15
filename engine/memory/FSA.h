@@ -1,10 +1,9 @@
 #pragma once
-// #include "BitArray.h"
 #include "../common/types.h"
 #include "../dev/print.h"
 #include "mem_align.h"
 
-class FSABlock {
+class FSA {
 public:
     friend class MemMan2;
 
@@ -38,16 +37,16 @@ public:
     }
 
     byte_t const * data() const {
-        return (byte_t const *)alignPtr((byte_t *)this + sizeof(FSABlock), _align);
+        return (byte_t const *)alignPtr((byte_t *)this + sizeof(FSA), _align);
     }
 
 private:
-    FSABlock(Setup const & setup) {
+    FSA(Setup const & setup) {
         _align = setup.align;
         byte_t * nextPtr = (byte_t *)data();
         printl("FSA base: %p", this);
         printl("FSA data: %p", data());
-        printl("sizeof(FSABlock): %zu", sizeof(FSABlock));
+        printl("sizeof(FSA): %zu", sizeof(FSA));
         for (size_t i = 0; i < Max; ++i) {
             _nSubBlocks[i] = setup.nSubBlocks[i];
             if (_nSubBlocks[i] == 0) {
@@ -70,7 +69,7 @@ private:
     }
 
     byte_t * data() {
-        return (byte_t *)alignPtr((byte_t *)this + sizeof(FSABlock), _align);
+        return (byte_t *)alignPtr((byte_t *)this + sizeof(FSA), _align);
     }
 
     bool isFree(byte_t * freeList, uint16_t index) {

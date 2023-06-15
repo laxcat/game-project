@@ -230,15 +230,15 @@ bool MemMan2::destroy(void * ptr) {
     return (release(block)) ? true : false;
 }
 
-FSABlock * MemMan2::createFSA(MemManFSASetup const & setup) {
-    size_t fsaDataSize = FSABlock::DataSize(setup);
+FSA * MemMan2::createFSA(MemManFSASetup const & setup) {
+    size_t fsaDataSize = FSA::DataSize(setup);
     if (fsaDataSize == 0) return nullptr;
 
     BlockInfo * block = request(fsaDataSize);
     if (!block) return nullptr;
 
     block->_type = MEM_BLOCK_FSA;
-    FSABlock * fsa = new (block->data()) FSABlock{setup};
+    FSA * fsa = new (block->data()) FSA{setup};
     return fsa;
 }
 

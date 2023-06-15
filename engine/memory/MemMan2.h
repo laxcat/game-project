@@ -94,7 +94,7 @@ public:
     // SPECIAL BLOCK CREATION
 private:
     // create fsa block on init
-    FSABlock * createFSA(MemManFSASetup const & setup);
+    FSA * createFSA(MemManFSASetup const & setup);
 
     // STORAGE
 private:
@@ -103,7 +103,7 @@ private:
     BlockInfo * _head = nullptr;
     BlockInfo * _tail = nullptr;
     BlockInfo * _firstFree = nullptr;
-    FSABlock * _fsa = nullptr;
+    FSA * _fsa = nullptr;
     size_t _frame = 0;
     mutable std::recursive_mutex _mainMutex;
 
