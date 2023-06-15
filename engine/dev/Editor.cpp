@@ -525,11 +525,25 @@ void Editor::guiMem2() {
         // not initialized
         if (!memMan.firstBlock()) {
             static int size = 1024*1024;
-            InputInt("Init size:", &size, 1024, 1024*1024);
-            SameLine();
+            static MemManFSASetup fsaSetup = mm.setup.memManFSA;
+            InputInt("Init size", &size, 1024, 1024*1024);
+            TextUnformatted("FSA sub-block counts");
+            PushItemWidth(100);
+            uint16_t fsaCountStep = 8;
+            for (int fsaI = 0; fsaI < MemManFSASetup::Max; ++fsaI) {
+                char * title = mm.tempStr(64);
+                snprintf(title, 64, "%d-byte sub-blocks", 1 << (fsaI+1));
+                InputScalar(title, ImGuiDataType_U16, &fsaSetup.nSubBlocks[fsaI], &fsaCountStep);
+            }
+            PopItemWidth();
             if (Button("Init")) {
+                // sanitize fsa sub-block counts
+                for (int fsaI = 0; fsaI < MemManFSASetup::Max; ++fsaI) {
+                    fsaSetup.nSubBlocks[fsaI] &= 0xfff8;
+                }
                 EngineSetup setup;
                 setup.memManSize = size;
+                setup.memManFSA = fsaSetup;
                 memMan.init(setup);
             }
         }
@@ -541,40 +555,75 @@ void Editor::guiMem2() {
                 memMan.shutdown();
             }
 
-            static int sizeAlign[] = {1024, 0};
-            PushItemWidth(150);
-            int selectedType = MEM_BLOCK_CLAIMED;
-            if (BeginCombo("###MemBlockType", memBlockTypeStr(MEM_BLOCK_CLAIMED))) {
-                for (int i = MEM_BLOCK_CLAIMED; i <= MEM_BLOCK_EXTERNAL; ++i) {
+            static MemBlockType selectedType = MEM_BLOCK_CLAIMED;
+
+            PushItemWidth(90);
+            if (BeginCombo("###MemBlockType", memBlockTypeStr(selectedType))) {
+                for (int i = MEM_BLOCK_CLAIMED; i <= MEM_BLOCK_GOBJ; ++i) {
+                    if (i == MEM_BLOCK_FSA) continue;
+
                     if (Selectable(memBlockTypeStr((MemBlockType)i))) {
-                        selectedType = i;
+                        selectedType = (MemBlockType)i;
                     }
                 }
                 EndCombo();
             }
+
             SameLine();
-            InputInt2("Size:", sizeAlign);
+
             PopItemWidth();
-            SameLine();
-            if (Button("Request")) {
-                clearMemEditWindow();
-                memMan.request(sizeAlign[0], sizeAlign[1]);
+            PushItemWidth(120);
+
+            switch (selectedType) {
+            case MEM_BLOCK_CLAIMED: {
+                static int sizeAlign[] = {1024, 0};
+                InputInt2("Size/align", sizeAlign);
+                SameLine();
+                if (Button("Claim")) {
+                    clearMemEditWindow();
+                    memMan.request(sizeAlign[0], sizeAlign[1]);
+                }
+                break;
             }
+            // case MEM_BLOCK_FSA: {
+            //     static int sizeCount[] = {64, 8};
+            //     InputInt2("Subblock count/size", sizeCount);
+            //     SameLine();
+            //     if (Button("Create FSA")) {
+            //         sizeCount[0] = sizeCount[0] & 0xFFFF; // crop to UINT16_MAX
+            //         sizeCount[1] = sizeCount[1] & 0xFFF8; // crop to UINT16_MAX, multiple of 8
+            //         clearMemEditWindow();
+            //         // memMan.createFSA(sizeCount[0], sizeCount[1]);
+            //     }
+            //     break;
+            // }
+            case MEM_BLOCK_POOL:
+            case MEM_BLOCK_STACK:
+            case MEM_BLOCK_FILE:
+            case MEM_BLOCK_GOBJ:
+            case MEM_BLOCK_FSA:
+            default: {
+                TextUnformatted("Not implemented yet.");
+            }
+            }
+
+            PopItemWidth();
+
             Separator();
         }
 
         ImGuiStyle * style = &ImGui::GetStyle();
         ImVec4 defaultTextColor = style->Colors[ImGuiCol_Text];
-        int i = 0;
+        int blockIndex = 0;
         for (MemMan2::BlockInfo * b = memMan.firstBlock(); b; b = memMan.nextBlock(b)) {
-            PushID(i);
+            PushID(blockIndex);
 
             void * basePtr = (void *)((MemMan2::BlockInfo const *)b)->basePtr();
 
             // calc block name
             char * str = mm.tempStr(128);
             snprintf(str, 128, "%03d (0x%06X): %s Block [%s][%s]",
-                i,
+                blockIndex,
                 (uint32_t)((size_t)basePtr & 0xffffff),
                 memBlockTypeStr(b->type()),
                 byteSizeStr(b->paddingSize()),
@@ -602,16 +651,48 @@ void Editor::guiMem2() {
                     snprintf(memEditTitle, 128, "%s###memEditWindow", str);
                 }
             }
-            if (b->type() != MEM_BLOCK_FREE) {
+
+            // show free button
+            if (b->type() != MEM_BLOCK_FREE && b->type() != MEM_BLOCK_FSA) {
                 SameLine();
-                if (Button("Free", ImVec2{0.f, 16.f})) {
+                if (Button("Free")) {
+                    clearMemEditWindow();
                     b = memMan.release(b);
                 }
             }
 
+            // sub type specifics
+            // FSA
+            if (b->type() == MEM_BLOCK_FSA) {
+                // FSA * fsa = (FSA *)b->data();
+                // uint16_t nSubBlocks = fsa->nSubBlocks();
+                // Text("%d %d-byte sublocks", nSubBlocks, fsa->subBlockSize());
+                // int nCols = 16;
+                // float colSize = 20.f;
+                // int rowCount = nSubBlocks / nCols + (nSubBlocks % nCols != 0);
+                // int cellIndex = 0;
+                // BeginTable("SubBlocks", nCols);
+                // for (int row = 0; row < rowCount; ++row) {
+                //     TableNextRow();
+                //     for (int col = 0; col < nCols; ++col) {
+                //         TableSetColumnIndex(col);
+                //         if (cellIndex < nSubBlocks) {
+                //             uint32_t color = fsa->isFree(cellIndex) ? 0xff888888 : 0xff333333;
+                //             TableSetBgColor(ImGuiTableBgTarget_CellBg, color);
+                //             Text("%d", cellIndex);
+                //         }
+                //         else {
+                //             TableSetBgColor(ImGuiTableBgTarget_CellBg, GetColorU32(ImGuiCol_WindowBg));
+                //         }
+                //         ++cellIndex;
+                //     }
+                // }
+                // EndTable();
+            }
+
             style->Colors[ImGuiCol_Text] = defaultTextColor;
             Separator();
-            ++i;
+            ++blockIndex;
 
             PopID();
         }

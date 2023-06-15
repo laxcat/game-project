@@ -2,6 +2,7 @@
 #include <mutex>
 #include "../engine.h"
 #include "../common/types.h"
+#include "FSA.h"
 
 /*
 
@@ -71,16 +72,6 @@ public:
     };
     constexpr static size_t BlockInfoSize = sizeof(BlockInfo);
 
-    // STORAGE
-private:
-    byte_t * _data = nullptr;
-    size_t _size = 0;
-    BlockInfo * _head = nullptr;
-    BlockInfo * _tail = nullptr;
-    BlockInfo * _firstFree = nullptr;
-    size_t _frame = 0;
-    mutable std::recursive_mutex _mainMutex;
-
     // API
 public:
     void init(EngineSetup const & setup);
@@ -98,6 +89,24 @@ public:
     // set type to free and reset padding
     BlockInfo * release(BlockInfo * block);
 
+    bool destroy(void * ptr);
+
+    // SPECIAL BLOCK CREATION
+private:
+    // create fsa block on init
+    FSABlock * createFSA(MemManFSASetup const & setup);
+
+    // STORAGE
+private:
+    byte_t * _data = nullptr;
+    size_t _size = 0;
+    BlockInfo * _head = nullptr;
+    BlockInfo * _tail = nullptr;
+    BlockInfo * _firstFree = nullptr;
+    FSABlock * _fsa = nullptr;
+    size_t _frame = 0;
+    mutable std::recursive_mutex _mainMutex;
+
     // INTERNALS
 private:
     // alters _padding and _dataSize to align data() to alignment
@@ -114,6 +123,10 @@ private:
     BlockInfo * resize(BlockInfo * block, size_t newSize, size_t align = 0);
     // combine adjacent free blocks
     void mergeAllAdjacentFree();
+    // scan forward to find first free
+    void findFirstFree(BlockInfo * block);
+    // BlockInfo for raw ptr pointing to data.
+    BlockInfo * blockForPtr(void * ptr);
 
     // // traverse nodes backwards to find first free
     // NOTE: WE SHOULDN'T NEED THIS IF HANDLED PROPERLY IN RELEASE

@@ -2,7 +2,11 @@
 #include <new>
 #include <string.h>
 #include "../dev/print.h"
-
+#include "Pool.h"
+#include "Stack.h"
+#include "File.h"
+#include "GObj.h"
+#include "FSA.h"
 
 size_t MemMan2::BlockInfo::paddingSize() const {
     return _padding;
@@ -91,6 +95,12 @@ void MemMan2::init(EngineSetup const & setup) {
 
     printl("MEM MAN RANGE %*p—%*p", 8, _data, 8, _data+_size);
     printl("BlockInfoSize %zu", BlockInfoSize);
+
+    // create some special blocks on init
+    // if (setup.memManFrameStackSize) {
+    //     createStack(setup.memManFrameStackSize);
+    // }
+    _fsa = createFSA(setup.memManFSA);
 }
 
 void MemMan2::startFrame(size_t frame) {
@@ -208,7 +218,28 @@ MemMan2::BlockInfo * MemMan2::release(BlockInfo * block) {
     memset(block->data(), 0, block->_dataSize);
     #endif // DEBUG
 
+    if ((byte_t *)block < (byte_t *)_firstFree) {
+        _firstFree = block;
+    }
+
     return block;
+}
+
+bool MemMan2::destroy(void * ptr) {
+    BlockInfo * block = blockForPtr(ptr);
+    return (release(block)) ? true : false;
+}
+
+FSABlock * MemMan2::createFSA(MemManFSASetup const & setup) {
+    size_t fsaDataSize = FSABlock::DataSize(setup);
+    if (fsaDataSize == 0) return nullptr;
+
+    BlockInfo * block = request(fsaDataSize);
+    if (!block) return nullptr;
+
+    block->_type = MEM_BLOCK_FSA;
+    FSABlock * fsa = new (block->data()) FSABlock{setup};
+    return fsa;
 }
 
 MemMan2::BlockInfo * MemMan2::claim(BlockInfo * block, size_t size, size_t align) {
@@ -225,6 +256,7 @@ MemMan2::BlockInfo * MemMan2::claim(BlockInfo * block, size_t size, size_t align
     if (align == 0) {
         block->_type = MEM_BLOCK_CLAIMED;
         shrink(block, size);
+        findFirstFree(block);
         return block;
     }
 
@@ -254,12 +286,14 @@ MemMan2::BlockInfo * MemMan2::claim(BlockInfo * block, size_t size, size_t align
 
     // create free block, leaving this block at requested size
     // (might fail but that's ok)
-    shrink(block, size);
+    BlockInfo * shrunken = shrink(block, size);
 
     // set data bytes to 0
     #if DEBUG
     memset(block->data(), 0, block->_dataSize);
     #endif // DEBUG
+
+    findFirstFree(block);
 
     return block;
 }
@@ -332,8 +366,9 @@ MemMan2::BlockInfo * MemMan2::shrink(BlockInfo * block, size_t smallerSize) {
     BlockInfo * newBlock = new (newBlockLoc) BlockInfo();
     newBlock->_dataSize = block->_dataSize - smallerSize - BlockInfoSize;
     block->_dataSize = smallerSize;
-    block->_next = newBlock;
+    newBlock->_next = block->_next;
     newBlock->_prev = block;
+    block->_next = newBlock;
     if (block == _tail) _tail = newBlock;
 
     return block;
@@ -386,13 +421,51 @@ void MemMan2::mergeAllAdjacentFree() {
     }
 }
 
+void MemMan2::findFirstFree(BlockInfo * block) {
+    for (BlockInfo * bi = block; bi; bi = bi->_next) {
+        if (bi->_type == MEM_BLOCK_FREE) {
+            _firstFree = bi;
+        return;
+        }
+    }
+    // should only happen if no free blocks exist
+    _firstFree = _tail;
+}
+
+MemMan2::BlockInfo * MemMan2::blockForPtr(void * ptr) {
+    byte_t * bptr = (byte_t *)ptr;
+    assert(
+        _data && _size &&
+        bptr - BlockInfoSize >= _data &&
+        bptr < _data + _size &&
+        "Invalid ptr range."
+    );
+    BlockInfo * block = (BlockInfo *)(bptr - BlockInfoSize);
+    #if DEBUG
+    assert(block->isValid() && "Block not valid.");
+    #endif // DEBUG
+    return block;
+}
+
 #if DEBUG
 void MemMan2::validateAll() {
     size_t i = 0;
+    BlockInfo * checkFirstFree = nullptr;
+    size_t totalMemManSize = 0;
     for (BlockInfo * bi = _head; bi; bi = bi->_next) {
         bi->_debug_index = i;
         assert(bi->isValid() && "Block invalid.");
+
+        // check first free is correct
+        if (bi->_type == MEM_BLOCK_FREE && checkFirstFree == nullptr) {
+            checkFirstFree = bi;
+            assert(checkFirstFree == _firstFree && "_firstFree not correct");
+        }
+
+        totalMemManSize += bi->blockSize();
     }
+
+    assert(totalMemManSize == _size && "Total of block sizes doesn't match MemMan _size.");
 }
 #endif // DEBUG
 

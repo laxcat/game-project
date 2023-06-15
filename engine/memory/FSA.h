@@ -1,57 +1,110 @@
 #pragma once
-#include "BitArray.h"
+// #include "BitArray.h"
+#include "../common/types.h"
+#include "../dev/print.h"
+#include "mem_align.h"
 
-/*
-Map designed to lookup FSA locations in memory given requested byte size.
-
-Supports 12 diffent FSA blocks from of subblock sizes 2^1 (2) to 2^12 (4096).
-*/
-class FSAMap {
+class FSABlock {
 public:
+    friend class MemMan2;
 
-    static int constexpr MinBytes = 1;    // smallest block is 2^1, 1 byte request uses 2-byte blocks
-    static int constexpr MaxBytes = 4096; // 2^MaxBlocks
-    static int constexpr MaxBlocks = 12;
+public:
+    using Setup = MemManFSASetup;
+    constexpr static size_t Max = Setup::Max;
 
-    byte_t * activePtrForByteSize(uint16_t byteSize) {
-        uint8_t ideal = IndexForByteSize(byteSize);
-        while (ideal < MaxBlocks && _ptrs[ideal] == nullptr) {
-            ++ideal;
+    static uint16_t SubBlockByteSize(uint8_t index) {
+        assert(index < Max && "Index out of range.");
+        return (uint16_t)1 << (index+1);
+    }
+
+    static uint16_t FreeListByteSize(uint16_t nSubBlocks, size_t align = 0) {
+        assert(nSubBlocks == (nSubBlocks & 0xfff8) &&
+            "Number of FSA subblocks must be a multiple of 8.");
+        if (nSubBlocks == 0) return 0;
+        return alignSize(((nSubBlocks - 1) >> 3) + 1, align);
+    }
+
+    static constexpr size_t DataSize(Setup const & setup) {
+        size_t size = 0;
+        for (size_t i = 0; i < Max; ++i) {
+            if (setup.nSubBlocks[i] == 0) {
+                continue;
+            }
+            size +=
+                FreeListByteSize(setup.nSubBlocks[i], setup.align) +
+                alignSize(SubBlockByteSize(i) * setup.nSubBlocks[i], setup.align);
         }
-        if (ideal == MaxBlocks) return nullptr;
-        return _ptrs[ideal];
-
+        return size;
     }
 
-    byte_t * ptrForByteSize(uint16_t byteSize) {
-        return _ptrs[IndexForByteSize(byteSize)];
-    }
-
-    void setPtrForByteSize(uint16_t byteSize, byte_t * ptr) {
-        _ptrs[IndexForByteSize(byteSize)] = ptr;
-    }
-
-    bool hasPtrForByteSize(uint16_t byteSize) {
-        return (_ptrs[IndexForByteSize(byteSize)] != nullptr);
-    }
-
-    static size_t constexpr ActualByteSizeForByteSize(uint16_t byteSize) {
-        uint8_t exp = IndexForByteSize(byteSize) + 1;
-        return (size_t)((uint16_t)1 << exp);
+    byte_t const * data() const {
+        return (byte_t const *)alignPtr((byte_t *)this + sizeof(FSABlock), _align);
     }
 
 private:
-    byte_t * _ptrs[MaxBlocks] = {nullptr};   // pointers
+    FSABlock(Setup const & setup) {
+        _align = setup.align;
+        byte_t * nextPtr = (byte_t *)data();
+        printl("FSA base: %p", this);
+        printl("FSA data: %p", data());
+        printl("sizeof(FSABlock): %zu", sizeof(FSABlock));
+        for (size_t i = 0; i < Max; ++i) {
+            _nSubBlocks[i] = setup.nSubBlocks[i];
+            if (_nSubBlocks[i] == 0) {
+                _map[i] = nullptr;
+                continue;
+            }
+            _map[i] = nextPtr;
+            nextPtr +=
+                FreeListByteSize(_nSubBlocks[i], _align) +
+                alignSize(SubBlockByteSize(i) * _nSubBlocks[i], _align);
 
-    // returns 0-11, given byteSize range MinBytes-MaxBytes
-    static uint8_t constexpr IndexForByteSize(uint16_t byteSize) {
-        assert(byteSize >= MinBytes && byteSize <= MaxBytes && "Invalid byte size.");
-        byteSize -= 1;
-        int index = 0;
-        while (byteSize >>= 1) ++index;
-        return index;
+            printl("--------------");
+            printl("_nSubBlocks[%zu] = %d", i, _nSubBlocks[i]);
+            printl("_map[%zu] = %p", i, _map[i]);
+            printl("FreeListByteSize %zu", FreeListByteSize(_nSubBlocks[i], _align));
+            printl("SubBlocksByteSize %zu", alignSize(SubBlockByteSize(i) * _nSubBlocks[i], _align));
+        }
+        _dataSize = nextPtr - data();
+        printl("dataSize = %zu", _dataSize);
     }
+
+    byte_t * data() {
+        return (byte_t *)alignPtr((byte_t *)this + sizeof(FSABlock), _align);
+    }
+
+    bool isFree(byte_t * freeList, uint16_t index) {
+        return ((freeList[index/8]) >> (index % 8)) & 1;
+    }
+
+    void setClaimed(byte_t * freeList, uint16_t index) {
+        freeList[index/8] |= (uint8_t)(index % 8);
+    }
+
+    void setFree(byte_t * freeList, uint16_t index) {
+        freeList[index/8] &= ((uint8_t)(index % 8) ^ 0xff);
+    }
+
+private:
+    // pointers to subblock groups. _map[0] is pointer to 2-byte subblock group, etc.
+    // nullptr means group of that byte size does not exist.
+    byte_t * _map[Max] = {nullptr};
+    // subblock counts. _nSubBlocks[0] is number of 2-byte subblocks, etc.
+    uint16_t _nSubBlocks[Max] = {0};
+    // total size in bytes
+    size_t _dataSize = 0;
+    // alignment
+    size_t _align = 0;
 };
+
+
+
+
+
+
+
+
+
 
 /*
 
@@ -68,23 +121,110 @@ for (int i = FSAMap::MinBytes; i <= FSAMap::MaxBytes; ++i) {
 */
 
 
-class FSA {
-public:
-    static size_t constexpr BlockByteSize(uint8_t subBlockByteSize, uint16_t subBlockCount) {
-        assert(subBlockCount / 8 * 8 == subBlockCount && "subBlockCount must be multiple of 8.");
-        return
-            sizeof(FSA) +
-            BitArray::ByteSizeForSize(subBlockCount) +
-            FSAMap::ActualByteSizeForByteSize(subBlockByteSize) * subBlockCount;
-    }
+// class FSA {
+// public:
+//     friend class MemMan;
+//     friend class MemMan2;
 
-    FSA(uint8_t subBlockByteSize, uint16_t subBlockCount) {
-        assert(subBlockCount / 8 * 8 == subBlockCount && "subBlockCount must be multiple of 8.");
-    }
+//     static size_t constexpr DataSize(uint16_t subBlockSize, uint16_t nSubBlocks) {
+//         assert(nSubBlocks / 8 * 8 == nSubBlocks && "nSubBlocks must be multiple of 8.");
+//         return
+//             sizeof(FSA) +
+//             BitArraySize(nSubBlocks) +
+//             ActualSubBlockSize(subBlockSize) * nSubBlocks;
+//     }
 
-private:
-    uint8_t _subBlockSize = 0;
-    uint16_t _nSubBlocks = 0;
-};
+//     static size_t constexpr BitArraySize(uint16_t nSubBlocks) {
+//         return nSubBlocks / 8 + (nSubBlocks % 8 != 0);
+//     }
+
+//     static size_t constexpr ActualSubBlockSize(uint16_t byteSize) {
+//         uint8_t exp = IndexForByteSize(byteSize) + 1;
+//         return (size_t)((uint16_t)1 << exp);
+//     }
+
+//     static uint8_t constexpr IndexForByteSize(uint16_t byteSize) {
+//         assert(byteSize >= 1 && byteSize <= 4096 && "Invalid byte size.");
+//         byteSize -= 1;
+//         int index = 0;
+//         while (byteSize >>= 1) ++index;
+//         return index;
+//     }
+
+//     uint16_t subBlockSize() const { return _subBlockSize; }
+//     uint16_t nSubBlocks() const { return _nSubBlocks; }
+
+//     byte_t * bitArray() const {
+//         return (byte_t *)this + sizeof(FSA);
+//     }
+
+//     bool isFree(uint16_t index) const {
+//         assert(index < _nSubBlocks && "Index out of range.");
+//         return ((bitArray()[index/8]) >> (index % 8)) & 1;
+//     }
+
+// private:
+//     FSA(uint16_t subBlockSize, uint16_t nSubBlocks) {
+//         assert(subBlockSize > 0 && "subBlockSize must be at least one byte");
+//         assert(nSubBlocks  / 8 * 8 == nSubBlocks  && "nSubBlocks  must be multiple of 8.");
+//         _subBlockSize = subBlockSize;
+//         _nSubBlocks = nSubBlocks;
+//     }
+
+//     uint16_t _subBlockSize = 0;
+//     uint16_t _nSubBlocks = 0;
+// };
 
 
+
+
+
+
+    /*
+    Map designed to lookup FSA locations in memory given requested byte size.
+
+    Supports 12 diffent FSA blocks from of subblock sizes 2^1 (2) to 2^12 (4096).
+
+        // static int constexpr MinBytes = 1;    // smallest block is 2^1, 1 byte request uses 2-byte blocks
+        // static int constexpr MaxBytes = 4096; // 2^MaxBlocks
+        // static int constexpr MaxBlocks = 12;
+
+        // byte_t * activePtrForByteSize(uint16_t byteSize) {
+        //     uint8_t ideal = IndexForByteSize(byteSize);
+        //     while (ideal < MaxBlocks && _ptrs[ideal] == nullptr) {
+        //         ++ideal;
+        //     }
+        //     if (ideal == MaxBlocks) return nullptr;
+        //     return _ptrs[ideal];
+
+        // }
+
+        // byte_t * ptrForByteSize(uint16_t byteSize) {
+        //     return _ptrs[IndexForByteSize(byteSize)];
+        // }
+
+        // void setPtrForByteSize(uint16_t byteSize, byte_t * ptr) {
+        //     _ptrs[IndexForByteSize(byteSize)] = ptr;
+        // }
+
+        // bool hasPtrForByteSize(uint16_t byteSize) {
+        //     return (_ptrs[IndexForByteSize(byteSize)] != nullptr);
+        // }
+
+
+
+
+    class Map {
+    private:
+
+        // returns 0-11, given byteSize range MinBytes-MaxBytes
+        static uint8_t constexpr IndexForByteSize(uint16_t byteSize) {
+            assert(byteSize >= MinBytes && byteSize <= MaxBytes && "Invalid byte size.");
+            byteSize -= 1;
+            int index = 0;
+            while (byteSize >>= 1) ++index;
+            return index;
+        }
+    };
+
+    */
