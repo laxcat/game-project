@@ -8,7 +8,7 @@
 #include "../MrManager.h"
 #include "OriginWidget.h"
 #include "../common/Path.h"
-#include "../memory/memutils.h"
+#include "../memory/mem_utils.h"
 // #include "../dev/print.h"
 
 // ImGuiTreeNodeFlags_DefaultOpen
@@ -585,18 +585,6 @@ void Editor::guiMem2() {
                 }
                 break;
             }
-            // case MEM_BLOCK_FSA: {
-            //     static int sizeCount[] = {64, 8};
-            //     InputInt2("Subblock count/size", sizeCount);
-            //     SameLine();
-            //     if (Button("Create FSA")) {
-            //         sizeCount[0] = sizeCount[0] & 0xFFFF; // crop to UINT16_MAX
-            //         sizeCount[1] = sizeCount[1] & 0xFFF8; // crop to UINT16_MAX, multiple of 8
-            //         clearMemEditWindow();
-            //         // memMan.createFSA(sizeCount[0], sizeCount[1]);
-            //     }
-            //     break;
-            // }
             case MEM_BLOCK_POOL:
             case MEM_BLOCK_STACK:
             case MEM_BLOCK_FILE:
@@ -664,7 +652,41 @@ void Editor::guiMem2() {
             // sub type specifics
             // FSA
             if (b->type() == MEM_BLOCK_FSA) {
-                // FSA * fsa = (FSA *)b->data();
+                FSA * fsa = (FSA *)b->data();
+                Indent();
+                for (uint16_t fsaGroup = 0; fsaGroup < FSA::Max; ++fsaGroup) {
+                    uint16_t nSubBlocks = fsa->subBlockCountForIndex(fsaGroup);
+                    if (nSubBlocks == 0) continue;
+                    PushID(fsaGroup);
+                    char * titleStr = mm.tempStr(64);
+                    snprintf(titleStr, 64, "%5d %d-byte sub-blocks", nSubBlocks, 1 << (fsaGroup + 1));
+                    if (CollapsingHeader(titleStr)) {
+                        int nCols = 16;
+                        float colSize = 20.f;
+                        int rowCount = nSubBlocks / nCols + (nSubBlocks % nCols != 0);
+                        int subBlockIndex = 0;
+                        BeginTable("SubBlocks", nCols);
+                        for (int row = 0; row < rowCount; ++row) {
+                            TableNextRow();
+                            for (int col = 0; col < nCols; ++col) {
+                                TableSetColumnIndex(col);
+                                if (subBlockIndex < nSubBlocks) {
+                                    uint32_t color = fsa->isFree(fsaGroup, subBlockIndex) ? 0xff888888 : 0xff333333;
+                                    TableSetBgColor(ImGuiTableBgTarget_CellBg, color);
+                                    Text("%d", subBlockIndex);
+                                }
+                                else {
+                                    TableSetBgColor(ImGuiTableBgTarget_CellBg, GetColorU32(ImGuiCol_WindowBg));
+                                }
+                                ++subBlockIndex;
+                            }
+                        }
+                        EndTable();
+                    }
+                    PopID();
+                }
+                Unindent();
+
                 // uint16_t nSubBlocks = fsa->nSubBlocks();
                 // Text("%d %d-byte sublocks", nSubBlocks, fsa->subBlockSize());
                 // int nCols = 16;

@@ -40,13 +40,15 @@ size_t MemMan2::BlockInfo::calcAlignPaddingSize(size_t align) const {
     assert(isValid() && "Block not valid.");
     #endif // DEBUG
 
-    if (align == 0) return 0;
-
     // block may be aligned, but treat it as though its not to get potential
     // new align location. this is then used to calc new padding size.
-    size_t dataPtrAsNum = (size_t)calcUnalignedDataLoc();
-    size_t remainder = dataPtrAsNum % align;
-    return (remainder) ? align - remainder : 0;
+    // using mem_utils function.
+    return alignPadding((size_t)calcUnalignedDataLoc(), align);
+
+    // if (align == 0) return 0;
+    // size_t dataPtrAsNum = (size_t)calcUnalignedDataLoc();
+    // size_t remainder = dataPtrAsNum % align;
+    // return (remainder) ? align - remainder : 0;
 }
 
 size_t MemMan2::BlockInfo::calcAlignDataSize(size_t align) const {
