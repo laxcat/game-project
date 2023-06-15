@@ -3,6 +3,21 @@
 #include "../dev/print.h"
 #include "mem_align.h"
 
+
+/*
+
+FSA data structure (within block)
+
+            | 2-byte sub-block section (if present)   || 4-byte section etc  ...
+|__________||______________|__|__|__|__|__|__|__|__|__||______________|____|_...
+FSA         Free list      Sub-blocks                  Free list      Sub-blk...
+(class      (bit-array)
+storage)    ^                                          ^
+            alignment point                            align pt
+                           ^                                          ^
+                           alignment point                            align pt
+*/
+
 class FSA {
 public:
     friend class MemMan2;
