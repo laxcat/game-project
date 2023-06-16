@@ -549,15 +549,70 @@ void Editor::guiMem2() {
         }
         // initialized
         else {
+            // test allocs
+            struct Allocs {
+                size_t size = 0;
+                void * ptr = nullptr;
+            };
+            static Allocs allocs[128] = {};
+            static int nAllocs = 0;
+
             Text("%p - %p", memMan.data(), memMan.data() + memMan.size());
             SameLine();
             if (Button("Shutdown")) {
                 memMan.shutdown();
+                for (int i = 0; i < nAllocs; ++i) {
+                    allocs[i] = {};
+                }
+                nAllocs = 0;
             }
+
+            PushItemWidth(90);
+
+            TextUnformatted("Allocate Generic:");
+            {
+                static int sizeAlign[] = {4, 0};
+
+                if (nAllocs < 128) {
+                    InputInt2("Size/align##alloc", sizeAlign);
+                    SameLine();
+                    if (Button("Allocate")) {
+                        MemMan2::BlockInfo * block;
+                        void * ptr = memMan.alloc(sizeAlign[0], sizeAlign[1], &block);
+                        if (block != memMan.firstBlock()) {
+                            clearMemEditWindow();
+                        }
+                        if (ptr) {
+                            allocs[nAllocs++] = {(size_t)sizeAlign[0], (void *)ptr};
+                        }
+                    }
+                }
+
+                // quick list of test allocs
+                for (int i = 0; i < nAllocs; ++i) {
+                    PushID(i);
+                    Text(
+                        "%zu-byte alloc (0x%06X)",
+                        allocs[i].size, (uint32_t)((size_t)allocs[i].ptr & 0xffffff)
+                    );
+                    SameLine();
+                    if (Button("Release")) {
+                        memMan.destroy(allocs[i].ptr);
+                        for (int j = i + 1; j < nAllocs; ++j) {
+                            allocs[j-1] = allocs[j];
+                        }
+                        allocs[nAllocs-1] = {};
+                        --nAllocs;
+                    }
+                    PopID();
+                }
+            }
+            Dummy(ImVec2(0.0f, 10.0f));
+
+            TextUnformatted("Manually Create Block:");
 
             static MemBlockType selectedType = MEM_BLOCK_CLAIMED;
 
-            PushItemWidth(90);
             if (BeginCombo("###MemBlockType", memBlockTypeStr(selectedType))) {
                 for (int i = MEM_BLOCK_CLAIMED; i <= MEM_BLOCK_GOBJ; ++i) {
                     if (i == MEM_BLOCK_FSA) continue;
@@ -577,7 +632,7 @@ void Editor::guiMem2() {
             switch (selectedType) {
             case MEM_BLOCK_CLAIMED: {
                 static int sizeAlign[] = {1024, 0};
-                InputInt2("Size/align", sizeAlign);
+                InputInt2("Size/align##block", sizeAlign);
                 SameLine();
                 if (Button("Claim")) {
                     clearMemEditWindow();
@@ -597,6 +652,9 @@ void Editor::guiMem2() {
 
             PopItemWidth();
 
+            Dummy(ImVec2(0.0f, 10.0f));
+
+            Text("%zu Blocks", memMan.blockCountForDisplayOnly());
             Separator();
         }
 
@@ -655,11 +713,14 @@ void Editor::guiMem2() {
                 FSA * fsa = (FSA *)b->data();
                 Indent();
                 for (uint16_t fsaGroup = 0; fsaGroup < FSA::Max; ++fsaGroup) {
-                    uint16_t nSubBlocks = fsa->subBlockCountForIndex(fsaGroup);
+                    uint16_t nSubBlocks = fsa->subBlockCountForGroup(fsaGroup);
                     if (nSubBlocks == 0) continue;
                     PushID(fsaGroup);
                     char * titleStr = mm.tempStr(64);
-                    snprintf(titleStr, 64, "%5d %d-byte sub-blocks", nSubBlocks, 1 << (fsaGroup + 1));
+                    snprintf(titleStr, 64, "%5d %d-byte sub-blocks (0x%06X)",
+                        nSubBlocks,
+                        1 << (fsaGroup + 1),
+                        (uint32_t)((size_t)fsa->freeListPtrForGroup(fsaGroup) & 0xffffff));
                     if (CollapsingHeader(titleStr)) {
                         int nCols = 16;
                         float colSize = 20.f;
@@ -671,7 +732,8 @@ void Editor::guiMem2() {
                             for (int col = 0; col < nCols; ++col) {
                                 TableSetColumnIndex(col);
                                 if (subBlockIndex < nSubBlocks) {
-                                    uint32_t color = fsa->isFree(fsaGroup, subBlockIndex) ? 0xff888888 : 0xff333333;
+                                    bool isFree = fsa->isFree(fsaGroup, subBlockIndex);
+                                    uint32_t color = isFree ? 0xff888888 : 0xff993333;
                                     TableSetBgColor(ImGuiTableBgTarget_CellBg, color);
                                     Text("%d", subBlockIndex);
                                 }

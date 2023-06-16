@@ -83,7 +83,10 @@ public:
     size_t size() const;
     BlockInfo * firstBlock() const;
     BlockInfo * nextBlock(BlockInfo const * block) const;
+    size_t blockCountForDisplayOnly() const;
 
+    // generic alloc request, which can return Block or pointer within FSA
+    void * alloc(size_t size, size_t align = 0, BlockInfo ** resultBlock = nullptr);
     // finds free block of size
     BlockInfo * request(size_t size, size_t align = 0);
     // set type to free and reset padding
@@ -105,6 +108,7 @@ private:
     BlockInfo * _firstFree = nullptr;
     FSA * _fsa = nullptr;
     size_t _frame = 0;
+    size_t _blockCount = 0; // updated during end frame, for display purposes only
     mutable std::recursive_mutex _mainMutex;
 
     // INTERNALS

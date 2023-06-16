@@ -99,10 +99,10 @@ void MemMan2::init(EngineSetup const & setup) {
     printl("BlockInfoSize %zu", BlockInfoSize);
 
     // create some special blocks on init
+    _fsa = createFSA(setup.memManFSA);
     // if (setup.memManFrameStackSize) {
     //     createStack(setup.memManFrameStackSize);
     // }
-    _fsa = createFSA(setup.memManFSA);
 }
 
 void MemMan2::startFrame(size_t frame) {
@@ -152,6 +152,29 @@ MemMan2::BlockInfo * MemMan2::firstBlock() const {
 
 MemMan2::BlockInfo * MemMan2::nextBlock(BlockInfo const * block) const {
     return block->_next;
+}
+
+size_t MemMan2::blockCountForDisplayOnly() const {
+    return _blockCount;
+}
+
+// generic alloc request, which can return Block or pointer within FSA
+void * MemMan2::alloc(size_t size, size_t align, BlockInfo ** resultBlock) {
+    // CHECK IF FSA WILL WORK
+    // TODO: figure out align here
+    void * subPtr;
+    if (align == 0 && _fsa && (subPtr = _fsa->alloc(size))) {
+        if (resultBlock) {
+            *resultBlock = blockForPtr(_fsa);
+        }
+        return subPtr;
+    }
+
+    BlockInfo * block = request(size, align);
+    if (resultBlock) {
+        *resultBlock = block;
+    }
+    return (block) ? block->data() : nullptr;
 }
 
 MemMan2::BlockInfo * MemMan2::request(size_t size, size_t align) {
@@ -228,16 +251,28 @@ MemMan2::BlockInfo * MemMan2::release(BlockInfo * block) {
 }
 
 bool MemMan2::destroy(void * ptr) {
+    // CHECK IF ptr WAS WITHIN FSA
+    if (_fsa && _fsa->destroy(ptr)) {
+        return true;
+    }
+
     BlockInfo * block = blockForPtr(ptr);
     return (release(block)) ? true : false;
 }
 
 FSA * MemMan2::createFSA(MemManFSASetup const & setup) {
+    // check to see if there are any FSA groups
     size_t fsaDataSize = FSA::DataSize(setup);
     if (fsaDataSize == 0) return nullptr;
 
+    // FSA groups exist. total requested size must also contain FSA itself.
+    fsaDataSize += sizeof(FSA);
+
     BlockInfo * block = request(fsaDataSize);
     if (!block) return nullptr;
+    // printl("fsa block %p", block);
+    // printl("fsa block data %p", block->data());
+    // printl("fsa block _next %p", block->_next);
 
     block->_type = MEM_BLOCK_FSA;
     FSA * fsa = new (block->data()) FSA{setup};
@@ -418,8 +453,10 @@ MemMan2::BlockInfo * MemMan2::resize(BlockInfo * block, size_t newSize, size_t a
 }
 
 void MemMan2::mergeAllAdjacentFree() {
+    _blockCount = 0;
     for (BlockInfo * bi = _head; bi; bi = bi->_next) {
         mergeWithNext(bi);
+        ++_blockCount;
     }
 }
 

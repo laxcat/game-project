@@ -1,14 +1,15 @@
 #pragma once
+#include <assert.h>
 #include "../common/types.h"
-#include "../dev/print.h"
 #include "mem_utils.h"
 
 
 /*
 
 FSA data structure (within block)
-
-            | 2-byte sub-block section (if present)   || 4-byte section etc  ...
+            data() start
+            v
+            | 2-byte group of sub-blocks (if present) || 4-byte group etc    ...
 |__________||______________|__|__|__|__|__|__|__|__|__||______________|____|_...
 FSA         Free list      Sub-blocks                  Free list      Sub-blk...
 (class      (bit-array)
@@ -43,104 +44,49 @@ public:
         return size;
     }
 
-    uint16_t subBlockCountForIndex(uint16_t groupIndex) const {
-        assert(groupIndex < Max && "Index out of range.");
-        return _nSubBlocks[groupIndex];
-    }
-
-    bool isFree(uint16_t groupIndex, uint16_t subBlockIndex) const {
-        assert(groupIndex < Max && "Index out of range.");
-        byte_t * freeList = _map[groupIndex];
-        assert(data() <= freeList && freeList < data() + _dataSize &&
-            "Free list not in expected range. Did FSA move memory location since init? "
-            "Be sure to call updateMap() if that happens.");
-        return isFree(freeList, subBlockIndex);
-    }
-
-    byte_t const * data() const {
-        return (byte_t const *)alignPtr((byte_t *)this + sizeof(FSA), _align);
-    }
+    uint16_t subBlockCountForGroup(uint16_t groupIndex) const;
+    byte_t const * freeListPtrForGroup(uint16_t groupIndex) const;
+    bool isFree(uint16_t groupIndex, uint16_t subBlockIndex) const;
+    byte_t const * data() const;
 
     // INTERNALS
 private:
-    FSA(Setup const & setup) {
-        _align = setup.align;
-        _dataSize = DataSize(setup);
-        for (uint16_t i = 0; i < Max; ++i) {
-            _nSubBlocks[i] = setup.nSubBlocks[i];
-        }
-        updateMap();
-        printInfo();
-    }
-
-    void updateMap() {
-        byte_t * nextPtr = (byte_t *)data();
-        for (size_t i = 0; i < Max; ++i) {
-            if (_nSubBlocks[i] == 0) {
-                _map[i] = nullptr;
-                continue;
-            }
-            _map[i] = nextPtr;
-            nextPtr +=
-                FreeListByteSize(_nSubBlocks[i], _align) +
-                alignSize(SubBlockByteSize(i) * _nSubBlocks[i], _align);
-        }
-        assert(_dataSize == nextPtr - data() && "Unexpected data size.");
-    }
-
-    byte_t * data() {
-        return (byte_t *)alignPtr((byte_t *)this + sizeof(FSA), _align);
-    }
-
-    bool isFree(byte_t * freeList, uint16_t index) const {
-        return ((freeList[index/8]) >> (index % 8)) & 1;
-    }
-
-    void setClaimed(byte_t * freeList, uint16_t index) {
-        freeList[index/8] |= (uint8_t)(index % 8);
-    }
-
-    void setFree(byte_t * freeList, uint16_t index) {
-        freeList[index/8] &= ((uint8_t)(index % 8) ^ 0xff);
-    }
-
-    void printInfo() {
-        printl("FSA base: %p", this);
-        printl("FSA data: %p", data());
-        printl("sizeof(FSA): %zu", sizeof(FSA));
-        for (size_t i = 0; i < Max; ++i) {
-            if (_nSubBlocks[i] == 0) {
-                continue;
-            }
-            printl("--------------");
-            printl("_nSubBlocks[%zu] = %d", i, _nSubBlocks[i]);
-            printl("_map[%zu] = %p", i, _map[i]);
-            printl("FreeListByteSize %zu", FreeListByteSize(_nSubBlocks[i], _align));
-            printl("SubBlocksByteSize %zu", alignSize(SubBlockByteSize(i) * _nSubBlocks[i], _align));
-        }
-        printl("dataSize = %zu", _dataSize);
-    }
+    FSA(Setup const & setup);
+    void updateMap();
+    byte_t * data();
+    // try to claim sub-block of size. fills  ptr if found.
+    void * alloc(uint16_t size);
+    // release sub-block at ptr
+    bool destroy(void * ptr);
+    byte_t * subBlockPtr(uint16_t groupIndex, uint16_t subBlockIndex);
+    void setClaimed(byte_t * freeList, uint16_t subBlockIndex);
+    void setFree(byte_t * freeList, uint16_t subBlockIndex);
+    void setAllFree();
+    void setAllFreeInGroup(uint16_t groupIndex);
+    void printInfo();
 
     // STORAGE
 private:
-    // pointers to subblock groups. _map[0] is pointer to 2-byte subblock group, etc.
+    // pointers to subblock groups. _freeList[0] is pointer to 2-byte freelist, etc.
+    // _groupBase[0] is pointer to first sub-block in 2-byte group, etc.
     // nullptr means group of that byte size does not exist.
-    byte_t * _map[Max] = {nullptr};
+    byte_t * _freeList[Max] = {nullptr};
+    byte_t * _groupBase[Max] = {nullptr};
     // subblock counts. _nSubBlocks[0] is number of 2-byte subblocks, etc.
     uint16_t _nSubBlocks[Max] = {0};
-    // total size in bytes
+    // total data size in bytes (does not include sizeof(FSA))
     size_t _dataSize = 0;
     // alignment
     size_t _align = 0;
 
     // STATIC INTERNALS
 private:
-    static uint16_t SubBlockByteSize(uint8_t index) {
-        assert(index < Max && "Index out of range.");
-        return (uint16_t)1 << (index+1);
+    static uint16_t constexpr SubBlockByteSize(uint8_t groupIndex) {
+        assert(groupIndex < Max && "Index out of range.");
+        return (uint16_t)2 << groupIndex;
     }
 
-    static uint16_t FreeListByteSize(uint16_t nSubBlocks, size_t align = 0) {
+    static uint16_t constexpr FreeListByteSize(uint16_t nSubBlocks, size_t align = 0) {
         assert(nSubBlocks == (nSubBlocks & 0xfff8) &&
             "Number of FSA subblocks must be a multiple of 8.");
         if (nSubBlocks == 0) return 0;
