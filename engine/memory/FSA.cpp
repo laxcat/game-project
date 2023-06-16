@@ -131,8 +131,6 @@ bool FSA::destroy(void * ptr) {
         return false;
     }
 
-    printInfo();
-
     byte_t * bptr = (byte_t *)ptr;
     uint16_t groupIndex = 0;
     uint16_t byteSize = 0;

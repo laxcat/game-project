@@ -105,6 +105,22 @@ char * MrManager::tempStr(size_t size) {
     return ret;
 }
 
+char const * MrManager::byteSizeStr(size_t byteSize) {
+    // " %.0f MB"
+    char * ret = mm.tempStr(16);
+    if (byteSize > 1024*1024) {
+        snprintf(ret, 16, "%.0f MB", round((double)byteSize/(1024*1024)));
+    }
+    else if (byteSize > 1024) {
+        snprintf(ret, 16, "%.0f KB", round((double)byteSize/1024));
+    }
+    else {
+        snprintf(ret, 16, "%.0f bytes", round((double)byteSize));
+    }
+    return (char const *)ret;
+}
+
+
 
 // -------------------------------------------------------------------------- //
 // EVENT

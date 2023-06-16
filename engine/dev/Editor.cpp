@@ -17,14 +17,6 @@ static char scratchStr[32];
 
 static MemoryEditor memEdit;
 
-// used for guiWinMem
-static void * memEditPtr = nullptr;
-static size_t memEditSz  = 0;
-static char memEditTitle[128];
-
-// used for guiWinMem2 (better, newer)
-static MemMan2::BlockInfo const * memEditBlock = nullptr;
-
 
 struct GLTFSlot {
     std::string label;
@@ -61,21 +53,6 @@ static char const * filenameForLoadedGLTF(char const * key) {
         }
     }
     return "";
-}
-
-static char const * byteSizeStr(size_t byteSize) {
-    // " %.0f MB"
-    char * ret = mm.tempStr(16);
-    if (byteSize > 1024*1024) {
-        snprintf(ret, 16, "%.0f MB", round((double)byteSize/(1024*1024)));
-    }
-    else if (byteSize > 1024) {
-        snprintf(ret, 16, "%.0f KB", round((double)byteSize/1024));
-    }
-    else {
-        snprintf(ret, 16, "%.0f bytes", round((double)byteSize));
-    }
-    return (char const *)ret;
 }
 
 Editor::Editor() {
@@ -465,7 +442,7 @@ void Editor::guiColors() {
 
 void Editor::guiMem() {
     if (CollapsingHeader("Memory")) {
-        Text("Total: %s", byteSizeStr(mm.memMan.size()));
+        Text("Total: %s", mm.byteSizeStr(mm.memMan.size()));
 
         Indent();
 
@@ -488,9 +465,9 @@ void Editor::guiMem() {
             snprintf(str, 128, "%03d: %s Block (%s)",
                 i,
                 memBlockTypeStr(b->type()),
-                byteSizeStr(b->dataSize())
+                mm.byteSizeStr(b->dataSize())
                 );
-            bool isSelected = ((void *)b == (void *)memEditPtr);
+            bool isSelected = ((void *)b == memWin.ptr);
             if (b->type() == MEM_BLOCK_FREE) {
                 style->Colors[ImGuiCol_Text] = ImVec4(0.6f, 0.7f, 1.0f, 1.00f);
             }
@@ -503,9 +480,9 @@ void Editor::guiMem() {
                 }
                 else {
                     memEdit.Open = true;
-                    memEditPtr = (void *)b;
-                    memEditSz = b->totalSize();
-                    snprintf(memEditTitle, 64, "%s###memEditWindow", str);
+                    memWin.ptr = (void *)b;
+                    memWin.size = b->totalSize();
+                    snprintf(memWin.title, 64, "%s###memEditWindow", str);
                 }
             }
             style->Colors[ImGuiCol_Text] = defaultTextColor;
@@ -519,302 +496,48 @@ void Editor::guiMem() {
 
 
 void Editor::guiMem2() {
-    if (CollapsingHeader("Mem 2", ImGuiTreeNodeFlags_DefaultOpen)) {
-        MemMan2 & memMan = mm.memMan2;
-
-        // not initialized
-        if (!memMan.firstBlock()) {
-            static int size = 1024*1024;
-            static MemManFSASetup fsaSetup = mm.setup.memManFSA;
-            InputInt("Init size", &size, 1024, 1024*1024);
-            TextUnformatted("FSA sub-block counts");
-            PushItemWidth(100);
-            uint16_t fsaCountStep = 8;
-            for (int fsaI = 0; fsaI < MemManFSASetup::Max; ++fsaI) {
-                char * title = mm.tempStr(64);
-                snprintf(title, 64, "%d-byte sub-blocks", 1 << (fsaI+1));
-                InputScalar(title, ImGuiDataType_U16, &fsaSetup.nSubBlocks[fsaI], &fsaCountStep);
-            }
-            PopItemWidth();
-            if (Button("Init")) {
-                // sanitize fsa sub-block counts
-                for (int fsaI = 0; fsaI < MemManFSASetup::Max; ++fsaI) {
-                    fsaSetup.nSubBlocks[fsaI] &= 0xfff8;
-                }
-                EngineSetup setup;
-                setup.memManSize = size;
-                setup.memManFSA = fsaSetup;
-                memMan.init(setup);
-            }
-        }
-        // initialized
-        else {
-            // test allocs
-            struct Allocs {
-                size_t size = 0;
-                void * ptr = nullptr;
-            };
-            static Allocs allocs[128] = {};
-            static int nAllocs = 0;
-
-            Text("%p - %p", memMan.data(), memMan.data() + memMan.size());
-            SameLine();
-            if (Button("Shutdown")) {
-                memMan.shutdown();
-                for (int i = 0; i < nAllocs; ++i) {
-                    allocs[i] = {};
-                }
-                nAllocs = 0;
-            }
-
-            PushItemWidth(90);
-
-            TextUnformatted("Allocate Generic:");
-            {
-                static int sizeAlign[] = {4, 0};
-
-                if (nAllocs < 128) {
-                    InputInt2("Size/align##alloc", sizeAlign);
-                    SameLine();
-                    if (Button("Allocate")) {
-                        MemMan2::BlockInfo * block;
-                        void * ptr = memMan.alloc(sizeAlign[0], sizeAlign[1], &block);
-                        if (block != memMan.firstBlock()) {
-                            clearMemEditWindow();
-                        }
-                        if (ptr) {
-                            allocs[nAllocs++] = {(size_t)sizeAlign[0], (void *)ptr};
-                        }
-                    }
-                }
-
-                // quick list of test allocs
-                for (int i = 0; i < nAllocs; ++i) {
-                    PushID(i);
-                    Text(
-                        "%zu-byte alloc (0x%06X)",
-                        allocs[i].size, (uint32_t)((size_t)allocs[i].ptr & 0xffffff)
-                    );
-                    SameLine();
-                    if (Button("Release")) {
-                        memMan.destroy(allocs[i].ptr);
-                        for (int j = i + 1; j < nAllocs; ++j) {
-                            allocs[j-1] = allocs[j];
-                        }
-                        allocs[nAllocs-1] = {};
-                        --nAllocs;
-                    }
-                    PopID();
-                }
-            }
-            Dummy(ImVec2(0.0f, 10.0f));
-
-            TextUnformatted("Manually Create Block:");
-
-            static MemBlockType selectedType = MEM_BLOCK_CLAIMED;
-
-            if (BeginCombo("###MemBlockType", memBlockTypeStr(selectedType))) {
-                for (int i = MEM_BLOCK_CLAIMED; i <= MEM_BLOCK_GOBJ; ++i) {
-                    if (i == MEM_BLOCK_FSA) continue;
-
-                    if (Selectable(memBlockTypeStr((MemBlockType)i))) {
-                        selectedType = (MemBlockType)i;
-                    }
-                }
-                EndCombo();
-            }
-
-            SameLine();
-
-            PopItemWidth();
-            PushItemWidth(120);
-
-            switch (selectedType) {
-            case MEM_BLOCK_CLAIMED: {
-                static int sizeAlign[] = {1024, 0};
-                InputInt2("Size/align##block", sizeAlign);
-                SameLine();
-                if (Button("Claim")) {
-                    clearMemEditWindow();
-                    memMan.request(sizeAlign[0], sizeAlign[1]);
-                }
-                break;
-            }
-            case MEM_BLOCK_POOL:
-            case MEM_BLOCK_STACK:
-            case MEM_BLOCK_FILE:
-            case MEM_BLOCK_GOBJ:
-            case MEM_BLOCK_FSA:
-            default: {
-                TextUnformatted("Not implemented yet.");
-            }
-            }
-
-            PopItemWidth();
-
-            Dummy(ImVec2(0.0f, 10.0f));
-
-            Text("%zu Blocks", memMan.blockCountForDisplayOnly());
-            Separator();
-        }
-
-        ImGuiStyle * style = &ImGui::GetStyle();
-        ImVec4 defaultTextColor = style->Colors[ImGuiCol_Text];
-        int blockIndex = 0;
-        for (MemMan2::BlockInfo * b = memMan.firstBlock(); b; b = memMan.nextBlock(b)) {
-            PushID(blockIndex);
-
-            void * basePtr = (void *)((MemMan2::BlockInfo const *)b)->basePtr();
-
-            // calc block name
-            char * str = mm.tempStr(128);
-            snprintf(str, 128, "%03d (0x%06X): %s Block [%s][%s]",
-                blockIndex,
-                (uint32_t)((size_t)basePtr & 0xffffff),
-                memBlockTypeStr(b->type()),
-                byteSizeStr(b->paddingSize()),
-                byteSizeStr(b->dataSize())
-            );
-
-            bool isSelected = (b == memEditBlock);
-            ImVec2 selSize = ImVec2{GetWindowContentRegionMax().x - 50.f, 0.f};
-
-            if (b->type() == MEM_BLOCK_FREE) {
-                style->Colors[ImGuiCol_Text] = ImVec4(0.6f, 0.7f, 1.0f, 1.00f);
-                selSize = {};
-            }
-            else if (b->type() == MEM_BLOCK_CLAIMED) {
-                style->Colors[ImGuiCol_Text] = ImVec4(0.9f, 0.5f, 0.5f, 1.00f);
-            }
-
-            if (Selectable(str, isSelected, 0, selSize)) {
-                if (isSelected) {
-                    clearMemEditWindow();
-                }
-                else {
-                    memEdit.Open = true;
-                    memEditBlock = b;
-                    snprintf(memEditTitle, 128, "%s###memEditWindow", str);
-                }
-            }
-
-            // show free button
-            if (b->type() != MEM_BLOCK_FREE && b->type() != MEM_BLOCK_FSA) {
-                SameLine();
-                if (Button("Free")) {
-                    clearMemEditWindow();
-                    b = memMan.release(b);
-                }
-            }
-
-            // sub type specifics
-            // FSA
-            if (b->type() == MEM_BLOCK_FSA) {
-                FSA * fsa = (FSA *)b->data();
-                Indent();
-                for (uint16_t fsaGroup = 0; fsaGroup < FSA::Max; ++fsaGroup) {
-                    uint16_t nSubBlocks = fsa->subBlockCountForGroup(fsaGroup);
-                    if (nSubBlocks == 0) continue;
-                    PushID(fsaGroup);
-                    char * titleStr = mm.tempStr(64);
-                    snprintf(titleStr, 64, "%5d %d-byte sub-blocks (0x%06X)",
-                        nSubBlocks,
-                        1 << (fsaGroup + 1),
-                        (uint32_t)((size_t)fsa->freeListPtrForGroup(fsaGroup) & 0xffffff));
-                    if (CollapsingHeader(titleStr)) {
-                        int nCols = 16;
-                        float colSize = 20.f;
-                        int rowCount = nSubBlocks / nCols + (nSubBlocks % nCols != 0);
-                        int subBlockIndex = 0;
-                        BeginTable("SubBlocks", nCols);
-                        for (int row = 0; row < rowCount; ++row) {
-                            TableNextRow();
-                            for (int col = 0; col < nCols; ++col) {
-                                TableSetColumnIndex(col);
-                                if (subBlockIndex < nSubBlocks) {
-                                    bool isFree = fsa->isFree(fsaGroup, subBlockIndex);
-                                    uint32_t color = isFree ? 0xff888888 : 0xff993333;
-                                    TableSetBgColor(ImGuiTableBgTarget_CellBg, color);
-                                    Text("%d", subBlockIndex);
-                                }
-                                else {
-                                    TableSetBgColor(ImGuiTableBgTarget_CellBg, GetColorU32(ImGuiCol_WindowBg));
-                                }
-                                ++subBlockIndex;
-                            }
-                        }
-                        EndTable();
-                    }
-                    PopID();
-                }
-                Unindent();
-
-                // uint16_t nSubBlocks = fsa->nSubBlocks();
-                // Text("%d %d-byte sublocks", nSubBlocks, fsa->subBlockSize());
-                // int nCols = 16;
-                // float colSize = 20.f;
-                // int rowCount = nSubBlocks / nCols + (nSubBlocks % nCols != 0);
-                // int cellIndex = 0;
-                // BeginTable("SubBlocks", nCols);
-                // for (int row = 0; row < rowCount; ++row) {
-                //     TableNextRow();
-                //     for (int col = 0; col < nCols; ++col) {
-                //         TableSetColumnIndex(col);
-                //         if (cellIndex < nSubBlocks) {
-                //             uint32_t color = fsa->isFree(cellIndex) ? 0xff888888 : 0xff333333;
-                //             TableSetBgColor(ImGuiTableBgTarget_CellBg, color);
-                //             Text("%d", cellIndex);
-                //         }
-                //         else {
-                //             TableSetBgColor(ImGuiTableBgTarget_CellBg, GetColorU32(ImGuiCol_WindowBg));
-                //         }
-                //         ++cellIndex;
-                //     }
-                // }
-                // EndTable();
-            }
-
-            style->Colors[ImGuiCol_Text] = defaultTextColor;
-            Separator();
-            ++blockIndex;
-
-            PopID();
-        }
-
-    }
+    mm.memMan2.editor();
 }
 
 
 void Editor::guiWinMem() {
-    if (memEditPtr && memEdit.Open == false) clearMemEditWindow();
-    if (memEditPtr == nullptr) return;
-    memEdit.DrawWindow(memEditTitle, memEditPtr, memEditSz);
+    if (memWin.ptr && memEdit.Open == false) clearMemEditWindow();
+    if (memWin.ptr == nullptr) return;
+    memEdit.DrawWindow(memWin.title, memWin.ptr, memWin.size);
 }
 
 void Editor::guiWinMem2() {
-    if (memEditBlock && memEdit.Open == false) clearMemEditWindow();
-    if (memEditBlock == nullptr) return;
-    size_t basePtr = (size_t)memEditBlock->basePtr();
-    size_t memEditPtrRounded = basePtr & (size_t)0xfffffffffffffff0;
-    size_t memEditRoundedDif = basePtr - memEditPtrRounded;
-    // printl("ptr %p, rounded: %p, (diff=%zu)", memEditPtr, (void *)memEditPtrRounded, memEditRoundedDif);
+    if (memWin.ptr && memEdit.Open == false) clearMemEditWindow();
+    if (memWin.ptr == nullptr) return;
+
+    size_t basePtr = (size_t)memWin.ptr;
+    size_t roundedPtr = basePtr & (size_t)0xfffffffffffffff0;
+    size_t roundedDif = basePtr - roundedPtr;
+
     memEdit.DrawWindow(
-        memEditTitle,
-        (void *)memEditPtrRounded,
-        memEditBlock->blockSize() + memEditRoundedDif,
-        memEditPtrRounded & 0xffff
+        memWin.title,
+        (void *)roundedPtr,
+        memWin.size + roundedDif,
+        roundedPtr & 0xffff
     );
-    // memEdit.DrawWindow(memEditTitle, memEditPtr, memEditSz, (size_t)memEditPtr);
-    memEdit.GotoAddrAndHighlight(
-        basePtr,
-        basePtr + memEditBlock->blockSize());
+
+    // TODO: enable/figure out why it wasn't working
+    // memEdit.GotoAddrAndHighlight(
+    //     basePtr,
+    //     basePtr + memEditBlock->blockSize()
+    // );
+}
+
+void Editor::showMemEditWindow(void * ptr, size_t size) {
+    memEdit.Open = true;
+    memWin.ptr = ptr;
+    memWin.size = size;
 }
 
 void Editor::clearMemEditWindow() {
-    memEditPtr = nullptr;
-    memEditSz = 0;
-    memEditBlock = nullptr;
-    snprintf(memEditTitle, 64, "");
+    memWin.ptr = nullptr;
+    memWin.size = 0;
+    snprintf(memWin.title, MemEditWindow::TitleSize, "");
 }
 
 

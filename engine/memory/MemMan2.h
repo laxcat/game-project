@@ -94,6 +94,10 @@ public:
 
     bool destroy(void * ptr);
 
+    #if DEV_INTERFACE
+    void editor();
+    #endif // DEV_INTERFACE
+
     // SPECIAL BLOCK CREATION
 private:
     // create fsa block on init

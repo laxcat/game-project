@@ -1,4 +1,20 @@
 #pragma once
+#include <stddef.h>
+
+class MemEditWindow {
+public:
+    void * ptr = nullptr;
+    size_t size = 0;
+
+    static constexpr size_t TitleSize = 128;
+    char title[TitleSize];
+
+    // TODO:
+    // void * highlightedPtr;
+    // size_t highlightedSize;
+
+    void * winPtr = nullptr;
+};
 
 class Editor {
 public:
@@ -21,5 +37,9 @@ public:
     // separate movable windows
     void guiWinMem();
     void guiWinMem2();
+
+    void showMemEditWindow(void * ptr, size_t size);
     void clearMemEditWindow();
+
+    MemEditWindow memWin;
 };
