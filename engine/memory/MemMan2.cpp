@@ -8,6 +8,8 @@
 #include "GObj.h"
 #include "FSA.h"
 
+constexpr static bool ShowMemManBGFXDbg = false;
+
 size_t MemMan2::BlockInfo::paddingSize() const {
     return _padding;
 }
@@ -514,3 +516,81 @@ void MemMan2::validateAll() {
 
 // void MemMan2::updateFirstFree() {
 // }
+
+void * memManAlloc(size_t size, void * userData) {
+    if (!userData) return nullptr;
+    MemMan2 * memMan2 = (MemMan2 *)userData;
+
+    MemMan2::guard_t guard{memMan2->_mainMutex};
+
+    if (!size) return nullptr;
+    MemMan2::BlockInfo * block = memMan2->request(size);
+    if (!block) {
+        fprintf(stderr, "Unable to alloc memory: %zu\n", size);
+        assert(false);
+    }
+    block->_type = MEM_BLOCK_EXTERNAL;
+    // memMan2->updateFirstFree(block);
+    return block->data();
+}
+
+void * memManRealloc(void * ptr, size_t size, void * userData) {
+    if (!userData) return nullptr;
+    MemMan2 * memMan2 = (MemMan2 *)userData;
+
+    MemMan2::guard_t guard{memMan2->_mainMutex};
+
+    if (ptr == nullptr) return memManAlloc(size, userData);
+    if (size == 0) {
+        memManFree(ptr, userData);
+        return nullptr;
+    }
+    assert(memMan2->isWithinData(ptr, size));
+    auto block = (MemMan2::BlockInfo *)((byte_t *)ptr - MemMan2::BlockInfoSize);
+
+    #if DEBUG
+    assert(memMan2->isValidBlock(block) && "Block not valid. (memManRealloc)");
+    #endif // DEBUG
+
+    block = memMan2->resize(block, size);
+    return (block) ? block->data() : nullptr;
+}
+
+void memManFree(void * ptr, void * userData) {
+    if (!userData) return;
+    MemMan2 * memMan2 = (MemMan2 *)userData;
+
+    MemMan2::guard_t guard{memMan2->_mainMutex};
+
+    if (!ptr) return;
+    memMan2->destroy(ptr);
+}
+
+void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * file, uint32_t line) {
+    #if DEBUG
+        assert(memMan2 && "Memory manager pointer not set in BXAllocator.");
+    #endif
+    MemMan2::guard_t guard{memMan2->_mainMutex};
+
+    if constexpr (ShowMemManBGFXDbg) printl(
+        "(%05zu) BGFX ALLOC: "
+        "%011p, "
+        "%*zu, "
+        "%*zu, "
+        "%s:%d ",
+        memMan2->_frame,
+        ptr,
+        10, size,
+        2, align,
+        file,
+        line
+    );
+
+    void * ret = memManRealloc(ptr, size, (void *)memMan2);
+    if (ptr == nullptr && size) {
+        memMan2->blockForPtr(ret)->_type = MEM_BLOCK_BGFX;
+    }
+
+    if constexpr (ShowMemManBGFXDbg) printl("          (RETURNS: %011p)", ret);
+    return ret;
+}

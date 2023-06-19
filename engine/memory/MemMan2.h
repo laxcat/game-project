@@ -1,5 +1,6 @@
 #pragma once
 #include <mutex>
+#include <bx/allocator.h>
 #include "../engine.h"
 #include "../common/types.h"
 #include "FSA.h"
@@ -18,6 +19,13 @@ _padding   BlockInfo      BlockInfo->data()            _padding
 
 
 class MemMan2 {
+    // FRIENDS
+public:
+    friend void * memManAlloc(size_t, void *);
+    friend void * memManRealloc(void *, size_t, void *);
+    friend void memManFree(void *, void *);
+    friend class BXAllocator;
+
     // TYPES
 public:
     using guard_t = std::lock_guard<std::recursive_mutex>;
@@ -70,6 +78,8 @@ public:
         // FRIENDS
     public:
         friend class MemMan2;
+        friend class BXAllocator;
+        friend void * memManAlloc(size_t, void *);
     };
     constexpr static size_t BlockInfoSize = sizeof(BlockInfo);
 
@@ -152,4 +162,17 @@ private:
     // validate all blocks, update debug info like _debug_index
     void validateAll();
     #endif // DEBUG
+};
+
+// requires size (and userData must be pointer to MemMan)
+void * memManAlloc(size_t size, void * userData);
+// general purpose to handle all cases. requires ptr OR size (and userData must be pointer to MemMan)
+void * memManRealloc(void * ptr, size_t size, void * userData);
+// requires ptr (and userData must be pointer to MemMan)
+void memManFree(void * ptr, void * userData);
+
+class BXAllocator : public bx::AllocatorI {
+public:
+    MemMan2 * memMan2 = nullptr;
+    void * realloc(void *, size_t, size_t, char const *, uint32_t);
 };

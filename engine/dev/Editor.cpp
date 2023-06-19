@@ -441,57 +441,57 @@ void Editor::guiColors() {
 }
 
 void Editor::guiMem() {
-    if (CollapsingHeader("Memory")) {
-        Text("Total: %s", mm.byteSizeStr(mm.memMan.size()));
+    // if (CollapsingHeader("Memory")) {
+    //     Text("Total: %s", mm.byteSizeStr(mm.memMan.size()));
 
-        Indent();
+    //     Indent();
 
-        if (Button("Print Info")) {
-            mm.memMan.printInfo();
-            // printl("wut.");
-        }
-        SameLine();
-        if (Button("Check Blocks")) {
-            mm.memMan.checkAllBlocks();
-        }
+    //     if (Button("Print Info")) {
+    //         mm.memMan.printInfo();
+    //         // printl("wut.");
+    //     }
+    //     SameLine();
+    //     if (Button("Check Blocks")) {
+    //         mm.memMan.checkAllBlocks();
+    //     }
 
-        ImGuiStyle * style = &ImGui::GetStyle();
-        ImVec4 defaultTextColor = style->Colors[ImGuiCol_Text];
+    //     ImGuiStyle * style = &ImGui::GetStyle();
+    //     ImVec4 defaultTextColor = style->Colors[ImGuiCol_Text];
 
-        int i = 0;
-        for (MemMan::Block const * b = mm.memMan.firstBlock(); b; b = mm.memMan.nextBlock(*b)) {
-            // calc block name
-            char * str = mm.tempStr(128);
-            snprintf(str, 128, "%03d: %s Block (%s)",
-                i,
-                memBlockTypeStr(b->type()),
-                mm.byteSizeStr(b->dataSize())
-                );
-            bool isSelected = ((void *)b == memWin.ptr);
-            if (b->type() == MEM_BLOCK_FREE) {
-                style->Colors[ImGuiCol_Text] = ImVec4(0.6f, 0.7f, 1.0f, 1.00f);
-            }
-            else if (b->type() == MEM_BLOCK_CLAIMED) {
-                style->Colors[ImGuiCol_Text] = ImVec4(0.9f, 0.5f, 0.5f, 1.00f);
-            }
-            if (Selectable(str, isSelected)) {
-                if (isSelected) {
-                    clearMemEditWindow();
-                }
-                else {
-                    memEdit.Open = true;
-                    memWin.ptr = (void *)b;
-                    memWin.size = b->totalSize();
-                    snprintf(memWin.title, 64, "%s###memEditWindow", str);
-                }
-            }
-            style->Colors[ImGuiCol_Text] = defaultTextColor;
-            Separator();
-            ++i;
-        }
+    //     int i = 0;
+    //     for (MemMan::Block const * b = mm.memMan.firstBlock(); b; b = mm.memMan.nextBlock(*b)) {
+    //         // calc block name
+    //         char * str = mm.tempStr(128);
+    //         snprintf(str, 128, "%03d: %s Block (%s)",
+    //             i,
+    //             memBlockTypeStr(b->type()),
+    //             mm.byteSizeStr(b->dataSize())
+    //             );
+    //         bool isSelected = ((void *)b == memWin.ptr);
+    //         if (b->type() == MEM_BLOCK_FREE) {
+    //             style->Colors[ImGuiCol_Text] = ImVec4(0.6f, 0.7f, 1.0f, 1.00f);
+    //         }
+    //         else if (b->type() == MEM_BLOCK_CLAIMED) {
+    //             style->Colors[ImGuiCol_Text] = ImVec4(0.9f, 0.5f, 0.5f, 1.00f);
+    //         }
+    //         if (Selectable(str, isSelected)) {
+    //             if (isSelected) {
+    //                 clearMemEditWindow();
+    //             }
+    //             else {
+    //                 memEdit.Open = true;
+    //                 memWin.ptr = (void *)b;
+    //                 memWin.size = b->totalSize();
+    //                 snprintf(memWin.title, 64, "%s###memEditWindow", str);
+    //             }
+    //         }
+    //         style->Colors[ImGuiCol_Text] = defaultTextColor;
+    //         Separator();
+    //         ++i;
+    //     }
 
-        Unindent();
-    }
+    //     Unindent();
+    // }
 }
 
 
