@@ -3,6 +3,7 @@
 #include "../engine.h"
 #include "../common/types.h"
 #include "FSA.h"
+#include "Stack.h"
 
 /*
 
@@ -74,31 +75,38 @@ public:
 
     // API
 public:
-    void init(EngineSetup const & setup);
+    // LIFECYCLE
+    void init(EngineSetup const & setup, Stack ** frameStack = nullptr);
     void startFrame(size_t frame);
     void endFrame();
     void shutdown();
 
+    // ACCESS
     byte_t const * data() const;
     size_t size() const;
     BlockInfo * firstBlock() const;
     BlockInfo * nextBlock(BlockInfo const * block) const;
     size_t blockCountForDisplayOnly() const;
 
-    // generic alloc request, which can return Block or pointer within FSA
+    // GENERIC ALLOCATION
+    // generic alloc request, which can return Block data ptr or ptr within FSA
     void * alloc(size_t size, size_t align = 0, BlockInfo ** resultBlock = nullptr);
-    // finds free block of size
+    // release generic pointer; expects block->data() ptr or FSA sub-block ptr
+    bool destroy(void * ptr);
+    // explicitly finds/creates free block of size
     BlockInfo * request(size_t size, size_t align = 0);
-    // set type to free and reset padding
+    // explicity releases block. set type to free and reset padding
     BlockInfo * release(BlockInfo * block);
 
-    bool destroy(void * ptr);
+    // SPECIAL BLOCK OBJ CREATION
+    Stack * createStack(size_t size);
 
+    // DEV INTERFACE ONLY
     #if DEV_INTERFACE
     void editor();
     #endif // DEV_INTERFACE
 
-    // SPECIAL BLOCK CREATION
+    // PRIVATE SPECIAL BLOCK OBJ CREATION
 private:
     // create fsa block on init
     FSA * createFSA(MemManFSASetup const & setup);

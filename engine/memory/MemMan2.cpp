@@ -82,7 +82,7 @@ bool MemMan2::BlockInfo::isValid() const {
 }
 #endif // DEBUG
 
-void MemMan2::init(EngineSetup const & setup) {
+void MemMan2::init(EngineSetup const & setup, Stack ** frameStack) {
     if (setup.memManSize == 0) return;
 
     _size = setup.memManSize;
@@ -100,9 +100,12 @@ void MemMan2::init(EngineSetup const & setup) {
 
     // create some special blocks on init
     _fsa = createFSA(setup.memManFSA);
-    // if (setup.memManFrameStackSize) {
-    //     createStack(setup.memManFrameStackSize);
-    // }
+    if (setup.memManFrameStackSize) {
+        Stack * fs = createStack(setup.memManFrameStackSize);
+        if (fs && frameStack) {
+            *frameStack = fs;
+        }
+    }
 }
 
 void MemMan2::startFrame(size_t frame) {
@@ -260,19 +263,20 @@ bool MemMan2::destroy(void * ptr) {
     return (release(block)) ? true : false;
 }
 
+Stack * MemMan2::createStack(size_t size) {
+    BlockInfo * block = request(sizeof(Stack) + size);
+    if (!block) return nullptr;
+    block->_type = MEM_BLOCK_STACK;
+    return new (block->data()) Stack{size};
+}
+
 FSA * MemMan2::createFSA(MemManFSASetup const & setup) {
     // check to see if there are any FSA groups
-    size_t fsaDataSize = FSA::DataSize(setup);
-    if (fsaDataSize == 0) return nullptr;
+    size_t dataSize = FSA::DataSize(setup);
+    if (dataSize == 0) return nullptr;
 
-    // FSA groups exist. total requested size must also contain FSA itself.
-    fsaDataSize += sizeof(FSA);
-
-    BlockInfo * block = request(fsaDataSize);
+    BlockInfo * block = request(sizeof(FSA) + dataSize);
     if (!block) return nullptr;
-    // printl("fsa block %p", block);
-    // printl("fsa block data %p", block->data());
-    // printl("fsa block _next %p", block->_next);
 
     block->_type = MEM_BLOCK_FSA;
     FSA * fsa = new (block->data()) FSA{setup};

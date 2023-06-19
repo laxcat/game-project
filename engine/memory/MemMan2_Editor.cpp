@@ -14,7 +14,7 @@ void MemMan2::editor() {
 
     // memman not initialized ----------------------------------------------- //
     if (!firstBlock()) {
-        static int size = 1024*1024;
+        static int size = mm.setup.memManSize;
         static MemManFSASetup fsaSetup = mm.setup.memManFSA;
         InputInt("Init size", &size, 1024, 1024*1024);
         TextUnformatted("FSA sub-block counts");
