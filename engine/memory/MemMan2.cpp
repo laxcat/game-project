@@ -517,7 +517,7 @@ void MemMan2::validateAll() {
 // void MemMan2::updateFirstFree() {
 // }
 
-void * memManAlloc(size_t size, void * userData) {
+void * memManAlloc(size_t size, void * userData, size_t align) {
     if (!userData) return nullptr;
     MemMan2 * memMan2 = (MemMan2 *)userData;
 
@@ -534,13 +534,13 @@ void * memManAlloc(size_t size, void * userData) {
     return block->data();
 }
 
-void * memManRealloc(void * ptr, size_t size, void * userData) {
+void * memManRealloc(void * ptr, size_t size, void * userData, size_t align) {
     if (!userData) return nullptr;
     MemMan2 * memMan2 = (MemMan2 *)userData;
 
     MemMan2::guard_t guard{memMan2->_mainMutex};
 
-    if (ptr == nullptr) return memManAlloc(size, userData);
+    if (ptr == nullptr) return memManAlloc(size, userData, align);
     if (size == 0) {
         memManFree(ptr, userData);
         return nullptr;
@@ -586,7 +586,7 @@ void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * 
         line
     );
 
-    void * ret = memManRealloc(ptr, size, (void *)memMan2);
+    void * ret = memManRealloc(ptr, size, (void *)memMan2, align);
     if (ptr == nullptr && size) {
         memMan2->blockForPtr(ret)->_type = MEM_BLOCK_BGFX;
     }

@@ -21,8 +21,8 @@ _padding   BlockInfo      BlockInfo->data()            _padding
 class MemMan2 {
     // FRIENDS
 public:
-    friend void * memManAlloc(size_t, void *);
-    friend void * memManRealloc(void *, size_t, void *);
+    friend void * memManAlloc(size_t, void *, size_t);
+    friend void * memManRealloc(void *, size_t, void *, size_t);
     friend void memManFree(void *, void *);
     friend class BXAllocator;
 
@@ -79,7 +79,7 @@ public:
     public:
         friend class MemMan2;
         friend class BXAllocator;
-        friend void * memManAlloc(size_t, void *);
+        friend void * memManAlloc(size_t, void *, size_t);
     };
     constexpr static size_t BlockInfoSize = sizeof(BlockInfo);
 
@@ -165,9 +165,9 @@ private:
 };
 
 // requires size (and userData must be pointer to MemMan)
-void * memManAlloc(size_t size, void * userData);
+void * memManAlloc(size_t size, void * userData, size_t align = 0);
 // general purpose to handle all cases. requires ptr OR size (and userData must be pointer to MemMan)
-void * memManRealloc(void * ptr, size_t size, void * userData);
+void * memManRealloc(void * ptr, size_t size, void * userData, size_t align = 0);
 // requires ptr (and userData must be pointer to MemMan)
 void memManFree(void * ptr, void * userData);
 
