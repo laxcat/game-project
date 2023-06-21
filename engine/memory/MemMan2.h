@@ -73,6 +73,7 @@ public:
         // debug only
         #if DEBUG
         bool isValid() const;
+        void print(size_t index = SIZE_MAX) const;
         #endif // DEBUG
 
         // FRIENDS
@@ -80,6 +81,7 @@ public:
         friend class MemMan2;
         friend class BXAllocator;
         friend void * memManAlloc(size_t, void *, size_t);
+        friend void * memManRealloc(void *, size_t, void *, size_t);
     };
     constexpr static size_t BlockInfoSize = sizeof(BlockInfo);
 
@@ -104,7 +106,7 @@ public:
     // release generic pointer; expects block->data() ptr or FSA sub-block ptr
     bool destroy(void * ptr);
     // explicitly finds/creates free block of size
-    BlockInfo * request(size_t size, size_t align = 0);
+    BlockInfo * request(size_t size, size_t align = 0, BlockInfo * copyFrom = nullptr);
     // explicity releases block. set type to free and reset padding
     BlockInfo * release(BlockInfo * block);
 
@@ -136,7 +138,7 @@ private:
     // INTERNALS
 private:
     // alters _padding and _dataSize to align data() to alignment
-    BlockInfo * claim(BlockInfo * block, size_t size, size_t align = 0);
+    BlockInfo * claim(BlockInfo * block, size_t size, size_t align = 0, BlockInfo * copyFrom = nullptr);
     // consumes next block if free
     BlockInfo * mergeWithNext(BlockInfo * block);
     // realigns block in place
@@ -161,6 +163,10 @@ private:
     #if DEBUG
     // validate all blocks, update debug info like _debug_index
     void validateAll();
+    // print all blocks
+    void printAll() const;
+    // print free blocks
+    void printFreeSizes() const;
     #endif // DEBUG
 };
 
