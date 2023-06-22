@@ -80,6 +80,17 @@ bool MemMan2::BlockInfo::isValid() const {
         // if free, padding should be 0
         (_type != MEM_BLOCK_FREE || (_type == MEM_BLOCK_FREE && _padding == 0)) &&
 
+        // suspiciously large data size
+        (_dataSize < 0xffffffff) &&
+
+        // unlikely pointers (indicates debug-only data overflow)
+        ((size_t)_next != 0xfefefefefefefefe && (size_t)_prev != 0xfefefefefefefefe) &&
+        ((size_t)_next != 0xefefefefefefefef && (size_t)_prev != 0xefefefefefefefef) &&
+        ((size_t)_next != 0xffffffffffffffff && (size_t)_prev != 0xffffffffffffffff) &&
+
+        // unlikely padding
+        (_padding <= 256) &&
+
         true
     );
 }
@@ -286,7 +297,7 @@ bool MemMan2::destroy(void * ptr) {
     }
 
     BlockInfo * block = blockForPtr(ptr);
-    return (release(block)) ? true : false;
+    return (block && release(block)) ? true : false;
 }
 
 Stack * MemMan2::createStack(size_t size) {
@@ -341,12 +352,14 @@ MemMan2::BlockInfo * MemMan2::claim(BlockInfo * block, size_t size, size_t align
         #endif // DEBUG
 
         // update block info
+        bool isFirstFree = (block == _firstFree);
         block = (BlockInfo *)newBlockInfoPtr;
         block->_dataSize = blockSize - padding - BlockInfoSize;
         block->_padding = padding;
         // next and prev pointers need to point to new memory location of BlockInfo
         if (block->_next) block->_next->_prev = block;
         if (block->_prev) block->_prev->_next = block;
+        if (isFirstFree) _firstFree = block;
     }
 
 
@@ -363,6 +376,11 @@ MemMan2::BlockInfo * MemMan2::claim(BlockInfo * block, size_t size, size_t align
         block->_type = copyFrom->_type;
         memcpy(block->data(), copyFrom->data(), copyFrom->_dataSize);
         release(copyFrom);
+
+        #if DEBUG
+        validateAll();
+        #endif // DEBUG
+
     }
     // no copyFrom block. zero out data in newly claimed block.
     // if our newly claimed block happend to be _firstFree, initiate a search for new firstFree
@@ -374,11 +392,11 @@ MemMan2::BlockInfo * MemMan2::claim(BlockInfo * block, size_t size, size_t align
         if (block == _firstFree) {
             findFirstFree(block);
         }
-    }
 
-    #if DEBUG
-    validateAll();
-    #endif // DEBUG
+        #if DEBUG
+        validateAll();
+        #endif // DEBUG
+    }
 
     return block;
 
@@ -584,6 +602,8 @@ MemMan2::BlockInfo * MemMan2::blockForPtr(void * ptr) {
 void MemMan2::validateAll() {
     guard_t guard{_mainMutex};
 
+    assert(!_firstFree || _firstFree->isValid() && "_firstFree invalid.");
+
     size_t i = 0;
     BlockInfo * checkFirstFree = nullptr;
     size_t totalMemManSize = 0;
@@ -594,7 +614,10 @@ void MemMan2::validateAll() {
         // check first free is correct
         if (bi->_type == MEM_BLOCK_FREE && checkFirstFree == nullptr) {
             checkFirstFree = bi;
-            assert(checkFirstFree == _firstFree && "_firstFree not correct");
+            if (checkFirstFree != _firstFree) {
+                fprintf(stderr, "found free at %p but _firstFree is set to %p\n", bi, _firstFree);
+                assert(false && "_firstFree not correct");
+            }
         }
 
         totalMemManSize += bi->blockSize();
@@ -690,7 +713,7 @@ void * memManRealloc(void * ptr, size_t size, void * userData, size_t align) {
     //     debugBreak();
     // }
 
-    block = memMan2->resize(block, size);
+    block = memMan2->resize(block, size, align);
 
     if (block->_dataSize < size) {
         memMan2->validateAll();
@@ -737,9 +760,7 @@ void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * 
         line
     );
 
-    // printl("bgfx realloc begin");
-    // memMan2->printFreeSizes();
-
+    // do nothing
     if (ptr == nullptr && size == 0) {
         if constexpr (ShowMemManBGFXDbg) printl("     RETURNS EARLY: %011p)", nullptr);
         return nullptr;
