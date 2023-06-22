@@ -30,6 +30,19 @@ public:
 public:
     using guard_t = std::lock_guard<std::recursive_mutex>;
 
+    class Request {
+    public:
+        size_t size = 0;
+        size_t align = 0;
+        MemBlockType type = MEM_BLOCK_FREE;
+        bool forceBlock = false;
+        bool forceFSA = false;
+        bool unused[2] = {false, false};
+        void * prevPtr = nullptr;
+        size_t prevSize = 0;
+        size_t prevAlign = 0;
+    };
+
     // "MemBlock"
     #define BLOCK_MAGIC_STRING2 {0x4D, 0x65, 0x6D, 0x42, 0x6C, 0x6F, 0x63, 0x6B}
     constexpr static byte_t BlockMagicString[8] = BLOCK_MAGIC_STRING2; // "MemBlock"
@@ -101,14 +114,12 @@ public:
     size_t blockCountForDisplayOnly() const;
 
     // GENERIC ALLOCATION
-    // generic alloc request, which can return Block data ptr or ptr within FSA
-    void * alloc(size_t size, size_t align = 0, BlockInfo ** resultBlock = nullptr);
-    // release generic pointer; expects block->data() ptr or FSA sub-block ptr
-    bool destroy(void * ptr);
-    // explicitly finds/creates free block of size
-    BlockInfo * request(size_t size, size_t align = 0, BlockInfo * copyFrom = nullptr);
-    // explicity releases block. set type to free and reset padding
-    BlockInfo * release(BlockInfo * block);
+    // // generic alloc request, which can return Block data ptr or ptr within FSA
+    // void * alloc(size_t size, size_t align = 0, BlockInfo ** resultBlock = nullptr);
+    // // release generic pointer; expects block->data() ptr or FSA sub-block ptr
+    // bool destroy(void * ptr);
+    // copys request param into request block, then executes request
+    bool request(Request const & request);
 
     // SPECIAL BLOCK OBJ CREATION
     Stack * createStack(size_t size);
@@ -120,6 +131,8 @@ public:
 
     // PRIVATE SPECIAL BLOCK OBJ CREATION
 private:
+    // create request block on init
+    Request * createRequest();
     // create fsa block on init
     FSA * createFSA(MemManFSASetup const & setup);
 
@@ -130,6 +143,7 @@ private:
     BlockInfo * _head = nullptr;
     BlockInfo * _tail = nullptr;
     BlockInfo * _firstFree = nullptr;
+    Request * _request = nullptr;
     FSA * _fsa = nullptr;
     size_t _frame = 0;
     size_t _blockCount = 0; // updated during end frame, for display purposes only
@@ -137,6 +151,12 @@ private:
 
     // INTERNALS
 private:
+    // execute request as found in request block
+    void request();
+    // explicitly finds/creates free block of size
+    BlockInfo * create(size_t size, size_t align = 0, BlockInfo * copyFrom = nullptr);
+    // explicity releases block. set type to free and reset padding
+    BlockInfo * release(BlockInfo * block);
     // alters _padding and _dataSize to align data() to alignment
     BlockInfo * claim(BlockInfo * block, size_t size, size_t align = 0, BlockInfo * copyFrom = nullptr);
     // consumes next block if free

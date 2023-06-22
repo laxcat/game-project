@@ -65,6 +65,8 @@ enum MemBlockType {
     // free
     MEM_BLOCK_FREE,    // empty space to be claimed
     MEM_BLOCK_CLAIMED, // claimed but type not set yet
+    // Special Request block
+    MEM_BLOCK_REQUEST,
     // Special Fixed Sized Allocator type
     // FSA blocks are configured at init, special checks will happen at new allocation/lookup
     MEM_BLOCK_FSA,

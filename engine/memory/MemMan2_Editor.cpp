@@ -66,17 +66,18 @@ void MemMan2::editor() {
 
             if (nAllocs < 128) {
                 InputInt2("Size/align##alloc", sizeAlign);
-                SameLine();
-                if (Button("Allocate")) {
-                    MemMan2::BlockInfo * block;
-                    void * ptr = alloc(sizeAlign[0], sizeAlign[1], &block);
-                    if (block != firstBlock()) {
-                        mm.editor.clearMemEditWindow();
-                    }
-                    if (ptr) {
-                        allocs[nAllocs++] = {(size_t)sizeAlign[0], (void *)ptr};
-                    }
-                }
+                // TODO: redo using reqeust interface
+                // SameLine();
+                // if (Button("Allocate")) {
+                //     MemMan2::BlockInfo * block;
+                //     void * ptr = alloc(sizeAlign[0], sizeAlign[1], &block);
+                //     if (block != firstBlock()) {
+                //         mm.editor.clearMemEditWindow();
+                //     }
+                //     if (ptr) {
+                //         allocs[nAllocs++] = {(size_t)sizeAlign[0], (void *)ptr};
+                //     }
+                // }
             }
 
             // quick list of test allocs
@@ -86,15 +87,16 @@ void MemMan2::editor() {
                     "%zu-byte alloc (0x%06X)",
                     allocs[i].size, (uint32_t)((size_t)allocs[i].ptr & 0xffffff)
                 );
-                SameLine();
-                if (Button("Release")) {
-                    destroy(allocs[i].ptr);
-                    for (int j = i + 1; j < nAllocs; ++j) {
-                        allocs[j-1] = allocs[j];
-                    }
-                    allocs[nAllocs-1] = {};
-                    --nAllocs;
-                }
+                // TODO: redo using request interface
+                // SameLine();
+                // if (Button("Release")) {
+                //     destroy(allocs[i].ptr);
+                //     for (int j = i + 1; j < nAllocs; ++j) {
+                //         allocs[j-1] = allocs[j];
+                //     }
+                //     allocs[nAllocs-1] = {};
+                //     --nAllocs;
+                // }
                 PopID();
             }
         }
@@ -125,9 +127,9 @@ void MemMan2::editor() {
             static int sizeAlign[] = {1024, 0};
             InputInt2("Size/align##block", sizeAlign);
             SameLine();
-            if (Button("Claim")) {
+            if (Button("Create")) {
                 mm.editor.clearMemEditWindow();
-                request(sizeAlign[0], sizeAlign[1]);
+                create(sizeAlign[0], sizeAlign[1]);
             }
             break;
         }

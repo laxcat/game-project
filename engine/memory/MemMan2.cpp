@@ -130,8 +130,11 @@ void MemMan2::init(EngineSetup const & setup, Stack ** frameStack) {
     printl("MEM MAN DATA SIZE %zu", _size);
     printFreeSizes();
     printl("BlockInfoSize %zu", BlockInfoSize);
+    printl("Request size %zu", sizeof(Request));
 
     // create some special blocks on init
+    _request = createRequest();
+    assert(_request);
     _fsa = createFSA(setup.memManFSA);
     if (setup.memManFrameStackSize) {
         Stack * fs = createStack(setup.memManFrameStackSize);
@@ -194,28 +197,28 @@ size_t MemMan2::blockCountForDisplayOnly() const {
     return _blockCount;
 }
 
-// generic alloc request, which can return Block or pointer within FSA
-void * MemMan2::alloc(size_t size, size_t align, BlockInfo ** resultBlock) {
-    guard_t guard{_mainMutex};
+// // generic alloc request, which can return Block or pointer within FSA
+// void * MemMan2::alloc(size_t size, size_t align, BlockInfo ** resultBlock) {
+//     guard_t guard{_mainMutex};
 
-    // CHECK IF FSA WILL WORK
-    // TODO: figure out align here
-    void * subPtr;
-    if (align == 0 && _fsa && (subPtr = _fsa->alloc(size))) {
-        if (resultBlock) {
-            *resultBlock = blockForPtr(_fsa);
-        }
-        return subPtr;
-    }
+//     // CHECK IF FSA WILL WORK
+//     // TODO: figure out align here
+//     void * subPtr;
+//     if (align == 0 && _fsa && (subPtr = _fsa->alloc(size))) {
+//         if (resultBlock) {
+//             *resultBlock = blockForPtr(_fsa);
+//         }
+//         return subPtr;
+//     }
 
-    BlockInfo * block = request(size, align);
-    if (resultBlock) {
-        *resultBlock = block;
-    }
-    return (block) ? block->data() : nullptr;
-}
+//     BlockInfo * block = create(size, align);
+//     if (resultBlock) {
+//         *resultBlock = block;
+//     }
+//     return (block) ? block->data() : nullptr;
+// }
 
-MemMan2::BlockInfo * MemMan2::request(size_t size, size_t align, BlockInfo * copyFrom) {
+MemMan2::BlockInfo * MemMan2::create(size_t size, size_t align, BlockInfo * copyFrom) {
     guard_t guard{_mainMutex};
 
     BlockInfo * found = nullptr;
@@ -288,25 +291,36 @@ MemMan2::BlockInfo * MemMan2::release(BlockInfo * block) {
     return block;
 }
 
-bool MemMan2::destroy(void * ptr) {
-    guard_t guard{_mainMutex};
+// bool MemMan2::destroy(void * ptr) {
+//     guard_t guard{_mainMutex};
 
-    // CHECK IF ptr WAS WITHIN FSA
-    if (_fsa && _fsa->destroy(ptr)) {
-        return true;
-    }
+//     // CHECK IF ptr WAS WITHIN FSA
+//     if (_fsa && _fsa->destroy(ptr)) {
+//         return true;
+//     }
 
-    BlockInfo * block = blockForPtr(ptr);
-    return (block && release(block)) ? true : false;
-}
+//     BlockInfo * block = blockForPtr(ptr);
+//     return (block && release(block)) ? true : false;
+// }
 
 Stack * MemMan2::createStack(size_t size) {
     guard_t guard{_mainMutex};
 
-    BlockInfo * block = request(sizeof(Stack) + size);
+    BlockInfo * block = create(sizeof(Stack) + size);
     if (!block) return nullptr;
     block->_type = MEM_BLOCK_STACK;
     return new (block->data()) Stack{size};
+}
+
+MemMan2::Request * MemMan2::createRequest() {
+    guard_t guard{_mainMutex};
+
+    BlockInfo * block = create(sizeof(Request));
+    if (!block) return nullptr;
+
+    block->_type = MEM_BLOCK_REQUEST;
+    Request * request = new (block->data()) Request{};
+    return request;
 }
 
 FSA * MemMan2::createFSA(MemManFSASetup const & setup) {
@@ -316,7 +330,7 @@ FSA * MemMan2::createFSA(MemManFSASetup const & setup) {
     size_t dataSize = FSA::DataSize(setup);
     if (dataSize == 0) return nullptr;
 
-    BlockInfo * block = request(sizeof(FSA) + dataSize);
+    BlockInfo * block = create(sizeof(FSA) + dataSize);
     if (!block) return nullptr;
 
     block->_type = MEM_BLOCK_FSA;
@@ -444,7 +458,7 @@ MemMan2::BlockInfo * MemMan2::realign(BlockInfo * block, size_t relevantDataSize
     // }
 
     // // find free space to copy data to
-    // BlockInfo * tempBlock = request(relevantDataSize, 0, block);
+    // BlockInfo * tempBlock = create(relevantDataSize, 0, block);
     // assert(tempBlock == nullptr && "Couldn't find temp free space to realign.");
 
     // // copy data to temp
@@ -520,7 +534,7 @@ MemMan2::BlockInfo * MemMan2::grow(BlockInfo * block, size_t biggerSize, size_t 
 
     // next not free or not big enough
     // move the block to new location
-    BlockInfo * newBlock = request(biggerSize, align, block);
+    BlockInfo * newBlock = create(biggerSize, align, block);
     assert(newBlock && "Not enough room to move block during grow.");
 
     #if DEBUG
@@ -675,7 +689,7 @@ void * memManAlloc(size_t size, void * userData, size_t align) {
     MemMan2::guard_t guard{memMan2->_mainMutex};
 
     if (!size) return nullptr;
-    MemMan2::BlockInfo * block = memMan2->request(size);
+    MemMan2::BlockInfo * block = memMan2->create(size);
     if (!block) {
         fprintf(stderr, "Unable to alloc memory: %zu\n", size);
         assert(false);
@@ -735,7 +749,21 @@ void memManFree(void * ptr, void * userData) {
     MemMan2::guard_t guard{memMan2->_mainMutex};
 
     if (!ptr) return;
-    memMan2->destroy(ptr);
+
+    // former "destroy()" code
+    // CHECK IF ptr WAS WITHIN FSA
+    if (memMan2->_fsa && memMan2->_fsa->destroy(ptr)) {
+        return;
+    }
+    MemMan2::BlockInfo * block = memMan2->blockForPtr(ptr);
+    if (block) {
+        memMan2->release(block);
+    }
+
+
+
+
+    // memMan2->destroy(ptr);
 
     // printl("memManFree");
     // memMan2->printFreeSizes();

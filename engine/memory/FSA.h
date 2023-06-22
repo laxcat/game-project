@@ -23,6 +23,7 @@ class FSA {
     // FRIENDS
 public:
     friend class MemMan2;
+    friend void memManFree(void *, void *);
 
     // TYPES
 public:
