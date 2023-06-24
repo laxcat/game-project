@@ -30,19 +30,6 @@ public:
 public:
     using guard_t = std::lock_guard<std::recursive_mutex>;
 
-    class Request {
-    public:
-        size_t size = 0;
-        size_t align = 0;
-        MemBlockType type = MEM_BLOCK_FREE;
-        bool forceBlock = false;
-        bool forceFSA = false;
-        bool unused[2] = {false, false};
-        void * prevPtr = nullptr;
-        size_t prevSize = 0;
-        size_t prevAlign = 0;
-    };
-
     // "MemBlock"
     #define BLOCK_MAGIC_STRING2 {0x4D, 0x65, 0x6D, 0x42, 0x6C, 0x6F, 0x63, 0x6B}
     constexpr static byte_t BlockMagicString[8] = BLOCK_MAGIC_STRING2; // "MemBlock"
@@ -57,6 +44,7 @@ public:
         MemBlockType type() const;
         byte_t const * data() const;
         byte_t const * basePtr() const;
+        bool contains(void * ptr, size_t size) const;
 
         // modifiers
         byte_t * data();
@@ -98,6 +86,22 @@ public:
     };
     constexpr static size_t BlockInfoSize = sizeof(BlockInfo);
 
+    class Request {
+    public:
+        size_t size = 0;
+        size_t align = 0;
+        void * ptr = nullptr;
+        BlockInfo * copyFrom = nullptr;
+        MemBlockType type = MEM_BLOCK_NONE;
+    };
+    class Result {
+    public:
+        size_t size = 0;
+        size_t align = 0;
+        void * ptr = nullptr;
+        BlockInfo * block = nullptr;
+    };
+
     // API
 public:
     // LIFECYCLE
@@ -119,7 +123,7 @@ public:
     // // release generic pointer; expects block->data() ptr or FSA sub-block ptr
     // bool destroy(void * ptr);
     // copys request param into request block, then executes request
-    bool request(Request const & request);
+    void * request(Request const & newRequest);
 
     // SPECIAL BLOCK OBJ CREATION
     Stack * createStack(size_t size);
@@ -132,7 +136,7 @@ public:
     // PRIVATE SPECIAL BLOCK OBJ CREATION
 private:
     // create request block on init
-    Request * createRequest();
+    void createRequestResult();
     // create fsa block on init
     FSA * createFSA(MemManFSASetup const & setup);
 
@@ -144,7 +148,9 @@ private:
     BlockInfo * _tail = nullptr;
     BlockInfo * _firstFree = nullptr;
     Request * _request = nullptr;
+    Result * _result = nullptr;
     FSA * _fsa = nullptr;
+    BlockInfo * _fsaBlock = nullptr;
     size_t _frame = 0;
     size_t _blockCount = 0; // updated during end frame, for display purposes only
     mutable std::recursive_mutex _mainMutex;
@@ -187,6 +193,8 @@ private:
     void printAll() const;
     // print free blocks
     void printFreeSizes() const;
+    // print request and result
+    void printRequestResult() const;
     #endif // DEBUG
 };
 

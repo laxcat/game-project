@@ -62,6 +62,7 @@ struct Event {
 };
 
 enum MemBlockType {
+    MEM_BLOCK_NONE = 0,    // not set or unknown
     // free
     MEM_BLOCK_FREE,    // empty space to be claimed
     MEM_BLOCK_CLAIMED, // claimed but type not set yet

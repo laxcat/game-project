@@ -71,6 +71,12 @@ byte_t * MemMan2::BlockInfo::basePtr() {
     return data() - BlockInfoSize - _padding;
 }
 
+bool MemMan2::BlockInfo::contains(void * ptr, size_t size) const {
+    byte_t const * bptr = (byte_t const *)ptr;
+    byte_t const * data = this->data();
+    return (data <= bptr && bptr + size <= data + _dataSize);
+}
+
 #if DEBUG
 bool MemMan2::BlockInfo::isValid() const {
     return (
@@ -133,9 +139,13 @@ void MemMan2::init(EngineSetup const & setup, Stack ** frameStack) {
     printl("Request size %zu", sizeof(Request));
 
     // create some special blocks on init
-    _request = createRequest();
-    assert(_request);
+    createRequestResult();
+    assert(_request && _result && "Did not create request/result block.");
     _fsa = createFSA(setup.memManFSA);
+    if (_fsa) {
+        _fsaBlock = blockForPtr(_fsa);
+        assert(_fsaBlock && "FSA block error.");
+    }
     if (setup.memManFrameStackSize) {
         Stack * fs = createStack(setup.memManFrameStackSize);
         if (fs && frameStack) {
@@ -218,6 +228,157 @@ size_t MemMan2::blockCountForDisplayOnly() const {
 //     return (block) ? block->data() : nullptr;
 // }
 
+void * MemMan2::request(Request const & newRequest) {
+    guard_t guard{_mainMutex};
+    *_request = newRequest;
+    request();
+    return _result->ptr;
+}
+
+void MemMan2::request() {
+    // thread guard
+    guard_t guard{_mainMutex};
+
+    // clear result
+    *_result = {};
+
+    // alloc/realloc
+    if (_request->size) {
+        // alloc
+        if (_request->ptr == nullptr) {
+
+            // fsa
+            if (
+                _request->align == 0 &&
+                _fsa &&
+                (_result->ptr = _fsa->alloc(_request->size))
+            ) {
+                _result->size = _request->size;
+                _result->block = _fsaBlock;
+                return;
+            }
+
+            // block
+            else {
+                _result->block = create(
+                    _request->size,
+                    _request->align,
+                    _request->copyFrom
+                );
+                if (_result->block) {
+                    if (_request->type) {
+                        _result->block->_type = _request->type;
+                    }
+                    _result->size = _result->block->_dataSize;
+                    assert(_result->size >= _request->size &&
+                        "Resulting block _dataSize not big enough.");
+                    _result->align = _request->align;
+                    _result->ptr = _result->block->data();
+                }
+                return;
+            }
+        }
+        // realloc
+        else {
+            // ptr is in FSA?
+            bool ptrInFSA = false;
+            BlockInfo * block = nullptr;
+            uint16_t fsaGroupIndex;
+            uint16_t fsaSubBlockIndex;
+            size_t fsaCurrentSize = 0;
+            if (_fsa && _fsa->indicesForPtr(_request->ptr, &fsaGroupIndex, &fsaSubBlockIndex)) {
+                // leave ptr where it is. current FSA group is big enough for requested size.
+                fsaCurrentSize = FSA::SubBlockByteSize(fsaGroupIndex);
+                if (fsaCurrentSize >= _request->size) {
+                    // TODO: consider FSA align
+                    _result->ptr = _request->ptr;
+                    _result->size = _request->size;
+                    _result->block = _fsaBlock;
+                    return;
+                }
+                ptrInFSA = true;
+            }
+            // ptr is in block?
+            else {
+                block = blockForPtr(_request->ptr);
+            }
+            // TODO: reconsider this assert. Could an external ptr not reallocate into MemMan?
+            assert((block || ptrInFSA) && "Invalid ptr requesting reallocation.");
+
+            // to FSA
+            void * ptr = nullptr;
+            if (_fsa && (ptr = _fsa->alloc(_request->size))) {
+                // fsa to fsa
+                if (ptrInFSA) {
+                    memcpy(ptr, _request->ptr, fsaCurrentSize);
+                    _result->ptr = ptr;
+                    _result->size = _request->size;
+                    _result->block = _fsaBlock;
+                    return;
+                }
+                // block to fsa
+                else {
+                    size_t smallerSize = (block->_dataSize < _request->size) ?
+                        block->_dataSize :
+                        _request->size;
+                    memcpy(ptr, block->data(), smallerSize);
+                    _result->ptr = ptr;
+                    _result->size = _request->size;
+                    _result->block = _fsaBlock;
+                    return;
+                }
+            }
+
+            // to block
+            else {
+
+                // fsa to block
+                if (ptrInFSA) {
+                    _result->block = create(_request->size, _request->align);
+
+                    assert(_result->block && "Could not reallocate memory.");
+
+                    if (_request->type) {
+                        _result->block->_type = _request->type;
+                    }
+
+                    memcpy(_result->block->data(), _request->ptr, fsaCurrentSize);
+                    _result->size = _result->block->_dataSize;
+                    _result->align = _request->align;
+                    _result->ptr = _result->block->data();
+                    return;
+                }
+                // block to block
+                else {
+                    _result->block = resize(block, _request->size, _request->align);
+
+                    assert(_result->block && "Could not reallocate memory.");
+
+                    if (_request->type) {
+                        _result->block->_type = _request->type;
+                    }
+                    _result->size = _result->block->_dataSize;
+                    _result->align = _request->align;
+                    _result->ptr = _result->block->data();
+                    return;
+                }
+            }
+        }
+    }
+    // free
+    else if (_request->ptr) {
+        if (_fsa->destroy(_request->ptr)) {
+            // ptr was in fsa
+        }
+        else {
+            BlockInfo * block = blockForPtr(_request->ptr);
+            assert(block && "Could not free ptr, not in expected range.");
+            release(block);
+        }
+    }
+    // do nothing (size=0,ptr=0)
+}
+
 MemMan2::BlockInfo * MemMan2::create(size_t size, size_t align, BlockInfo * copyFrom) {
     guard_t guard{_mainMutex};
 
@@ -227,8 +388,7 @@ MemMan2::BlockInfo * MemMan2::create(size_t size, size_t align, BlockInfo * copy
         for (BlockInfo * bi = _firstFree; bi; bi = bi->_next) {
             if (bi->_type == MEM_BLOCK_FREE && bi->calcAlignDataSize(align) >= size) {
                 found = claim(bi, size, align, copyFrom);
-                bi = found; // claim can modify block location
-                break;
+                if (found) break;
             }
         }
     }
@@ -236,8 +396,7 @@ MemMan2::BlockInfo * MemMan2::create(size_t size, size_t align, BlockInfo * copy
         for (BlockInfo * bi = _firstFree; bi; bi = bi->_next) {
             if (bi->_type == MEM_BLOCK_FREE && bi->_dataSize >= size) {
                 found = claim(bi, size, 0, copyFrom);
-                bi = found; // claim can modify block location
-                break;
+                if (found) break;
             }
         }
     }
@@ -312,15 +471,15 @@ Stack * MemMan2::createStack(size_t size) {
     return new (block->data()) Stack{size};
 }
 
-MemMan2::Request * MemMan2::createRequest() {
+void MemMan2::createRequestResult() {
     guard_t guard{_mainMutex};
 
-    BlockInfo * block = create(sizeof(Request));
-    if (!block) return nullptr;
+    BlockInfo * block = create(sizeof(Request) + sizeof(Result));
+    if (!block) return;
 
     block->_type = MEM_BLOCK_REQUEST;
-    Request * request = new (block->data()) Request{};
-    return request;
+    _request = new (block->data()) Request{};
+    _result = new (block->data()+sizeof(Request)) Result{};
 }
 
 FSA * MemMan2::createFSA(MemManFSASetup const & setup) {
@@ -345,11 +504,11 @@ MemMan2::BlockInfo * MemMan2::claim(BlockInfo * block, size_t size, size_t align
     assert(block->isValid() && "Block not valid.");
     #endif // DEBUG
 
-    // ensure sufficient size
+    // ensure sufficient size even if realignment happens
     if (block->calcAlignDataSize(align) < size) return nullptr;
 
-    // re-align if necessary.
-    if (align > 0) {
+    // re-align if necessary
+    if (align > 0 && block->_padding != block->calcAlignPaddingSize(align)) {
         // get some block info
         size_t blockSize = block->blockSize();
         byte_t * base = block->basePtr();
@@ -422,6 +581,11 @@ MemMan2::BlockInfo * MemMan2::mergeWithNext(BlockInfo * block) {
     #if DEBUG
     assert(block->isValid() && "Block not valid.");
     #endif // DEBUG
+
+    // printl("merge with next %p", block);
+    if (block->_dataSize == 72 && block->_next && block->_next->_dataSize == 8) {
+        debugBreak();
+    }
 
     // next block MUST be free
     if (block->_type != MEM_BLOCK_FREE ||
@@ -496,6 +660,8 @@ MemMan2::BlockInfo * MemMan2::shrink(BlockInfo * block, size_t smallerSize) {
     block->_next = newBlock;
     if (block == _tail) _tail = newBlock;
 
+    findFirstFree(newBlock);
+
     return block;
 }
 
@@ -556,7 +722,8 @@ void MemMan2::mergeAllAdjacentFree() {
 
     _blockCount = 0;
     for (BlockInfo * bi = _head; bi; bi = bi->_next) {
-        mergeWithNext(bi);
+        BlockInfo * newBi = mergeWithNext(bi);
+        if (newBi) bi = newBi;
         ++_blockCount;
     }
 }
@@ -676,6 +843,22 @@ void MemMan2::printFreeSizes() const {
         ++totalBlocks;
     }
     printl("Total dataSize (in %3zu free blocks) %8zu", freeBlocks, totalDataSize);
+}
+#endif // DEBUG
+
+#if DEBUG
+void MemMan2::printRequestResult() const {
+    printl("REQUEST");
+    printl("    size: %zu", _request->size);
+    printl("    align: %zu", _request->align);
+    printl("    ptr: %p", _request->ptr);
+    printl("    copyFrom: %p", _request->copyFrom);
+    printl("    type: %s", memBlockTypeStr(_request->type));
+    printl("RESULT");
+    printl("    size: %zu", _result->size);
+    printl("    align: %zu", _result->align);
+    printl("    ptr: %p", _result->ptr);
+    printl("    block: %p %s", _result->block, (_result->block == _fsaBlock)?"(FSA)":"");
 }
 #endif // DEBUG
 
@@ -802,21 +985,31 @@ void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * 
     // }
     // #endif // DEBUG
 
-    void * ret = memManRealloc(ptr, size, (void *)memMan2, align);
+    // void * ret = memManRealloc(ptr, size, (void *)memMan2, align);
+    memMan2->request({
+        .ptr = ptr,
+        .size = size,
+        .align = align,
+        .type = MEM_BLOCK_BGFX
+    });
+
+    MemMan2::Result * res = memMan2->_result;
+
+    // memMan2->printRequestResult();
 
     #if DEBUG
-    if (ret == nullptr && size > 0) {
+    if (res->ptr == nullptr && size > 0) {
+        debugBreak();
+    }
+    if (res->size < size) {
         debugBreak();
     }
     #endif // DEBUG
 
-    if (ptr == nullptr && size) {
-        memMan2->blockForPtr(ret)->_type = MEM_BLOCK_BGFX;
-    }
 
     // printl("bgfx realloc end");
     // memMan2->printFreeSizes();
 
-    if constexpr (ShowMemManBGFXDbg) printl("          (RETURNS: %011p)", ret);
-    return ret;
+    if constexpr (ShowMemManBGFXDbg) printl("          (RETURNS: %011p)", res->ptr);
+    return res->ptr;
 }

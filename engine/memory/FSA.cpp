@@ -31,6 +31,46 @@ bool FSA::isFree(uint16_t groupIndex, uint16_t subBlockIndex) const {
     return (bitValue == false);
 }
 
+bool FSA::indicesForPtr(void * ptr, uint16_t * foundGroupIndex, uint16_t * foundSubBlockIndex) const {
+    // bail if pointer outside our FSA data block
+    if (ptr <= data() || ptr >= data() + _dataSize) {
+        return false;
+    }
+
+    byte_t * bptr = (byte_t *)ptr;
+    uint16_t groupIndex = 0;
+    uint16_t byteSize = 0;
+    uint16_t subBlockIndex = 0;
+    for (; groupIndex < Max; ++groupIndex) {
+        // this group doesn't exist
+        if (_groupBase[groupIndex] == nullptr) {
+            continue;
+        }
+
+        // we have gone past the bptr. it must not be valid!
+        if (bptr < _groupBase[groupIndex]) {
+            return false;
+        }
+
+        // subBlockIndex will be calculated, but too big if we haven't gotten
+        // to the real group yet.
+        // for example if our pointer is the 4-byte block, the index will
+        // always be out of range when considering the 2-byte block.
+        byteSize = 2 << groupIndex;
+        subBlockIndex = (bptr - _groupBase[groupIndex]) / byteSize;
+
+        // we have a match!
+        if (subBlockIndex < _nSubBlocks[groupIndex]) {
+            if (foundGroupIndex) *foundGroupIndex = groupIndex;
+            if (foundSubBlockIndex) *foundSubBlockIndex = subBlockIndex;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
 byte_t const * FSA::data() const {
     return (byte_t const *)alignPtr((byte_t *)this + sizeof(FSA), _align);
 }
@@ -72,7 +112,7 @@ byte_t * FSA::data() {
     return (byte_t *)alignPtr((byte_t *)this + sizeof(FSA), _align);
 }
 
-void * FSA::alloc(uint16_t size) {
+void * FSA::alloc(size_t size) {
     // quick exit
     if (size > MaxBytes) return nullptr;
     if (size < MinBytes) return nullptr;

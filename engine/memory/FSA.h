@@ -48,6 +48,8 @@ public:
     uint16_t subBlockCountForGroup(uint16_t groupIndex) const;
     byte_t const * freeListPtrForGroup(uint16_t groupIndex) const;
     bool isFree(uint16_t groupIndex, uint16_t subBlockIndex) const;
+    // returns false if not found
+    bool indicesForPtr(void * ptr, uint16_t * foundGroupIndex, uint16_t * foundSubBlockIndex) const;
     byte_t const * data() const;
 
     // INTERNALS
@@ -55,8 +57,8 @@ private:
     FSA(Setup const & setup);
     void updateMap();
     byte_t * data();
-    // try to claim sub-block of size. fills  ptr if found.
-    void * alloc(uint16_t size);
+    // try to claim sub-block of size. returns ptr if found.
+    void * alloc(size_t size);
     // release sub-block at ptr
     bool destroy(void * ptr);
     byte_t * subBlockPtr(uint16_t groupIndex, uint16_t subBlockIndex);
