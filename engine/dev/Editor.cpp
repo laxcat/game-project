@@ -1,7 +1,6 @@
 #include "Editor.h"
 #include <unordered_map>
 #include <vector>
-// #include <stdio.h>
 #include "../common/imgui_bgfx_glfw/imgui_bgfx_glfw.h"
 #include <imgui_memory_editor/imgui_memory_editor.h>
 #include <nfd.h>
@@ -71,6 +70,8 @@ void Editor::tick() {
     SetNextWindowSize({min.x+(max.x-min.x)*startWidth, min.y}, ImGuiCond_Once);
     SetNextWindowSizeConstraints(min, max);
     Begin("Editor", NULL, ImGuiWindowFlags_NoTitleBar);
+    ImVec2 sidebarSize = GetWindowSize();
+
 
     if (mm.setup.prependInsideEditor) mm.setup.prependInsideEditor();
     guiRendering();
@@ -85,6 +86,7 @@ void Editor::tick() {
 
     End();
 
+    SetNextWindowPos(ImVec2(sidebarSize.x, 0.f), ImGuiCond_Once);
     guiWinMem();
 }
 
@@ -445,18 +447,34 @@ void Editor::guiMem() {
 
 
 void Editor::guiWinMem() {
-    if (memWin.ptr && memEdit.Open == false) clearMemEditWindow();
+    if (memWin.ptr && memWin.open == false) clearMemEditWindow();
     if (memWin.ptr == nullptr) return;
 
-    size_t basePtr = (size_t)memWin.ptr;
-    size_t roundedPtr = basePtr & (size_t)0xfffffffffffffff0;
-    size_t roundedDif = basePtr - roundedPtr;
-
-    memEdit.DrawWindow(
-        memWin.title,
+    // only if width has been set
+    if (memWin.height == 0.f) {
+        memWin.height = (float)mm.windowSize.h;
+    }
+    if (memWin.width) {
+        SetNextWindowSize(ImVec2(memWin.width, memWin.height));
+    }
+    Begin(memWin.title, &memWin.open, ImGuiWindowFlags_NoScrollbar);
+    memEdit.DrawContents(
         memWin.ptr,
         memWin.size
     );
+    memWin.height = GetWindowSize().y;
+    End();
+    memWin.width = 0.f;
+
+    // memEdit.DrawWindow(
+    //     memWin.title,
+    //     memWin.ptr,
+    //     memWin.size
+    // );
+
+    // size_t basePtr = (size_t)memWin.ptr;
+    // size_t roundedPtr = basePtr & (size_t)0xfffffffffffffff0;
+    // size_t roundedDif = basePtr - roundedPtr;
 
     // memEdit.DrawWindow(
     //     memWin.title,
@@ -472,15 +490,20 @@ void Editor::guiWinMem() {
     // );
 }
 
-void Editor::showMemEditWindow(void * ptr, size_t size) {
-    memEdit.Open = true;
+void Editor::showMemEditWindow(char const * title, void * ptr, size_t size) {
+    memWin.open = true;
     memWin.ptr = ptr;
     memWin.size = size;
+    MemoryEditor::Sizes s;
+    memEdit.CalcSizes(s, size, 0x0000);
+    memWin.width = s.WindowWidth;
+    snprintf(memWin.title, MemEditWindow::TitleSize, "%s###memEditWindow", title);
 }
 
 void Editor::clearMemEditWindow() {
     memWin.ptr = nullptr;
     memWin.size = 0;
+    memWin.width = 0.f;
     snprintf(memWin.title, MemEditWindow::TitleSize, "");
 }
 

@@ -185,8 +185,7 @@ void MemMan::editor() {
                 mm.editor.clearMemEditWindow();
             }
             else {
-                snprintf(mm.editor.memWin.title, MemEditWindow::TitleSize, "%s###memEditWindow", str);
-                mm.editor.showMemEditWindow(b, b->blockSize());
+                mm.editor.showMemEditWindow(str, b, b->blockSize());
             }
         }
 

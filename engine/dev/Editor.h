@@ -9,6 +9,10 @@ public:
     static constexpr size_t TitleSize = 128;
     char title[TitleSize];
 
+    bool open = false;
+    float width;
+    float height;
+
     // TODO:
     // void * highlightedPtr;
     // size_t highlightedSize;
@@ -36,7 +40,7 @@ public:
     // separate movable windows
     void guiWinMem();
 
-    void showMemEditWindow(void * ptr, size_t size);
+    void showMemEditWindow(char const * title, void * ptr, size_t size);
     void clearMemEditWindow();
 
     MemEditWindow memWin;

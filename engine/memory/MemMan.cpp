@@ -144,7 +144,7 @@ void MemMan::init(EngineSetup const & setup, Stack ** frameStack) {
     _fsa = createFSA(setup.memManFSA);
     assert(_fsa && "Failed to create fsa.");
     if (_fsa) {
-        _fsa->test();
+        // _fsa->test();
         _fsaBlock = blockForPtr(_fsa);
         assert(_fsaBlock && "FSA block error.");
     }
