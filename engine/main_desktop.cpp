@@ -219,8 +219,7 @@ int main_desktop(EngineSetup & setup) {
 
     // could maybe be in mm.shutdown(), but was crashing on exit once bgfx started
     // utilizing memory manager. calling last thing to be extra safe.
-    // mm.memMan.shutdown();
-    mm.memMan2.shutdown();
+    mm.memMan.shutdown();
     return 0;
 }
 

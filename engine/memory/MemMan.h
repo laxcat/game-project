@@ -1,180 +1,200 @@
 #pragma once
-#include <stdio.h>
-#include <bx/allocator.h>
 #include <mutex>
+#include <bx/allocator.h>
 #include "../engine.h"
+#include "../common/types.h"
+#include "FSA.h"
 #include "Stack.h"
-#include "Pool.h"
-#include "File.h"
+
+/*
+
+MemMan _data --->
+Block 1                                                Block 2
+|__________|______________|___________________________||____________...
+_padding   BlockInfo      BlockInfo->data()            _padding
+                          (custom class)               (next block)
+                          ^
+                          alignment point
+*/
+
 
 class MemMan {
+    // FRIENDS
 public:
-    // friends -------------------------------------------------------------- //
-    friend void * memManAlloc(size_t, void *);
-    friend void * memManRealloc(void *, size_t, void *);
-    friend void memManFree(void *, void *);
     friend class BXAllocator;
 
-    // types ---------------------------------------------------------------- //
+    // TYPES
+public:
     using guard_t = std::lock_guard<std::recursive_mutex>;
 
-    // "MemB"
-    #define BLOCK_MAGIC_STRING {0x4D, 0x65, 0x6D, 0x42}
-    constexpr static byte_t BlockMagicString[4] = BLOCK_MAGIC_STRING; // "MemB"
+    // "MemBlock"
+    #define BLOCK_MAGIC_STRING2 {0x4D, 0x65, 0x6D, 0x42, 0x6C, 0x6F, 0x63, 0x6B}
+    constexpr static byte_t BlockMagicString[8] = BLOCK_MAGIC_STRING2; // "MemBlock"
 
-    // Block, basic unit of all sub sections of the memory space.
-    //
-    // Each block will be placed in the large memory space, with an instance
-    // placed at the start of the block, with "size" bytes available directly
-    // after in memory. Member "size" represents this data space size, so the
-    // block actually takes up size + BlockInfoSize in MemMan data block.
-    class Block {
+    class BlockInfo {
+        // API
+    public:
+        // lookups
+        size_t paddingSize() const;
+        size_t dataSize() const;
+        size_t blockSize() const;
+        MemBlockType type() const;
+        byte_t const * data() const;
+        byte_t const * basePtr() const;
+        bool contains(void * ptr, size_t size) const;
+
+        // modifiers
+        byte_t * data();
+
+        // STORAGE
+    private:
+        size_t _dataSize = 0;
+        BlockInfo * _next;
+        BlockInfo * _prev;
+        uint32_t _padding = 0;
+        MemBlockType _type = MEM_BLOCK_FREE;
+
+        #if DEBUG
+        size_t _debug_index = SIZE_MAX;
+        byte_t _debug_magic[8] = BLOCK_MAGIC_STRING2;
+        #endif // DEBUG
+
+        // INTERNALS
+    private:
+        // align functions
+        byte_t const * calcUnalignedDataLoc() const;
+        size_t calcAlignPaddingSize(size_t align) const;
+        size_t calcAlignDataSize(size_t align) const;
+        bool isAligned(size_t align) const;
+        byte_t * basePtr();
+
+        // debug only
+        #if DEBUG
+        bool isValid() const;
+        void print(size_t index = SIZE_MAX) const;
+        #endif // DEBUG
+
+        // FRIENDS
     public:
         friend class MemMan;
         friend class BXAllocator;
-        friend void * memManAlloc(size_t, void *);
-
-        size_t          dataSize()  const  { return _dataSize; }
-        size_t          totalSize() const  { return BlockInfoSize + _dataSize; }
-        MemBlockType    type()      const  { return _type; }
-        byte_t *        data()             { return (byte_t *)this + BlockInfoSize; }
-        byte_t const *  data()      const  { return (byte_t const *)((byte_t *)this + BlockInfoSize); }
-
-        // aligned functions
-        size_t alignPadding(size_t align) const {
-            size_t dataPtrAsNum = (size_t)(byte_t *)this + BlockInfoSize;
-            size_t remainder = dataPtrAsNum % align;
-            return (remainder) ? align - remainder : 0;
-        }
-        size_t alignDataSize(size_t align) const { return alignPadding(align) + _dataSize; }
-        void setAlignPadding(size_t align) { _padding = alignPadding(align); }
-
-    private:
-        size_t _dataSize = 0;
-        Block * _next = nullptr;
-        size_t _padding = 0;
-        MemBlockType _type = MEM_BLOCK_FREE;
-
-        // expand Block for debug purposes
-        #if DEBUG
-        byte_t _info[4] = BLOCK_MAGIC_STRING;
-        size_t debug_index = SIZE_MAX;
-        #endif // DEBUG
-
-        Block() {}
     };
-    constexpr static size_t BlockInfoSize = sizeof(Block);
+    constexpr static size_t BlockInfoSize = sizeof(BlockInfo);
 
-    // info/access ---------------------------------------------------------- //
-    size_t size() const { return _size; }
+    class Request {
+    public:
+        size_t size = 0;
+        size_t align = 0;
+        void * ptr = nullptr;
+        BlockInfo * copyFrom = nullptr;
+        MemBlockType type = MEM_BLOCK_NONE;
+    };
+    class Result {
+    public:
+        size_t size = 0;
+        size_t align = 0;
+        void * ptr = nullptr;
+        BlockInfo * block = nullptr;
+    };
 
-    // lifecycle ------------------------------------------------------------ //
-    void init(EngineSetup const & setup);
+    // API
+public:
+    // LIFECYCLE
+    void init(EngineSetup const & setup, Stack ** frameStack = nullptr);
+    void startFrame(size_t frame);
+    void endFrame();
     void shutdown();
 
-    // create/destroy for internal types ------------------------------------ //
-    Pool * createPool(size_t objCount, size_t objSize);
-    void destroyPool(Pool * a);
+    // ACCESS
+    byte_t const * data() const;
+    size_t size() const;
+    BlockInfo * firstBlock() const;
+    BlockInfo * nextBlock(BlockInfo const * block) const;
+    size_t blockCountForDisplayOnly() const;
+
+    // GENERIC ALLOCATION
+    // // generic alloc request, which can return Block data ptr or ptr within FSA
+    // void * alloc(size_t size, size_t align = 0, BlockInfo ** resultBlock = nullptr);
+    // // release generic pointer; expects block->data() ptr or FSA sub-block ptr
+    // bool destroy(void * ptr);
+    // copys request param into request block, then executes request
+    void * request(Request const & newRequest);
+
+    // SPECIAL BLOCK OBJ CREATION
     Stack * createStack(size_t size);
-    void destroyStack(Stack * s);
-    File * createFileHandle(char const * path, bool loadNow = false);
-    void destroyFileHandle(File * f);
 
-    // Entity * createEntity(char const * path, bool loadNow = false);
-    // void destroyEntity(Entity * f);
-    template <typename T, typename ... TP>
-        T * create(size_t size, TP && ... params);
-    void destroy(void * ptr);
+    // DEV INTERFACE ONLY
+    #if DEV_INTERFACE
+    void editor();
+    #endif // DEV_INTERFACE
 
-    // block handling ------------------------------------------------------- //
-    // find block with enough free space
-    Block * findFree(size_t size);
-    // find block with enough free space, split it to size, and return it
-    Block * requestFreeBlock(size_t size);
-    // split block A into block A (with requested data size) and block B with what remains.
-    Block * splitBlock(Block * b, size_t blockANewSize);
-    // same as split but sizes and returns second block
-    Block * splitBlockEnd(Block * b, size_t blockBNewSize);
-    // merge this block with next block IF both are free
-    Block * mergeFreeBlocks(Block * b);
-    // resize block if possible
-    Block * resizeBlock(Block * b, size_t newSize);
+    // PRIVATE SPECIAL BLOCK OBJ CREATION
+private:
+    // create request block on init
+    void createRequestResult();
+    // create fsa block on init
+    FSA * createFSA(MemManFSASetup const & setup);
 
-    // return Block for generic ptr, where ptr is expected to be at block->data()
-    Block * blockForDataPtr(void * ptr);
-
-    // block reading -------------------------------------------------------- //
-    Block const * firstBlock() const;
-    Block const * nextBlock(Block const & block) const;
-
-    // Data/type access
-    template <typename T>
-    T * getBlockDataAt(int index);
-
-    // checks and assertions ------------------------------------------------ //
-    // check if random pointer is within managed range
-    bool isWithinData(void * ptr, size_t size = 0) const;
-
-    bool checkAllBlocks();
-
-    size_t frame;
-
-    // storage -------------------------------------------------------------- //
+    // STORAGE
 private:
     byte_t * _data = nullptr;
-    Block * _blockHead = nullptr;
-    // Block * _blockTail = nullptr;
     size_t _size = 0;
-    byte_t * _fsaRangeBegin = nullptr;
-    byte_t * _fsaRangeEnd = nullptr;
+    BlockInfo * _head = nullptr;
+    BlockInfo * _tail = nullptr;
+    BlockInfo * _firstFree = nullptr;
+    Request * _request = nullptr;
+    Result * _result = nullptr;
+    FSA * _fsa = nullptr;
+    BlockInfo * _fsaBlock = nullptr;
+    size_t _frame = 0;
+    size_t _blockCount = 0; // updated during end frame, for display purposes only
     mutable std::recursive_mutex _mainMutex;
 
-    // internal ------------------------------------------------------------- //
+    // INTERNALS
 private:
-    // only allowed from init
+    // execute request as found in request block
+    void request();
+    // explicitly finds/creates free block of size
+    BlockInfo * create(size_t size, size_t align = 0, BlockInfo * copyFrom = nullptr);
+    // explicity releases block. set type to free and reset padding
+    BlockInfo * release(BlockInfo * block);
+    // alters _padding and _dataSize to align data() to alignment
+    BlockInfo * claim(BlockInfo * block, size_t size, size_t align = 0, BlockInfo * copyFrom = nullptr);
+    // consumes next block if free
+    BlockInfo * mergeWithNext(BlockInfo * block);
+    // realigns block in place
+    BlockInfo * realign(BlockInfo * block, size_t relevantDataSize, size_t align);
+    // creates free block if possible
+    BlockInfo * shrink(BlockInfo * block, size_t smallerSize);
+    // consumes next free block, or moves block
+    BlockInfo * grow(BlockInfo * block, size_t biggerSize, size_t align = 0);
+    // shortcut to grow/shrink
+    BlockInfo * resize(BlockInfo * block, size_t newSize, size_t align = 0);
+    // combine adjacent free blocks
+    void mergeAllAdjacentFree();
+    // scan forward to find first free
+    void findFirstFree(BlockInfo * block);
+    // BlockInfo for raw ptr pointing to data.
+    BlockInfo * blockForPtr(void * ptr);
+
+    // // traverse nodes backwards to find first free
+    // NOTE: WE SHOULDN'T NEED THIS IF HANDLED PROPERLY IN RELEASE
+    // void updateFirstFree();
 
     #if DEBUG
-    // create index for all in linked list for debuging purposes
-    void reindexBlocks();
+    // validate all blocks, update debug info like _debug_index
+    void validateAll();
+    // print all blocks
+    void printAll() const;
+    // print free blocks
+    void printFreeSizes() const;
+    // print request and result
+    void printRequestResult() const;
     #endif // DEBUG
-    // used for interal debug assertions
-    bool isValidBlock(Block * block) const;
-
-    // debug ---------------------------------------------------------------- //
-public:
-    void getInfo(char * buf, int bufSize);
-    void printInfo(char const * prefixMsg = nullptr);
 };
-
-template <typename T, typename ... TP>
-inline T * MemMan::create(size_t size, TP && ... params) {
-    Block * block = requestFreeBlock(size + sizeof(T));
-    if (!block) return nullptr;
-    block->_type = MEM_BLOCK_EXTERNAL;
-    return new (block->data()) T{static_cast<TP &&>(params)...};
-}
-
-template <typename T>
-inline T * MemMan::getBlockDataAt(int index) {
-    int i = 0;
-    for (Block * block = _blockHead; block; block = block->_next) {
-        if (i == index) return (T *)block->data();
-        ++i;
-    }
-    return nullptr;
-}
-
-
-// requires size (and userData must be pointer to MemMan)
-void * memManAlloc(size_t size, void * userData);
-// general purpose to handle all cases. requires ptr OR size (and userData must be pointer to MemMan)
-void * memManRealloc(void * ptr, size_t size, void * userData);
-// requires ptr (and userData must be pointer to MemMan)
-void memManFree(void * ptr, void * userData);
 
 class BXAllocator : public bx::AllocatorI {
 public:
     MemMan * memMan = nullptr;
     void * realloc(void *, size_t, size_t, char const *, uint32_t);
 };
-

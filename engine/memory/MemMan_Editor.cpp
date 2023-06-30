@@ -1,4 +1,4 @@
-#include "MemMan2.h"
+#include "MemMan.h"
 #include <stdio.h>
 #include "../common/imgui_bgfx_glfw/imgui_bgfx_glfw.h"
 #include "../MrManager.h"
@@ -7,7 +7,7 @@
 
 using namespace ImGui;
 
-void MemMan2::editor() {
+void MemMan::editor() {
     if (!CollapsingHeader("Mem 2", ImGuiTreeNodeFlags_DefaultOpen)) {
         return;
     }
@@ -69,7 +69,7 @@ void MemMan2::editor() {
                 // TODO: redo using reqeust interface
                 // SameLine();
                 // if (Button("Allocate")) {
-                //     MemMan2::BlockInfo * block;
+                //     MemMan::BlockInfo * block;
                 //     void * ptr = alloc(sizeAlign[0], sizeAlign[1], &block);
                 //     if (block != firstBlock()) {
                 //         mm.editor.clearMemEditWindow();
@@ -154,10 +154,10 @@ void MemMan2::editor() {
     ImGuiStyle * style = &ImGui::GetStyle();
     ImVec4 defaultTextColor = style->Colors[ImGuiCol_Text];
     int blockIndex = 0;
-    for (MemMan2::BlockInfo * b = firstBlock(); b; b = nextBlock(b)) {
+    for (MemMan::BlockInfo * b = firstBlock(); b; b = nextBlock(b)) {
         PushID(blockIndex);
 
-        void * basePtr = (void *)((MemMan2::BlockInfo const *)b)->basePtr();
+        void * basePtr = (void *)((MemMan::BlockInfo const *)b)->basePtr();
 
         // calc block name
         char * str = mm.tempStr(128);

@@ -17,11 +17,7 @@ int MrManager::init(EngineSetup const & setup) {
     thisTime = setup.startTime;
     prevTime = setup.startTime;
 
-    // memMan.init(setup);
-    // if (memMan.firstBlock()->type() == MEM_BLOCK_STACK) {
-    //     frameStack = memMan.getBlockDataAt<Stack>(0);
-    // }
-    memMan2.init(setup, &frameStack);
+    memMan.init(setup, &frameStack);
     rendSys.init();
     camera.init(windowSize);
 
@@ -38,7 +34,6 @@ int MrManager::init(EngineSetup const & setup) {
     #endif // DEV_INTERFACE
 
     if (setup.args.c > 1) {
-        // memMan.createEntity(setup.args.v[1], true);
     }
 
     // test();
@@ -50,15 +45,13 @@ void MrManager::shutdown() {
     if (setup.preShutdown) setup.preShutdown();
     rendSys.shutdown();
     camera.shutdown();
-    // memMan.shutdown(); // manually call this later
     if (setup.postShutdown) setup.postShutdown();
 }
 
 void MrManager::beginFrame(double nowInSeconds) {
     // update frame
     ++frame;
-    // memMan.frame = frame;
-    memMan2.startFrame(frame);
+    memMan.startFrame(frame);
     // update time
     prevTime = thisTime;
     thisTime = nowInSeconds;
@@ -67,7 +60,7 @@ void MrManager::beginFrame(double nowInSeconds) {
 
 void MrManager::endFrame() {
     if (frameStack) frameStack->reset();
-    memMan2.endFrame();
+    memMan.endFrame();
 }
 
 void MrManager::tick() {
@@ -209,84 +202,6 @@ void MrManager::scrollEvent(Event const & e) {
 // -------------------------------------------------------------------------- //
 
 void MrManager::test() {
-    // int bufSize = 4096;
-    // char * buf = tempStr(bufSize);
-    // memMan.getInfo(buf, bufSize);
-    // print("%s\n", buf);
-
-    // printl("!!! creating 2 pools");
-    // printl();
-    // Pool * temp1 = memMan.createPool(1024, 16);
-    // assert(temp1);
-    // Pool * temp2 = memMan.createPool(16, 16);
-    // assert(temp2);
-
-    // memMan.getInfo(buf, bufSize);
-    // print("%s\n", buf);
-
-    // printl("!!! destroying pool 1");
-    // printl();
-    // memMan.destroyPool(temp1);
-
-    // memMan.getInfo(buf, bufSize);
-    // print("%s\n", buf);
-
-    // printl("!!! destroying pool 2");
-    // printl();
-    // memMan.destroyPool(temp2);
-
-    // memMan.getInfo(buf, bufSize);
-    // print("%s\n", buf);
-
-    // printl("!!! testing frameStack->formatStr");
-    // printl();
-    // char * temp = frameStack->formatStr("hello this is %d\n", 47);
-    // print("%s", temp);
-
-    // printl("!!! testing external allocation");
-    // printl();
-    // Path * p = memMan.create<Path>(0, "fart");
-    // assert(p);
-
-    // memMan.getInfo(buf, bufSize);
-    // print("%s\n", buf);
-
-    // printl("!!! creating 1 pool");
-    // printl();
-    // Pool * temp3 = memMan.createPool(64, 64);
-    // assert(temp3);
-
-    // memMan.getInfo(buf, bufSize);
-    // print("%s\n", buf);
-
-    // printl("!!! destroying external allocation");
-    // printl();
-    // memMan.destroy(p);
-
-    // memMan.getInfo(buf, bufSize);
-    // print("%s\n", buf);
-
-    // printl("!!! destroying pool 3");
-    // printl();
-    // memMan.destroyPool(temp3);
-
-    // memMan.getInfo(buf, bufSize);
-    // print("%s\n", buf);
-
-    // printl("loading file");
-    // printl();
-    // File * f = memMan.createFileHandle("BoxTextured.glb", true);
-    // assert(f);
-    // if (f->loaded()) {
-    //     printl("file loaded. found %zu bytes. last byte: 0x%02x", f->fileSize(), f->data()[f->size()-1]);
-    // }
-    // else {
-    //     printl("file read but not loaded. found %zu bytes.", f->size());
-    // }
-
-    // memMan.getInfo(buf, bufSize);
-    // print("%s\n", buf);
-
     // char const * absPathA = "/tmp";
     // char const * absPathB = "/Users/Shared";
     // // multiple calls that use mm.frameStack in the same frame

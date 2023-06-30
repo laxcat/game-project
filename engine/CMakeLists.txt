@@ -71,9 +71,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     # ${CMAKE_CURRENT_SOURCE_DIR}/memory/GLTFLoader2.cpp
     # ${CMAKE_CURRENT_SOURCE_DIR}/memory/Entity.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/FSA.cpp
-    # ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemMan.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemMan2.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemMan2_Editor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemMan.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemMan_Editor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/render/CameraControl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/render/GLTFLoader.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/render/Mesh.cpp

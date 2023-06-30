@@ -23,8 +23,7 @@ storage)    ^                                          ^
 class FSA {
     // FRIENDS
 public:
-    friend class MemMan2;
-    friend void memManFree(void *, void *);
+    friend class MemMan;
 
     // TYPES
 public:
@@ -137,7 +136,6 @@ for (int i = FSAMap::MinBytes; i <= FSAMap::MaxBytes; ++i) {
 // class FSA {
 // public:
 //     friend class MemMan;
-//     friend class MemMan2;
 
 //     static size_t constexpr DataSize(uint16_t subBlockSize, uint16_t nSubBlocks) {
 //         assert(nSubBlocks / 8 * 8 == nSubBlocks && "nSubBlocks must be multiple of 8.");

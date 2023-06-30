@@ -12,7 +12,7 @@
 #include "Samplers.h"
 #include "Texture.h"
 #include "../common/KeyedPool.h"
-#include "../memory/MemMan2.h"
+#include "../memory/MemMan.h"
 
 
 using RenderableIterator = KeyedPool<std::string, Renderable>::Iterator;

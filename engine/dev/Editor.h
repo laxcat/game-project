@@ -32,11 +32,9 @@ public:
     void guiFog();
     void guiColors();
     void guiMem();
-    void guiMem2();
 
     // separate movable windows
     void guiWinMem();
-    void guiWinMem2();
 
     void showMemEditWindow(void * ptr, size_t size);
     void clearMemEditWindow();
