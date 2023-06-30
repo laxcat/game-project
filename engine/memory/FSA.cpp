@@ -159,6 +159,7 @@ void * FSA::alloc(size_t size) {
         assert(subBlockIndex < _nSubBlocks[groupIndex] && "Sub-block index out of range.");
 
         void * ptr = (void *)subBlockPtr(groupIndex, subBlockIndex);
+        assert((byte_t *)ptr > data() && (byte_t *)ptr + size <= data() + _dataSize && "FSA ptr out of range.");
         setClaimed(_freeList[groupIndex], subBlockIndex);
         return ptr;
     }
@@ -195,6 +196,10 @@ bool FSA::destroy(void * ptr) {
 
         // we have a match!
         if (subBlockIndex < _nSubBlocks[groupIndex]) {
+            // printl("FSA (SubBlockByteSize(%d): %d, nSubBlocks %d, subBlockIndex: %d)",
+            //     groupIndex, SubBlockByteSize(groupIndex), _nSubBlocks[groupIndex], subBlockIndex);
+            // printl("clearing FSA bytes %p-%p, ", bptr, bptr + byteSize);
+            // printmem(bptr, byteSize);
             setFree(_freeList[groupIndex], subBlockIndex);
             memset(bptr, 0x00, byteSize);
             return true;
@@ -266,3 +271,31 @@ void FSA::printInfo() {
     }
     printl("dataSize = %zu", _dataSize);
 }
+
+#if DEBUG
+void FSA::test() {
+    printl("TESTING FSA.");
+    constexpr size_t MaxTestAllocs = 1024;
+    void * testAllocs[MaxTestAllocs];
+    size_t nTestAllocs = 0;
+    size_t size = 2;
+    for (size_t gi = 0; gi < Max; ++gi) {
+        printl("    testing %d %zu-byte sub-blocks in group %d", _nSubBlocks[gi], size, gi);
+        for (size_t sbi = 0; sbi < _nSubBlocks[gi]; ++sbi) {
+            void * ptr = alloc(size);
+            // printl("ptr: %p\nsize: %zu\ndata(): %p\n_dataSize: %zu\ndata+_dataSize: %p",
+                // ptr, size, data(), _dataSize, data()+_dataSize);
+            assert((byte_t *)ptr > data() && (byte_t *)ptr + size <= data() + _dataSize && "FSA ptr out of range.");
+            printl("        %p %zu-bytes allocated", ptr, size);
+            testAllocs[nTestAllocs] = ptr;
+            ++nTestAllocs;
+        }
+        size <<= 1;
+    }
+
+    for (size_t i = 0; i < nTestAllocs; ++i) {
+        printl("    destroying %p", testAllocs[i]);
+        destroy(testAllocs[i]);
+    }
+}
+#endif // DEBUG

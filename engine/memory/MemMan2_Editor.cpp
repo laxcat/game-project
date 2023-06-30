@@ -161,9 +161,9 @@ void MemMan2::editor() {
 
         // calc block name
         char * str = mm.tempStr(128);
-        snprintf(str, 128, "%03d (0x%06X): %s Block [%s][%s]",
+        snprintf(str, 128, "%03d (%p): %s Block [%s][%s]",
             blockIndex,
-            (uint32_t)((size_t)basePtr & 0xffffff),
+            basePtr,
             memBlockTypeStr(b->type()),
             mm.byteSizeStr(b->paddingSize()),
             mm.byteSizeStr(b->dataSize())

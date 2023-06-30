@@ -1,5 +1,6 @@
 #pragma once
 #include <stdarg.h>
+#include "../common/types.h"
 
 /*
 
@@ -39,6 +40,18 @@ inline void printc(bool shouldPrint, char const * formatString, ...) {
     va_start(args, formatString);
     vprint(formatString, args);
     va_end(args);
+}
+
+inline void printmem(void * start, size_t length) {
+    byte_t * base = (byte_t *)start;
+    byte_t * end = base + length;
+    for (; base < end; base += 0x10) {
+        print("%p  ", base);
+        for (size_t i = 0x00; i < 0x08; ++i) print("%02X ", base[i]);
+        print(" ");
+        for (size_t i = 0x08; i < 0x10; ++i) print("%02X ", base[i]);
+        printl();
+    }
 }
 
 // UNTESTED

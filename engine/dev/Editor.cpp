@@ -58,7 +58,7 @@ static char const * filenameForLoadedGLTF(char const * key) {
 Editor::Editor() {
     memEdit.OptShowDataPreview = true;
     // memEdit.ReadOnly = true;
-    memEdit.OptAddrDigitsCount = 4;
+    // memEdit.OptAddrDigitsCount = 4;
 }
 
 void Editor::tick() {
@@ -516,10 +516,16 @@ void Editor::guiWinMem2() {
 
     memEdit.DrawWindow(
         memWin.title,
-        (void *)roundedPtr,
-        memWin.size + roundedDif,
-        roundedPtr & 0xffff
+        memWin.ptr,
+        memWin.size
     );
+
+    // memEdit.DrawWindow(
+    //     memWin.title,
+    //     (void *)roundedPtr,
+    //     memWin.size + roundedDif,
+    //     roundedPtr & 0xffff
+    // );
 
     // TODO: enable/figure out why it wasn't working
     // memEdit.GotoAddrAndHighlight(

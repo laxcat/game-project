@@ -1,5 +1,6 @@
 #pragma once
 #include <assert.h>
+#include "../common/debug_defines.h"
 #include "../common/types.h"
 #include "mem_utils.h"
 
@@ -67,6 +68,10 @@ private:
     void setAllFree();
     void setAllFreeInGroup(uint16_t groupIndex);
     void printInfo();
+
+    #if DEBUG
+    void test();
+    #endif // DEBUG
 
     // STORAGE
 private:

@@ -60,12 +60,14 @@ struct EngineSetup {
     size_t memManFrameStackSize = 1024*1024*10;
     MemManFSASetup memManFSA{
         .n2byteSubBlocks = 32,
-        .n4byteSubBlocks = 32,
-        .n8byteSubBlocks = 32,
+        .n4byteSubBlocks = 8,
+        .n8byteSubBlocks = 8,
         .n16byteSubBlocks = 32,
         .n32byteSubBlocks = 32,
+        .n64byteSubBlocks = 8,
         .n128byteSubBlocks = 32,
-        .n256byteSubBlocks = 32,
+        .n256byteSubBlocks = 64,
+        .n512byteSubBlocks = 8,
         .align = 64,
     };
 

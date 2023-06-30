@@ -142,7 +142,9 @@ void MemMan2::init(EngineSetup const & setup, Stack ** frameStack) {
     createRequestResult();
     assert(_request && _result && "Did not create request/result block.");
     _fsa = createFSA(setup.memManFSA);
+    assert(_fsa && "Failed to create fsa.");
     if (_fsa) {
+        _fsa->test();
         _fsaBlock = blockForPtr(_fsa);
         assert(_fsaBlock && "FSA block error.");
     }
@@ -152,6 +154,7 @@ void MemMan2::init(EngineSetup const & setup, Stack ** frameStack) {
             *frameStack = fs;
         }
     }
+
 }
 
 void MemMan2::startFrame(size_t frame) {
@@ -369,6 +372,7 @@ void MemMan2::request() {
     else if (_request->ptr) {
         if (_fsa->destroy(_request->ptr)) {
             // ptr was in fsa
+            validateAll();
         }
         else {
             BlockInfo * block = blockForPtr(_request->ptr);
@@ -489,11 +493,23 @@ FSA * MemMan2::createFSA(MemManFSASetup const & setup) {
     size_t dataSize = FSA::DataSize(setup);
     if (dataSize == 0) return nullptr;
 
-    BlockInfo * block = create(sizeof(FSA) + dataSize);
+    // solution to specifically align both FSA and containing block here, as it
+    // makes size calculatable beforehand. otherwise differnce between FSA-base
+    // and FSA-data might be unpredictable, resulting in
+    size_t blockDataSize = alignSize(sizeof(FSA), setup.align) + dataSize;
+    BlockInfo * block = create(blockDataSize, setup.align);
     if (!block) return nullptr;
+
+    // printl("FSA dataSize %zu", dataSize);
+    // printl("sizeof(FSA) %zu", sizeof(FSA));
+    // printl("alignSize sizeof(FSA) %zu", alignSize(sizeof(FSA), setup.align));
+    // printl("FSA blockDataSize %zu", blockDataSize);
+    // printl("aligned sizeof(FSA) %p", alignPtr(block->data() + sizeof(FSA), setup.align));
 
     block->_type = MEM_BLOCK_FSA;
     FSA * fsa = new (block->data()) FSA{setup};
+
+    // printl("FSA data (minus) base %zu", fsa->data() - block->data());
     return fsa;
 }
 
@@ -998,6 +1014,7 @@ void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * 
     // memMan2->printRequestResult();
 
     #if DEBUG
+    memMan2->validateAll();
     if (res->ptr == nullptr && size > 0) {
         debugBreak();
     }
@@ -1011,5 +1028,7 @@ void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * 
     // memMan2->printFreeSizes();
 
     if constexpr (ShowMemManBGFXDbg) printl("          (RETURNS: %011p)", res->ptr);
+    if constexpr (ShowMemManBGFXDbg) memMan2->printAll();
+    if constexpr (ShowMemManBGFXDbg) memMan2->printRequestResult();
     return res->ptr;
 }
