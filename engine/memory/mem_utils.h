@@ -5,9 +5,10 @@ inline char const * memBlockTypeStr(MemBlockType type) {
     switch (type) {
     case MEM_BLOCK_NONE:       return "(none)";
     case MEM_BLOCK_FREE:       return "FREE";
-    case MEM_BLOCK_CLAIMED:    return "CLAIMED";
     case MEM_BLOCK_REQUEST:    return "REQUEST";
     case MEM_BLOCK_FSA:        return "FSA";
+    case MEM_BLOCK_CLAIMED:    return "CLAIMED";
+    case MEM_BLOCK_ARRAY:      return "ARRAY";
     case MEM_BLOCK_POOL:       return "POOL";
     case MEM_BLOCK_STACK:      return "STACK";
     case MEM_BLOCK_FILE:       return "FILE";

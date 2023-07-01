@@ -3,40 +3,62 @@
 /*
 Container that assumed contents are uninitialized. Has reserved space, but also has head (count)
 
-Designed to be used within pre-allocated memory, like inside a MemMan::Block.
-Expects `_size` bytes of pre-allocated (safe) memory directly after its own instance.
+Designed to be used within pre-allocated memory, like inside a MemMan Block.
+Expects sizeof(T) * _maxSize bytes of pre-allocated (safe) memory directly after its own instance.
 */
 
 template <typename T>
 class Array {
 public:
-    Array() : _ptr(nullptr), _max(0) {}
-    Array(T * ptr, size_t max) : _ptr(ptr), _max(max) {}
-
-    T * claimTo(size_t i) {
-        assert(i > _count && "Index must be greated than count");
-        T * r = &_ptr[_count];
-        _count = i;
-        return r;
+    static constexpr size_t DataSize(size_t max) {
+        return max * sizeof(T);
     }
 
-    T * claim(size_t i = 1) { return claimTo(_count + i); }
+    Array(size_t maxSize) : _maxSize(maxSize) {}
 
-    // TODO: copy assignment or memcpy?
-    void append(T const & obj) {
-        *claim() = obj;
-        // memcpy(claim(), &obj, sizeof(T));
+    T & insert(size_t i, T const & item) {
+        shiftItems(i, 1);
+        data()[i] = item;
     }
 
-    size_t count() const { return _count; }
-    size_t max() const { return _max; }
-    bool isValid() const { return _ptr != nullptr; }
+    size_t size() const { return _size; }
+    size_t maxSize() const { return _maxSize; }
 
-    T & operator[](size_t i) { assert(_ptr && i < _count); return _ptr[i]; }
-    T const & operator[](size_t i) const { assert(_ptr && i < _count); return _ptr[i]; }
+    T       * data()       { return (T       *)((byte_t *)this + sizeof(Array)); }
+    T const * data() const { return (T const *)((byte_t *)this + sizeof(Array)); }
+
+    T       & operator[](size_t i)       { assert(i < _size); return data()[i]; }
+    T const & operator[](size_t i) const { assert(i < _size); return data()[i]; }
 
 private:
-    T * _ptr;
-    size_t _max;
-    size_t _count = 0;
+    size_t _size = 0;
+    size_t _maxSize;
+
+    void shiftItems(size_t start, int shift, size_t count = 0) {
+        if (count == 0) {
+            count = _size - start;
+        }
+        assert(start + count <= _maxSize && "Not enough allocated item slots to shift.");
+
+        if (shift == 0) return;
+
+        // shifting left
+        if (shift < 0) {
+            assert(start >= -shift);
+            int end = start + count;
+            for (int i = start; i < end; ++i) {
+                data()[i + shift] = data()[i];
+            }
+        }
+        // shifting right
+        else {
+            int end = start + count;
+            assert(end <= _size - shift);
+            for (int i = end - 1; i >= start; --i) {
+                data()[i + shift] = data()[i];
+            }
+        }
+
+        _size += shift;
+    }
 };

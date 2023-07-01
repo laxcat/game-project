@@ -7,6 +7,14 @@
 
 using namespace ImGui;
 
+// test allocs
+struct Allocs {
+    size_t size = 0;
+    void * ptr = nullptr;
+};
+static Allocs allocs[128] = {};
+static int nAllocs = 0;
+
 void MemMan::editor() {
     if (!CollapsingHeader("Mem 2", ImGuiTreeNodeFlags_DefaultOpen)) {
         return;
@@ -40,14 +48,9 @@ void MemMan::editor() {
 
     // memman is initialized ------------------------------------------------ //
     else {
-        // test allocs
-        struct Allocs {
-            size_t size = 0;
-            void * ptr = nullptr;
-        };
-        static Allocs allocs[128] = {};
-        static int nAllocs = 0;
 
+        // MEMMAN GENERAL INFO
+        Text("MemMan Initialized [%s]", byteSizeStr(size()));
         Text("%p - %p", data(), data() + size());
         SameLine();
         if (Button("Shutdown")) {
@@ -58,58 +61,33 @@ void MemMan::editor() {
             nAllocs = 0;
         }
 
+        // ALLOCATE GENERIC
         PushItemWidth(90);
-
         TextUnformatted("Allocate Generic:");
         {
             static int sizeAlign[] = {4, 0};
 
+            // create a test allocation
             if (nAllocs < 128) {
                 InputInt2("Size/align##alloc", sizeAlign);
-                // TODO: redo using reqeust interface
-                // SameLine();
-                // if (Button("Allocate")) {
-                //     MemMan::BlockInfo * block;
-                //     void * ptr = alloc(sizeAlign[0], sizeAlign[1], &block);
-                //     if (block != firstBlock()) {
-                //         mm.editor.clearMemEditWindow();
-                //     }
-                //     if (ptr) {
-                //         allocs[nAllocs++] = {(size_t)sizeAlign[0], (void *)ptr};
-                //     }
-                // }
-            }
-
-            // quick list of test allocs
-            for (int i = 0; i < nAllocs; ++i) {
-                PushID(i);
-                Text(
-                    "%zu-byte alloc (0x%06X)",
-                    allocs[i].size, (uint32_t)((size_t)allocs[i].ptr & 0xffffff)
-                );
-                // TODO: redo using request interface
-                // SameLine();
-                // if (Button("Release")) {
-                //     destroy(allocs[i].ptr);
-                //     for (int j = i + 1; j < nAllocs; ++j) {
-                //         allocs[j-1] = allocs[j];
-                //     }
-                //     allocs[nAllocs-1] = {};
-                //     --nAllocs;
-                // }
-                PopID();
+                SameLine();
+                if (Button("Allocate")) {
+                    void * ptr = request({.size=(size_t)sizeAlign[0], .align=(size_t)sizeAlign[1]});
+                    // if (_result->block != _fsaBlock) {
+                    //     mm.editor.clearMemEditWindow();
+                    // }
+                    if (ptr) {
+                        allocs[nAllocs++] = {(size_t)sizeAlign[0], ptr};
+                    }
+                }
             }
         }
         Dummy(ImVec2(0.0f, 10.0f));
 
-        TextUnformatted("Manually Create Block:");
-
+        TextUnformatted("Manually Create Block Object:");
         static MemBlockType selectedType = MEM_BLOCK_CLAIMED;
-
         if (BeginCombo("###MemBlockType", memBlockTypeStr(selectedType))) {
             for (int i = MEM_BLOCK_CLAIMED; i <= MEM_BLOCK_GOBJ; ++i) {
-                if (i == MEM_BLOCK_FSA) continue;
-
                 if (Selectable(memBlockTypeStr((MemBlockType)i))) {
                     selectedType = (MemBlockType)i;
                 }
@@ -129,7 +107,10 @@ void MemMan::editor() {
             SameLine();
             if (Button("Create")) {
                 mm.editor.clearMemEditWindow();
-                create(sizeAlign[0], sizeAlign[1]);
+                BlockInfo * block = create(sizeAlign[0], sizeAlign[1]);
+                if (nAllocs < 128) {
+                    allocs[nAllocs++] = {.size=(size_t)sizeAlign[0], .ptr=block->data()};
+                }
             }
             break;
         }
@@ -137,7 +118,6 @@ void MemMan::editor() {
         case MEM_BLOCK_STACK:
         case MEM_BLOCK_FILE:
         case MEM_BLOCK_GOBJ:
-        case MEM_BLOCK_FSA:
         default: {
             TextUnformatted("Not implemented yet.");
         }}
@@ -159,6 +139,14 @@ void MemMan::editor() {
 
         void * basePtr = (void *)((MemMan::BlockInfo const *)b)->basePtr();
 
+        bool isTestAlloc = false;
+        for (int i = 0; i < nAllocs; ++i) {
+            if (b->data() == allocs[i].ptr) {
+                isTestAlloc = true;
+                break;
+            }
+        }
+
         // calc block name
         char * str = mm.tempStr(128);
         snprintf(str, 128, "%03d (%p): %s Block [%s][%s]",
@@ -172,9 +160,12 @@ void MemMan::editor() {
         bool isSelected = (b == mm.editor.memWin.ptr);
         ImVec2 selSize = ImVec2{GetWindowContentRegionMax().x - 50.f, 0.f};
 
+        if (!isTestAlloc) {
+            selSize = {};
+        }
+
         if (b->type() == MEM_BLOCK_FREE) {
             style->Colors[ImGuiCol_Text] = ImVec4(0.6f, 0.7f, 1.0f, 1.00f);
-            selSize = {};
         }
         else if (b->type() == MEM_BLOCK_CLAIMED) {
             style->Colors[ImGuiCol_Text] = ImVec4(0.9f, 0.5f, 0.5f, 1.00f);
@@ -190,7 +181,7 @@ void MemMan::editor() {
         }
 
         // show free button
-        if (b->type() != MEM_BLOCK_FREE && b->type() != MEM_BLOCK_FSA) {
+        if (isTestAlloc) {
             SameLine();
             if (Button("Free")) {
                 mm.editor.clearMemEditWindow();
