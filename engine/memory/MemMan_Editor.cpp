@@ -8,18 +8,46 @@
 using namespace ImGui;
 
 // test allocs
-struct Allocs {
-    size_t size = 0;
+struct Alloc {
+    constexpr static size_t DescSize = 64;
+    char desc[DescSize];
     void * ptr = nullptr;
 };
-static Allocs allocs[128] = {};
-static int nAllocs = 0;
+static Alloc allocs[128] = {};
+static uint16_t nAllocs = 0;
 
-void removeAlloc(int i) {
+void addAlloc(void * ptr, char const * formatString = NULL, ...) {
+    allocs[nAllocs++] = {.ptr=ptr};
+
+    if (formatString) {
+        va_list args;
+        va_start(args, formatString);
+        vsnprintf(allocs[nAllocs-1].desc, Alloc::DescSize, formatString, args);
+        va_end(args);
+    }
+    else {
+        allocs[nAllocs-1].desc[0] = '\0';
+    }
+
+}
+
+void removeAlloc(uint16_t i) {
+    if (i >= nAllocs) {
+        return;
+    }
+
+    mm.memMan.request({.size=0, .ptr=allocs[i].ptr});
+
     for (int j = i + 1; j < nAllocs; ++j) {
         allocs[j-1] = allocs[j];
     }
     allocs[--nAllocs] = {};
+}
+
+void removeAllAllocs() {
+    while(nAllocs) {
+        removeAlloc(nAllocs-1);
+    }
 }
 
 void MemMan::editor() {
@@ -27,7 +55,7 @@ void MemMan::editor() {
         return;
     }
 
-    // memman not initialized ----------------------------------------------- //
+    // MEMMAN NOT INITIALIZED ----------------------------------------------- //
     if (!firstBlock()) {
         static int size = mm.setup.memManSize;
         static MemManFSASetup fsaSetup = mm.setup.memManFSA;
@@ -54,17 +82,14 @@ void MemMan::editor() {
         return;
     }
 
-    // memman is initialized ------------------------------------------------ //
+    // MEMMAN IS INITIALIZED ------------------------------------------------ //
 
     // MEMMAN GENERAL INFO
     Text("MemMan Initialized [%s]", mm.byteSizeStr(size()));
     Text("%p - %p", data(), data() + size());
     if (Button("Shutdown")) {
+        removeAllAllocs();
         shutdown();
-        for (int i = 0; i < nAllocs; ++i) {
-            allocs[i] = {};
-        }
-        nAllocs = 0;
     }
     Dummy(ImVec2(0.0f, 10.0f));
     Separator();
@@ -83,11 +108,8 @@ void MemMan::editor() {
                 SameLine();
                 if (Button("Allocate")) {
                     void * ptr = request({.size=(size_t)sizeAlign[0], .align=(size_t)sizeAlign[1]});
-                    // if (_result->block != _fsaBlock) {
-                    //     mm.editor.clearMemEditWindow();
-                    // }
                     if (ptr) {
-                        allocs[nAllocs++] = {(size_t)sizeAlign[0], ptr};
+                        addAlloc(ptr, "%d-byte generic", sizeAlign[0]);
                     }
                 }
             }
@@ -121,7 +143,9 @@ void MemMan::editor() {
             if (Button("Create")) {
                 mm.editor.clearMemEditWindow();
                 BlockInfo * block = create(sizeAlign[0], sizeAlign[1]);
-                allocs[nAllocs++] = {.size=(size_t)sizeAlign[0], .ptr=block->data()};
+                if (block) {
+                    addAlloc(block->data(), "Generic block (%zu bytes)", block->dataSize());
+                }
             }
             break;
         }
@@ -134,7 +158,9 @@ void MemMan::editor() {
             if (Button("Create")) {
                 mm.editor.clearMemEditWindow();
                 Array<int> * arr = createArray<int>((size_t)max);
-                allocs[nAllocs++] = {.size=0, .ptr=arr};
+                if (arr) {
+                    addAlloc(arr, "Array<int> block (%d-item max)", max);
+                }
             }
             break;
         }
@@ -147,23 +173,23 @@ void MemMan::editor() {
         }}
     }
 
-    // quick list of test allocs
+    // LIST TEST ALLOCS
     if (nAllocs) {
         Dummy(ImVec2(0.0f, 10.0f));
         TextUnformatted("Test Allocs:");
 
         for (int i = 0; i < nAllocs; ++i) {
             PushID(i);
-            Text(
-                "%zu-byte alloc (0x%06X)",
-                allocs[i].size, (uint32_t)((size_t)allocs[i].ptr & 0xffffff)
-            );
+            Text("%p (%s)", allocs[i].ptr, allocs[i].desc);
             SameLine();
             if (Button("Release")) {
-                request({.size=0, .ptr=allocs[i].ptr});
                 removeAlloc(i);
             }
             PopID();
+        }
+
+        if (Button("Release All")) {
+            removeAllAllocs();
         }
     }
 
@@ -173,7 +199,7 @@ void MemMan::editor() {
     Text("%zu Blocks", blockCountForDisplayOnly());
     Separator();
 
-    // list blocks ---------------------------------------------------------- //
+    // LIST BLOCKS ---------------------------------------------------------- //
     ImGuiStyle * style = &ImGui::GetStyle();
     ImVec4 defaultTextColor = style->Colors[ImGuiCol_Text];
     int blockIndex = 0;
@@ -230,7 +256,7 @@ void MemMan::editor() {
             SameLine();
             if (Button("Free")) {
                 mm.editor.clearMemEditWindow();
-                release(b);
+                // release(b);
                 removeAlloc(testAllocIndex);
             }
         }
