@@ -5,6 +5,7 @@
 #include "../common/types.h"
 #include "FSA.h"
 #include "Stack.h"
+#include "Array.h"
 
 /*
 
@@ -122,6 +123,8 @@ public:
 
     // SPECIAL BLOCK OBJ CREATION
     Stack * createStack(size_t size);
+    template<typename T>
+    Array<T> * createArray(size_t max);
 
     // DEV INTERFACE ONLY
     #if DEV_INTERFACE
@@ -157,7 +160,7 @@ private:
     // explicitly finds/creates free block of size
     BlockInfo * create(size_t size, size_t align = 0, BlockInfo * copyFrom = nullptr);
     // explicity releases block. set type to free and reset padding
-    BlockInfo * release(BlockInfo * block);
+    void release(BlockInfo * block);
     // alters _padding and _dataSize to align data() to alignment
     BlockInfo * claim(BlockInfo * block, size_t size, size_t align = 0, BlockInfo * copyFrom = nullptr);
     // consumes next block if free
@@ -198,3 +201,14 @@ public:
     MemMan * memMan = nullptr;
     void * realloc(void *, size_t, size_t, char const *, uint32_t);
 };
+
+// INLINE DECLARATIONS
+template<typename T>
+Array<T> * MemMan::createArray(size_t max) {
+    guard_t guard{_mainMutex};
+
+    BlockInfo * block = create(sizeof(Array<T>) + max * sizeof(T));
+    if (!block) return nullptr;
+    block->_type = MEM_BLOCK_ARRAY;
+    return new (block->data()) Array<T>{max};
+}

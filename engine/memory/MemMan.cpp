@@ -412,7 +412,7 @@ MemMan::BlockInfo * MemMan::create(size_t size, size_t align, BlockInfo * copyFr
     return found;
 }
 
-MemMan::BlockInfo * MemMan::release(BlockInfo * block) {
+void MemMan::release(BlockInfo * block) {
     guard_t guard{_mainMutex};
 
     #if DEBUG
@@ -450,8 +450,6 @@ MemMan::BlockInfo * MemMan::release(BlockInfo * block) {
     // check to see if this newly released block changes _firstFree
     // (it may or may not, findFirstFree will check)
     findFirstFree(block);
-
-    return block;
 }
 
 // bool MemMan::destroy(void * ptr) {
