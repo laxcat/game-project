@@ -30,8 +30,8 @@ public:
     using guard_t = std::lock_guard<std::recursive_mutex>;
 
     // "MemBlock"
-    #define BLOCK_MAGIC_STRING2 {0x4D, 0x65, 0x6D, 0x42, 0x6C, 0x6F, 0x63, 0x6B}
-    constexpr static byte_t BlockMagicString[8] = BLOCK_MAGIC_STRING2; // "MemBlock"
+    #define BLOCK_MAGIC_STRING {0x4D, 0x65, 0x6D, 0x42, 0x6C, 0x6F, 0x63, 0x6B}
+    constexpr static byte_t BlockMagicString[8] = BLOCK_MAGIC_STRING; // "MemBlock"
 
     class BlockInfo {
         // API
@@ -58,7 +58,7 @@ public:
 
         #if DEBUG
         size_t _debug_index = SIZE_MAX;
-        byte_t _debug_magic[8] = BLOCK_MAGIC_STRING2;
+        byte_t _debug_magic[8] = BLOCK_MAGIC_STRING;
         #endif // DEBUG
 
         // INTERNALS
@@ -127,9 +127,25 @@ public:
     template<typename T>
     Array<T> * createArray(size_t max);
 
-    // DEV INTERFACE ONLY
     #if DEV_INTERFACE
+    // DEV INTERFACE ONLY
+public:
+    struct TestAlloc {
+        constexpr static size_t DescSize = 64;
+        char desc[DescSize];
+        void * ptr = nullptr;
+    };
+
+    static constexpr size_t MaxTestAllocs = 128;
+
     void editor();
+    void addTestAlloc(void * ptr, char const * formatString = NULL, ...);
+    void removeAlloc(uint16_t i);
+    void removeAllAllocs();
+
+    TestAlloc testAllocs[MaxTestAllocs] = {};
+    uint16_t nTestAllocs = 0;
+
     #endif // DEV_INTERFACE
 
     // PRIVATE SPECIAL BLOCK OBJ CREATION

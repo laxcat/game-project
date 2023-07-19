@@ -1,4 +1,8 @@
 #pragma once
+#include <assert.h>
+#include <stddef.h>
+#include "../common/types.h"
+#include "../common/debug_defines.h"
 
 /*
 Array
@@ -13,8 +17,6 @@ Array
 template <typename T>
 class Array {
 public:
-    friend class MemMan;
-
     static constexpr size_t DataSize(size_t max) {
         return max * sizeof(T);
     }
@@ -101,4 +103,14 @@ private:
         }
         return count;
     }
+
+    #if DEV_INTERFACE
+    friend void Array_editorCreate();
+    friend void Array_editorEditBlock(Array<int> &);
+    #endif // DEV_INTERFACE
 };
+
+#if DEV_INTERFACE
+void Array_editorCreate();
+void Array_editorEditBlock(Array<int> & arr);
+#endif // DEV_INTERFACE

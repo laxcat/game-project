@@ -70,6 +70,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     # ${CMAKE_CURRENT_SOURCE_DIR}/memory/GLTF.cpp
     # ${CMAKE_CURRENT_SOURCE_DIR}/memory/GLTFLoader2.cpp
     # ${CMAKE_CURRENT_SOURCE_DIR}/memory/Entity.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/Array_Editor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/FSA.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemMan.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemMan_Editor.cpp

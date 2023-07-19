@@ -7,49 +7,6 @@
 
 using namespace ImGui;
 
-// test allocs
-struct Alloc {
-    constexpr static size_t DescSize = 64;
-    char desc[DescSize];
-    void * ptr = nullptr;
-};
-static Alloc allocs[128] = {};
-static uint16_t nAllocs = 0;
-
-void addAlloc(void * ptr, char const * formatString = NULL, ...) {
-    allocs[nAllocs++] = {.ptr=ptr};
-
-    if (formatString) {
-        va_list args;
-        va_start(args, formatString);
-        vsnprintf(allocs[nAllocs-1].desc, Alloc::DescSize, formatString, args);
-        va_end(args);
-    }
-    else {
-        allocs[nAllocs-1].desc[0] = '\0';
-    }
-
-}
-
-void removeAlloc(uint16_t i) {
-    if (i >= nAllocs) {
-        return;
-    }
-
-    mm.memMan.request({.size=0, .ptr=allocs[i].ptr});
-
-    for (int j = i + 1; j < nAllocs; ++j) {
-        allocs[j-1] = allocs[j];
-    }
-    allocs[--nAllocs] = {};
-}
-
-void removeAllAllocs() {
-    while(nAllocs) {
-        removeAlloc(nAllocs-1);
-    }
-}
-
 void MemMan::editor() {
     if (!CollapsingHeader("Mem 2", ImGuiTreeNodeFlags_DefaultOpen)) {
         return;
@@ -95,7 +52,7 @@ void MemMan::editor() {
     Separator();
 
     // TEST ALLOCATIONS
-    if (nAllocs < 128) {
+    if (nTestAllocs < MaxTestAllocs) {
         // ALLOCATE GENERIC
         PushItemWidth(90);
         TextUnformatted("Allocate Generic:");
@@ -103,13 +60,13 @@ void MemMan::editor() {
             static int sizeAlign[] = {4, 0};
 
             // create a test allocation
-            if (nAllocs < 128) {
+            if (nTestAllocs < MaxTestAllocs) {
                 InputInt2("Size/align##alloc", sizeAlign);
                 SameLine();
                 if (Button("Allocate")) {
                     void * ptr = request({.size=(size_t)sizeAlign[0], .align=(size_t)sizeAlign[1]});
                     if (ptr) {
-                        addAlloc(ptr, "%d-byte generic", sizeAlign[0]);
+                        addTestAlloc(ptr, "%d-byte generic", sizeAlign[0]);
                     }
                 }
             }
@@ -144,24 +101,13 @@ void MemMan::editor() {
                 mm.editor.clearMemEditWindow();
                 BlockInfo * block = create(sizeAlign[0], sizeAlign[1]);
                 if (block) {
-                    addAlloc(block->data(), "Generic block (%zu bytes)", block->dataSize());
+                    addTestAlloc(block->data(), "Generic block (%zu bytes)", block->dataSize());
                 }
             }
             break;
         }
         case MEM_BLOCK_ARRAY: {
-            static int max = 10;
-            SameLine();
-            PushItemWidth(120);
-            InputInt("Max##ArrayBlock", &max);
-            SameLine();
-            if (Button("Create")) {
-                mm.editor.clearMemEditWindow();
-                Array<int> * arr = createArray<int>((size_t)max);
-                if (arr) {
-                    addAlloc(arr, "Array<int> block (%d-item max)", max);
-                }
-            }
+            Array_editorCreate();
             break;
         }
         case MEM_BLOCK_POOL:
@@ -174,13 +120,13 @@ void MemMan::editor() {
     }
 
     // LIST TEST ALLOCS
-    if (nAllocs) {
+    if (nTestAllocs) {
         Dummy(ImVec2(0.0f, 10.0f));
         TextUnformatted("Test Allocs:");
 
-        for (int i = 0; i < nAllocs; ++i) {
+        for (int i = 0; i < nTestAllocs; ++i) {
             PushID(i);
-            Text("%p (%s)", allocs[i].ptr, allocs[i].desc);
+            Text("%p (%s)", testAllocs[i].ptr, testAllocs[i].desc);
             SameLine();
             if (Button("Release")) {
                 removeAlloc(i);
@@ -210,8 +156,8 @@ void MemMan::editor() {
 
         bool isTestAlloc = false;
         int testAllocIndex = 0;
-        for (int i = 0; i < nAllocs; ++i) {
-            if (b->data() == allocs[i].ptr) {
+        for (int i = 0; i < nTestAllocs; ++i) {
+            if (b->data() == testAllocs[i].ptr) {
                 isTestAlloc = true;
                 testAllocIndex = i;
                 break;
@@ -306,88 +252,7 @@ void MemMan::editor() {
 
         // ARRAY
         if (b->type() == MEM_BLOCK_ARRAY) {
-            auto & arr = *(Array<int> *)b->data();
-
-            // append
-            {
-                bool disabled = arr.bufferFull();
-                if (disabled) BeginDisabled();
-
-                TextUnformatted("Append Item");
-                static int appendValue = 0;
-                InputInt("value##append", &appendValue);
-                SameLine();
-                if (Button("Append###ArrayAppend")) {
-                    arr.append(appendValue);
-                }
-
-                // insert
-                TextUnformatted("Insert Item");
-                static int insertValue = 0;
-                static int insertIndex = -1;
-                if (insertIndex == -1) {
-                    insertIndex = (int)arr.size();
-                }
-                InputInt("value##insert", &insertValue);
-                SameLine();
-                InputInt("index##insert", &insertIndex);
-                SameLine();
-                if (Button("Insert###ArrayInsert")) {
-                    arr.insert((size_t)insertIndex, insertValue);
-                }
-
-                if (disabled) EndDisabled();
-            }
-
-            // remove
-            {
-                bool disabled = (arr.size() == 0);
-                if (disabled) BeginDisabled();
-
-                TextUnformatted("Remove Items");
-                static int removeParams[2] = {0, 1};
-                InputInt2("index/count", removeParams);
-                size_t index = (size_t)removeParams[0];
-                size_t count = (size_t)removeParams[1];
-                bool badInput = index + count > arr.size();
-
-                if (badInput) BeginDisabled();
-
-                SameLine();
-                if (Button("Remove###ArrayRemove")) {
-                    arr.remove(index, count);
-                }
-
-                if (badInput) EndDisabled();
-                if (disabled) EndDisabled();
-            }
-
-
-            // copy
-            TextUnformatted("Copy Items");
-            static int copyParams[3];
-            InputInt3("dst/src/count", copyParams);
-            SameLine();
-            if (Button("Copy###ArrayCopy")) {
-                arr.copy((size_t)copyParams[0], (size_t)copyParams[1], (size_t)copyParams[2]);
-            }
-
-            // display array contents
-            Text("Array, (%zu/%zu):", arr.size(), arr.maxSize());
-            int cols = 16;
-            int rows = arr.maxSize() / cols + (arr.maxSize() % cols != 0);
-            int i = 0;
-            BeginTable("SubBlocks", cols, ImGuiTableFlags_Borders);
-            for (int i = 0; i < arr.maxSize(); ++i) {
-                TableNextColumn();
-                TableSetBgColor(ImGuiTableBgTarget_CellBg, 0xff333333);
-                if (i == arr.size()) {
-                    style->Colors[ImGuiCol_Text] = ImVec4(1.0f, 1.0f, 1.0f, 0.2f);
-                }
-                Text("%d", arr.data()[i]);
-            }
-            style->Colors[ImGuiCol_Text] = defaultTextColor;
-            EndTable();
+            Array_editorEditBlock(*(Array<int> *)b->data());
         }
 
         style->Colors[ImGuiCol_Text] = defaultTextColor;
@@ -397,4 +262,38 @@ void MemMan::editor() {
         PopID();
     }
 }
+
+void MemMan::addTestAlloc(void * ptr, char const * formatString, ...) {
+    testAllocs[nTestAllocs++] = {.ptr=ptr};
+
+    if (formatString) {
+        va_list args;
+        va_start(args, formatString);
+        vsnprintf(testAllocs[nTestAllocs-1].desc, TestAlloc::DescSize, formatString, args);
+        va_end(args);
+    }
+    else {
+        testAllocs[nTestAllocs-1].desc[0] = '\0';
+    }
+}
+
+void MemMan::removeAlloc(uint16_t i) {
+    if (i >= nTestAllocs) {
+        return;
+    }
+
+    mm.memMan.request({.size=0, .ptr=testAllocs[i].ptr});
+
+    for (int j = i + 1; j < nTestAllocs; ++j) {
+        testAllocs[j-1] = testAllocs[j];
+    }
+    testAllocs[--nTestAllocs] = {};
+}
+
+void MemMan::removeAllAllocs() {
+    while(nTestAllocs) {
+        removeAlloc(nTestAllocs-1);
+    }
+}
+
 #endif // DEV_INTERFACE
