@@ -1,15 +1,20 @@
 #pragma once
 
 /*
-Container that assumed contents are uninitialized. Has reserved space, but also has head (count)
+Array
+- Requires setting max available buffer size up front
+- Bounds checking on subscript access (unchecked on data() access)
+- Designed to be used within pre-allocated memory, like inside a MemMan Block.
+    Expects sizeof(T) * _maxSize bytes of pre-allocated (safe) memory directly
+    after its own instance.
 
-Designed to be used within pre-allocated memory, like inside a MemMan Block.
-Expects sizeof(T) * _maxSize bytes of pre-allocated (safe) memory directly after its own instance.
 */
 
 template <typename T>
 class Array {
 public:
+    friend class MemMan;
+
     static constexpr size_t DataSize(size_t max) {
         return max * sizeof(T);
     }
@@ -17,8 +22,28 @@ public:
     Array(size_t maxSize) : _maxSize(maxSize) {}
 
     T & insert(size_t i, T const & item) {
-        shiftItems(i, 1);
-        data()[i] = item;
+        assert(i <= _size && "Out of range.");
+        assert(_size < _maxSize && "Cannot insert into Array, _size == _maxSize.");
+        copy(i + 1, i, _size - i);
+        ++_size;
+        return data()[i] = item;
+    }
+
+    T & append(T const & item) {
+        assert(_size < _maxSize && "Cannot insert into Array, _size == _maxSize.");
+        return data()[_size++] = item;
+    }
+
+    void remove(size_t i, size_t count = 1) {
+        assert(i + count <= _size && "Out of range.");
+        copy(i, i + count, _size - i - count);
+        _size -= count;
+
+        #if DEBUG
+        for (size_t i = _size; i < _size + count; ++i) {
+            data()[i] = {};
+        }
+        #endif // DEBUG
     }
 
     size_t size() const { return _size; }
@@ -27,38 +52,53 @@ public:
     T       * data()       { return (T       *)((byte_t *)this + sizeof(Array)); }
     T const * data() const { return (T const *)((byte_t *)this + sizeof(Array)); }
 
-    T       & operator[](size_t i)       { assert(i < _size); return data()[i]; }
-    T const & operator[](size_t i) const { assert(i < _size); return data()[i]; }
+    T       & operator[](size_t i)       { assert(i < _size && "Out of range."); return data()[i]; }
+    T const & operator[](size_t i) const { assert(i < _size && "Out of range."); return data()[i]; }
+
+    bool bufferFull() const { return _size == _maxSize; }
 
 private:
     size_t _size = 0;
     size_t _maxSize;
 
-    void shiftItems(size_t start, int shift, size_t count = 0) {
-        if (count == 0) {
-            count = _size - start;
+    // copies count items from src to dst.
+    // for internal use only; calling fn should modify _size to appropriate value afterwards.
+    // will copy items to beyond last item.
+    // won't copy src from beyond last item, and obviously won't access beyond buffer.
+    // will return actual number of items copied
+    size_t copy(size_t dst, size_t src, size_t count) {
+        // nothing to copy
+        if (dst == src || count == 0) {
+            return count;
         }
-        assert(start + count <= _maxSize && "Not enough allocated item slots to shift.");
+        // fail silently when entirely out of bounds
+        if (src >= _size || dst >= _maxSize) {
+            return 0;
+        }
 
-        if (shift == 0) return;
+        // calc actual number of items to copy
+        // new count will be smallest number to copy without going out of bounds
+        // or copying src items beyond last item
+        if (src + count > _size) {
+            count = _size - src;
+        }
+        if (dst + count > _maxSize && _maxSize - dst < count) {
+            count = _maxSize - dst;
+        }
 
-        // shifting left
-        if (shift < 0) {
-            assert(start >= -shift);
-            int end = start + count;
-            for (int i = start; i < end; ++i) {
-                data()[i + shift] = data()[i];
+        // being mindful of copy direction to avoid overwriting...
+        // copying from left towards right (start at last item and work down)
+        if (src < dst) {
+            for (size_t i = 0; i < count; ++i) {
+                data()[dst+count-1-i] = data()[src+count-1-i];
             }
         }
-        // shifting right
+        // copying from right towards left (start at first item and work up)
         else {
-            int end = start + count;
-            assert(end <= _size - shift);
-            for (int i = end - 1; i >= start; --i) {
-                data()[i + shift] = data()[i];
+            for (size_t i = 0; i < count; ++i) {
+                data()[dst+i] = data()[src+i];
             }
         }
-
-        _size += shift;
+        return count;
     }
 };

@@ -9,7 +9,9 @@
 #include "GObj.h"
 #include "FSA.h"
 
+#if DEBUG
 constexpr static bool ShowMemManBGFXDbg = false;
+#endif // DEBUG
 
 size_t MemMan::BlockInfo::paddingSize() const {
     return _padding;
@@ -132,11 +134,13 @@ void MemMan::init(EngineSetup const & setup, Stack ** frameStack) {
     _tail = _head;
     _firstFree = _head;
 
+    #if DEBUG
     printl("MEM MAN RANGE %*p—%*p", 8, _data, 8, _data+_size);
     printl("MEM MAN DATA SIZE %zu", _size);
     printFreeSizes();
     printl("BlockInfoSize %zu", BlockInfoSize);
     printl("Request size %zu", sizeof(Request));
+    #endif // DEBUG
 
     // create some special blocks on init
     createRequestResult();
@@ -372,7 +376,9 @@ void MemMan::request() {
     else if (_request->ptr) {
         if (_fsa->destroy(_request->ptr)) {
             // ptr was in fsa
+            #if DEBUG
             validateAll();
+            #endif // DEBUG
         }
         else {
             BlockInfo * block = blockForPtr(_request->ptr);
@@ -595,11 +601,6 @@ MemMan::BlockInfo * MemMan::mergeWithNext(BlockInfo * block) {
     #if DEBUG
     assert(block->isValid() && "Block not valid.");
     #endif // DEBUG
-
-    // printl("merge with next %p", block);
-    if (block->_dataSize == 72 && block->_next && block->_next->_dataSize == 8) {
-        debugBreak();
-    }
 
     // next block MUST be free
     if (block->_type != MEM_BLOCK_FREE ||
@@ -881,9 +882,7 @@ void MemMan::printRequestResult() const {
 
 void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * file, uint32_t line) {
     #if DEBUG
-        assert(memMan && "Memory manager pointer not set in BXAllocator.");
-    #endif
-
+    assert(memMan && "Memory manager pointer not set in BXAllocator.");
     if constexpr (ShowMemManBGFXDbg) printl(
         "(%05zu) BGFX ALLOC: "
         "%011p, "
@@ -897,11 +896,14 @@ void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * 
         file,
         line
     );
+    #endif
 
     // do nothing
     if (ptr == nullptr && size == 0) {
+        #if DEBUG
         if constexpr (ShowMemManBGFXDbg) printl("     RETURNS EARLY: %011p)", nullptr);
         return nullptr;
+        #endif // DEBUG
     }
 
     MemMan::guard_t guard{memMan->_mainMutex};
@@ -932,14 +934,9 @@ void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * 
     if (res->size < size) {
         debugBreak();
     }
-    #endif // DEBUG
-
-
-    // printl("bgfx realloc end");
-    // memMan->printFreeSizes();
-
     if constexpr (ShowMemManBGFXDbg) printl("          (RETURNS: %011p)", res->ptr);
     if constexpr (ShowMemManBGFXDbg) memMan->printAll();
     if constexpr (ShowMemManBGFXDbg) memMan->printRequestResult();
+    #endif // DEBUG
     return res->ptr;
 }

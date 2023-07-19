@@ -3,6 +3,7 @@
 #include <bx/allocator.h>
 #include "../engine.h"
 #include "../common/types.h"
+#include "../common/debug_defines.h"
 #include "FSA.h"
 #include "Stack.h"
 #include "Array.h"
