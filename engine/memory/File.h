@@ -15,7 +15,10 @@ public:
     class Path {
     public:
         static constexpr size_t Max = 1024;
+        Path();
         Path(char const * str);
+        Path & operator=(char const * str);
+        void set(char const * str);
         char full[Max];
         char const * filename;
     };

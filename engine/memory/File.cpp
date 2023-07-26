@@ -3,7 +3,21 @@
 #include <errno.h>
 #include <string.h>
 
+File::Path::Path() {
+    full[0] = '\0';
+    filename = full;
+}
+
 File::Path::Path(char const * str) {
+    set(str);
+}
+
+File::Path & File::Path::operator=(char const * str) {
+    set(str);
+    return *this;
+}
+
+void File::Path::set(char const * str) {
     snprintf(full, Max, "%s", str);
     // filename points to char after last slash. if no slash found, points to full
     size_t len = strlen(full);

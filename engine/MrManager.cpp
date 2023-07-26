@@ -2,11 +2,6 @@
 #include "common/glfw.h"
 #include "dev/OriginWidget.h"
 
-
-// TESTING AND DEBUG ONLY, REMOVE THESE
-#include "common/Path.h"
-#include "common/string_utils.h"
-
 MrManager mm;
 
 int MrManager::init(EngineSetup const & setup) {
@@ -20,6 +15,7 @@ int MrManager::init(EngineSetup const & setup) {
     memMan.init(setup, &frameStack);
     rendSys.init();
     camera.init(windowSize);
+    editor.init();
 
     #if DEV_INTERFACE
     devOverlay.init(windowSize);

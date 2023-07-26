@@ -1,63 +1,22 @@
 #include "Editor.h"
-#include <unordered_map>
-#include <vector>
 #include "../common/imgui_bgfx_glfw/imgui_bgfx_glfw.h"
 #include <imgui_memory_editor/imgui_memory_editor.h>
 #include <nfd.h>
 #include "../MrManager.h"
 #include "OriginWidget.h"
-#include "../common/Path.h"
 #include "../memory/mem_utils.h"
-// #include "../dev/print.h"
 
 // ImGuiTreeNodeFlags_DefaultOpen
 using namespace ImGui;
-static char scratchStr[32];
 
 static MemoryEditor memEdit;
 
-
-struct GLTFSlot {
-    std::string label;
-    std::string key;
-    Path path;
-};
-std::vector<GLTFSlot> gltfSlots;
-
-static GLTFSlot * gltfSlotForKey(char const * key) {
-    for (GLTFSlot & slot : gltfSlots) {
-        if (slot.key == key) {
-            return &slot;
-        }
-    }
-    return nullptr;
-}
-
-
-
-// bool setGLTFSlotPath(char const * key, char const * path) {
-//     for (GLTFSlot & slot : gltfSlots) {
-//         if (slot.key == key) {
-//             slot.path.setPath(path);
-//             return true;
-//         }
-//     }
-//     return false;
-// }
-
-static char const * filenameForLoadedGLTF(char const * key) {
-    for (GLTFSlot & slot : gltfSlots) {
-        if (slot.key == key) {
-            return slot.path.filenameOnly;
-        }
-    }
-    return "";
-}
-
-Editor::Editor() {
+void Editor::init() {
     memEdit.OptShowDataPreview = true;
     // memEdit.ReadOnly = true;
     // memEdit.OptAddrDigitsCount = 4;
+
+    gltfSlots = mm.memMan.createArray<GLTFSlot>(100);
 }
 
 void Editor::tick() {
@@ -71,7 +30,6 @@ void Editor::tick() {
     SetNextWindowSizeConstraints(min, max);
     Begin("Editor", NULL, ImGuiWindowFlags_NoTitleBar);
     ImVec2 sidebarSize = GetWindowSize();
-
 
     if (mm.setup.prependInsideEditor) mm.setup.prependInsideEditor();
     guiRendering();
@@ -95,9 +53,14 @@ void Editor::guiRendering() {
         auto user = mm.rendSys.settings.user;
 
         char const * items[] = {"Off", "x4", "x8", "x16"};
-        std::unordered_map<int, int> map{{0,0},{4,1},{8,2},{16,3}};
         int values[] = {0, 4, 8, 16};
-        int current = map[mm.rendSys.settings.user.msaa];
+        int current;
+        switch (mm.rendSys.settings.user.msaa) {
+        default: { current = 0; break; }
+        case  4: { current = 1; break; }
+        case  8: { current = 2; break; }
+        case 16: { current = 3; break; }
+        }
         char const * item = items[current];
         PushItemWidth(60);
         if (BeginCombo("MSAA", item)) {
@@ -130,8 +93,7 @@ void Editor::guiLighting() {
         // DIRECTIONAL
 
         for (size_t i = 0; i < lights.directionalCount; ++i) {
-            sprintf(scratchStr, "dirlight%zu", i);
-            PushID(scratchStr);
+            PushID(i);
 
             Text("Directional %zu", i);
             Text("Direction");
@@ -171,8 +133,7 @@ void Editor::guiLighting() {
             size_t id = idIndexPair.first;
             size_t i = idIndexPair.second;
 
-            sprintf(scratchStr, "pointlight%zu", id);
-            PushID(scratchStr);
+            PushID(id);
 
             Text("Point %zu", id);
             SliderFloat3("Pos", (float *)&lights.pointPosAt(i), -10.0f, 10.0f, "%.3f");
@@ -292,21 +253,21 @@ void Editor::guiHelpers() {
 
 void Editor::guiGLTFs() {
     if (CollapsingHeader("GLTFs")) {
-        for (auto const & gltfSlot : gltfSlots) {
-            guiGLTF(gltfSlot.label.c_str(), gltfSlot.key.c_str());
+        size_t slotCount = gltfSlots->size();
+        for (size_t i = 0; i < slotCount; ++i) {
+            guiGLTF(gltfSlots->data()[i]);
         }
 
-        if (gltfSlots.size() < 1000) {
+        if (gltfSlots->size() < gltfSlots->maxSize()) {
             static char newLabel[64];
             PushItemWidth(200);
             InputText("GLTF Slot", newLabel, 64, ImGuiInputTextFlags_CharsNoBlank);
             PopItemWidth();
             SameLine();
             if (Button("Create New") && strlen(newLabel)) {
-                std::string newKey{"editorLoaded_000"};
                 static size_t nextKey = 0;
-                sprintf((char *)newKey.c_str() + 13, "%03zu", nextKey++);
-                gltfSlots.push_back({newLabel, newKey});
+                char * newKey = mm.frameFormatStr("editorLoaded_%03zu", nextKey++);
+                gltfSlots->append({newLabel, newKey});
                 newLabel[0] = '\0';
             }
         }
@@ -316,15 +277,15 @@ void Editor::guiGLTFs() {
 
 }
 
-void Editor::guiGLTF(char const * label, char const * key) {
-    // print("guiGLTF KEY (%p) %s\n", key, key);
+void Editor::guiGLTF(GLTFSlot & slot) {
+    // print("guiGLTF KEY (%p) %s\n", slot.key, slot.key);
 
-    PushID(key);
+    PushID(slot.key);
 
-    bool ready = mm.rendSys.isKeySafeToDrawOrLoad(key);
-    bool keyExistsInRender = mm.rendSys.keyExists(key);
+    bool ready = mm.rendSys.isKeySafeToDrawOrLoad(slot.key);
+    bool keyExistsInRender = mm.rendSys.keyExists(slot.key);
 
-    TextUnformatted(label);
+    TextUnformatted(slot.label);
 
     BeginDisabled(!ready);
 
@@ -334,15 +295,11 @@ void Editor::guiGLTF(char const * label, char const * key) {
         nfdchar_t * outPath = NULL;
         nfdresult_t result = NFD_OpenDialog(NULL, "/Users/Shared/Dev/gltf_assets", &outPath);
 
-        printl("GLTF %s FOR KEY: %s", keyExistsInRender ? "SWAP":"LOAD", key);
+        printl("GLTF %s FOR KEY: %s", keyExistsInRender ? "SWAP":"LOAD", slot.key);
 
         if (result == NFD_OKAY) {
-            GLTFSlot * slot = gltfSlotForKey(key);
-            printl("slot %p", slot);
-            if (slot) {
-                slot->path.setPath(outPath);
-                mm.rendSys.createFromGLTF(slot->path.full, key);
-            }
+            slot.path = outPath;
+            mm.rendSys.createFromGLTF(slot.path.full, slot.key);
             free(outPath);
         }
         else if (result == NFD_CANCEL) {
@@ -353,11 +310,11 @@ void Editor::guiGLTF(char const * label, char const * key) {
     }
     
     if (keyExistsInRender) {
-        // printl("keyExistsInRender %s", key);
+        // printl("keyExistsInRender %s", slot.key);
         SameLine();
-        TextUnformatted(ready ? filenameForLoadedGLTF(key) : "loading");
+        TextUnformatted(ready ? slot.path.filename : "loading");
 
-        auto r = mm.rendSys.at(key);
+        auto r = mm.rendSys.at(slot.key);
         bool rotx = r->adjRotAxes[0];
         bool roty = r->adjRotAxes[1];
         bool rotz = r->adjRotAxes[2];
