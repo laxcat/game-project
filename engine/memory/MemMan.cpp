@@ -216,27 +216,6 @@ size_t MemMan::blockCountForDisplayOnly() const {
     return _blockCount;
 }
 
-// // generic alloc request, which can return Block or pointer within FSA
-// void * MemMan::alloc(size_t size, size_t align, BlockInfo ** resultBlock) {
-//     guard_t guard{_mainMutex};
-
-//     // CHECK IF FSA WILL WORK
-//     // TODO: figure out align here
-//     void * subPtr;
-//     if (align == 0 && _fsa && (subPtr = _fsa->alloc(size))) {
-//         if (resultBlock) {
-//             *resultBlock = blockForPtr(_fsa);
-//         }
-//         return subPtr;
-//     }
-
-//     BlockInfo * block = create(size, align);
-//     if (resultBlock) {
-//         *resultBlock = block;
-//     }
-//     return (block) ? block->data() : nullptr;
-// }
-
 void * MemMan::request(Request const & newRequest) {
     guard_t guard{_mainMutex};
     *_request = newRequest;

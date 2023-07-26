@@ -6,7 +6,7 @@
 #include "View.h"
 
 /*
-Designed to be used within pre-allocated memory, like inside a MemMan::Block.
+Designed to be used within pre-allocated memory, like inside a MemMan block.
 Expects `_size` bytes of pre-allocated (safe) memory directly after its own instance.
 */
 

@@ -99,26 +99,24 @@ char * MrManager::frameStr(size_t size) {
     return ret;
 }
 
-char const * MrManager::frameByteSizeStr(size_t byteSize) {
-    // " %.0f MB"
-    char * ret = mm.frameStr(16);
+char * MrManager::frameByteSizeStr(size_t byteSize) {
+    assert(frameStack && "Frame stack not initialized.");
     if (byteSize > 1024*1024) {
-        snprintf(ret, 16, "%.0f MB", round((double)byteSize/(1024*1024)));
+        return frameStack->formatStr("%.0f MB", round((double)byteSize/(1024*1024)));
     }
     else if (byteSize > 1024) {
-        snprintf(ret, 16, "%.0f KB", round((double)byteSize/1024));
+        return frameStack->formatStr("%.0f KB", round((double)byteSize/1024));
     }
     else {
-        snprintf(ret, 16, "%.0f bytes", round((double)byteSize));
+        return frameStack->formatStr("%.0f bytes", round((double)byteSize));
     }
-    return (char const *)ret;
 }
 
-char const * MrManager::frameFormatStr(size_t bufferSize, char const * format, ...) {
-    char * str = frameStr(bufferSize);
+char * MrManager::frameFormatStr(char const * format, ...) {
+    assert(frameStack && "Frame stack not initialized.");
     va_list args;
     va_start(args, format);
-    vsnprintf(str, bufferSize, format, args);
+    char * str = frameStack->vformatStr(format, args);
     va_end(args);
     return str;
 }

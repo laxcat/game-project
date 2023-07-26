@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 /*
-Designed to be used within pre-allocated memory, like inside a MemMan::Block.
+Designed to be used within pre-allocated memory, like inside a MemMan block.
 Expects `_size` bytes of pre-allocated (safe) memory directly after its own instance.
 */
 
@@ -35,14 +35,22 @@ public:
     }
 
     char * formatStr(char const * fmt, ...) {
-        char * str = (char *)dataHead();
         va_list args;
         va_start(args, fmt);
-        int written = vsnprintf(str, (int)_size - (int)_head, fmt, args);
+        char * str = vformatStr(fmt, args);
         va_end(args);
+        return str;
+    }
+
+    char * vformatStr(char const * fmt, va_list args) {
+        char * str = (char *)dataHead();
+        size_t maxChars = _size - _head;
+        int written = vsnprintf(str, maxChars, fmt, args);
+
+        assert(written >= 0 && "Problem with formatStr");
 
         // vsnprintf writes '\0' to buffer but doesn't count it in return value
-        if (written) _head += written + 1;
+        if (written > 0) _head += written + 1;
         // vsnprintf won't have written past size, but returns number of chars it WOULD have written, so
         // head may be past. (but no memory was written there (i think))
         if (_head > _size) _head = _size;

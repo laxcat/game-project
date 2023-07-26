@@ -25,7 +25,7 @@ void MemMan::editor() {
         PushItemWidth(100);
         uint16_t fsaCountStep = 8;
         for (int fsaI = 0; fsaI < MemManFSASetup::Max; ++fsaI) {
-            char const * title = mm.frameFormatStr(64, "%d-byte sub-blocks", 1 << (fsaI+1));
+            char const * title = mm.frameFormatStr("%d-byte sub-blocks", 1 << (fsaI+1));
             InputScalar(title, ImGuiDataType_U16, &fsaSetup.nSubBlocks[fsaI], &fsaCountStep);
         }
         PopItemWidth();
@@ -171,7 +171,7 @@ void MemMan::editor() {
         }
 
         // calc block name
-        char const * blockName = mm.frameFormatStr(128, "%03d (%p): %s Block [%s][%s]",
+        char const * blockName = mm.frameFormatStr("%03d (%p): %s Block [%s][%s]",
             blockIndex,
             basePtr,
             memBlockTypeStr(b->type()),

@@ -74,8 +74,8 @@ public:
 // FRAME STACK UTILS
 // -------------------------------------------------------------------------- //
     char * frameStr(size_t size);
-    char const * frameByteSizeStr(size_t byteSize);
-    char const * frameFormatStr(size_t bufferSize, char const * format, ...);
+    char * frameByteSizeStr(size_t byteSize);
+    char * frameFormatStr(char const * format, ...);
 
 
 // -------------------------------------------------------------------------- //
