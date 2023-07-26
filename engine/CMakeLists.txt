@@ -72,6 +72,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     # ${CMAKE_CURRENT_SOURCE_DIR}/memory/Entity.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/Array_Editor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/FSA.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/FSA_editor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemMan.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemMan_Editor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/render/CameraControl.cpp

@@ -107,8 +107,13 @@ private:
         while (byteSize >>= 1) ++index;
         return index;
     }
-};
 
+    // DEV INTERFACE
+private:
+    #if DEV_INTERFACE
+    void editorEditBlock();
+    #endif // DEV_INTERFACE
+};
 
 
 

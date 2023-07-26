@@ -8,7 +8,7 @@
 using namespace ImGui;
 
 void MemMan::editor() {
-    if (!CollapsingHeader("Mem 2", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (!CollapsingHeader("Memory", ImGuiTreeNodeFlags_DefaultOpen)) {
         return;
     }
 
@@ -51,7 +51,7 @@ void MemMan::editor() {
     Dummy(ImVec2(0.0f, 10.0f));
     Separator();
 
-    // TEST ALLOCATIONS
+    // TEST ALLOCATIONS ----------------------------------------------------- //
     if (nTestAllocs < MaxTestAllocs) {
         // ALLOCATE GENERIC
         PushItemWidth(90);
@@ -119,7 +119,7 @@ void MemMan::editor() {
         }}
     }
 
-    // LIST TEST ALLOCS
+    // LIST TEST ALLOCS ----------------------------------------------------- //
     if (nTestAllocs) {
         Dummy(ImVec2(0.0f, 10.0f));
         TextUnformatted("Test Allocs:");
@@ -150,7 +150,7 @@ void MemMan::editor() {
     ImVec4 defaultTextColor = style->Colors[ImGuiCol_Text];
     int blockIndex = 0;
     for (MemMan::BlockInfo * b = firstBlock(); b; b = nextBlock(b)) {
-        PushID(blockIndex);
+        PushID(b);
 
         void * basePtr = (void *)((MemMan::BlockInfo const *)b)->basePtr();
 
@@ -165,21 +165,14 @@ void MemMan::editor() {
         }
 
         // calc block name
-        char * str = mm.tempStr(128);
-        snprintf(str, 128, "%03d (%p): %s Block [%s][%s]",
+        char * blockName = mm.tempStr(128);
+        snprintf(blockName, 128, "%03d (%p): %s Block [%s][%s]",
             blockIndex,
             basePtr,
             memBlockTypeStr(b->type()),
             mm.byteSizeStr(b->paddingSize()),
             mm.byteSizeStr(b->dataSize())
         );
-
-        bool isSelected = (b == mm.editor.memWin.ptr);
-        ImVec2 selSize = ImVec2{GetWindowContentRegionMax().x - 50.f, 0.f};
-
-        if (!isTestAlloc) {
-            selSize = {};
-        }
 
         if (b->type() == MEM_BLOCK_FREE) {
             style->Colors[ImGuiCol_Text] = ImVec4(0.6f, 0.7f, 1.0f, 1.00f);
@@ -188,71 +181,50 @@ void MemMan::editor() {
             style->Colors[ImGuiCol_Text] = ImVec4(0.9f, 0.5f, 0.5f, 1.00f);
         }
 
-        if (Selectable(str, isSelected, 0, selSize)) {
-            if (isSelected) {
-                mm.editor.clearMemEditWindow();
+        if (CollapsingHeader(blockName)) {
+
+            style->Colors[ImGuiCol_Text] = defaultTextColor;
+
+            // memory window is open and pointed at this block
+            if (b == mm.editor.memWin.ptr) {
+                if (Button("Hide Memory")) {
+                    mm.editor.clearMemEditWindow();
+                }
             }
             else {
-                mm.editor.showMemEditWindow(str, b, b->blockSize());
-            }
-        }
-
-        // show free button
-        if (isTestAlloc) {
-            SameLine();
-            if (Button("Free")) {
-                mm.editor.clearMemEditWindow();
-                // release(b);
-                removeAlloc(testAllocIndex);
-            }
-        }
-
-        // sub type specifics
-        // FSA
-        if (b->type() == MEM_BLOCK_FSA) {
-            FSA * fsa = (FSA *)b->data();
-            Indent();
-            for (uint16_t fsaGroup = 0; fsaGroup < FSA::Max; ++fsaGroup) {
-                uint16_t nSubBlocks = fsa->subBlockCountForGroup(fsaGroup);
-                if (nSubBlocks == 0) continue;
-                PushID(fsaGroup);
-                char * titleStr = mm.tempStr(64);
-                snprintf(titleStr, 64, "%5d %d-byte sub-blocks (0x%06X)",
-                    nSubBlocks,
-                    1 << (fsaGroup + 1),
-                    (uint32_t)((size_t)fsa->freeListPtrForGroup(fsaGroup) & 0xffffff));
-                if (CollapsingHeader(titleStr)) {
-                    int nCols = 16;
-                    float colSize = 20.f;
-                    int rowCount = nSubBlocks / nCols + (nSubBlocks % nCols != 0);
-                    int subBlockIndex = 0;
-                    BeginTable("SubBlocks", nCols);
-                    for (int row = 0; row < rowCount; ++row) {
-                        TableNextRow();
-                        for (int col = 0; col < nCols; ++col) {
-                            TableSetColumnIndex(col);
-                            if (subBlockIndex < nSubBlocks) {
-                                bool isFree = fsa->isFree(fsaGroup, subBlockIndex);
-                                uint32_t color = isFree ? 0xff888888 : 0xff993333;
-                                TableSetBgColor(ImGuiTableBgTarget_CellBg, color);
-                                Text("%d", subBlockIndex);
-                            }
-                            else {
-                                TableSetBgColor(ImGuiTableBgTarget_CellBg, GetColorU32(ImGuiCol_WindowBg));
-                            }
-                            ++subBlockIndex;
-                        }
-                    }
-                    EndTable();
+                if (Button("Show Memory")) {
+                    mm.editor.showMemEditWindow(blockName, b, b->blockSize());
                 }
-                PopID();
             }
-            Unindent();
-        }
 
-        // ARRAY
-        if (b->type() == MEM_BLOCK_ARRAY) {
-            Array_editorEditBlock(*(Array<int> *)b->data());
+            // show free button
+            if (isTestAlloc) {
+                SameLine();
+                if (Button("Free")) {
+                    mm.editor.clearMemEditWindow();
+                    // release(b);
+                    removeAlloc(testAllocIndex);
+                }
+            }
+
+            // sub type specifics
+            switch (b->type()) {
+            // FSA
+            case MEM_BLOCK_FSA: {
+                    ((FSA *)b->data())->editorEditBlock();
+                    break;
+                }
+
+            // ARRAY
+            case MEM_BLOCK_ARRAY: {
+                    Array_editorEditBlock(*(Array<int> *)b->data());
+                    break;
+                }
+
+            // do nothing
+            default: {}
+            }
+
         }
 
         style->Colors[ImGuiCol_Text] = defaultTextColor;
