@@ -63,16 +63,15 @@ target_sources(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/main_desktop.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MrManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/animation/Animator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/modp_b64.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/common/platform.mm
     ${CMAKE_CURRENT_SOURCE_DIR}/common/string_utils.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/common/modp_b64.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/dev/print.cpp
-    # ${CMAKE_CURRENT_SOURCE_DIR}/memory/GLTF.cpp
-    # ${CMAKE_CURRENT_SOURCE_DIR}/memory/GLTFLoader2.cpp
-    # ${CMAKE_CURRENT_SOURCE_DIR}/memory/Entity.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/Array_Editor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/FSA.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/memory/FSA_editor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/FSA_Editor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/File.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/File_Editor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemMan.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemMan_Editor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/render/CameraControl.cpp

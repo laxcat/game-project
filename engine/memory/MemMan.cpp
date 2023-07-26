@@ -3,11 +3,13 @@
 #include <string.h>
 #include <assert.h>
 #include "../dev/print.h"
+#include "../common/file_utils.h"
 #include "Pool.h"
 #include "Stack.h"
 #include "File.h"
 #include "GObj.h"
 #include "FSA.h"
+#include "File.h"
 
 #if DEBUG
 constexpr static bool ShowMemManBGFXDbg = false;
@@ -88,15 +90,17 @@ bool MemMan::BlockInfo::isValid() const {
         // if free, padding should be 0
         (_type != MEM_BLOCK_FREE || (_type == MEM_BLOCK_FREE && _padding == 0)) &&
 
-        // suspiciously large data size
+        // data size a likely
         (_dataSize < 0xffffffff) &&
 
-        // unlikely pointers (indicates debug-only data overflow)
+        #if DEBUG
+        // no unlikely pointers (indicates debug-only data overflow)
         ((size_t)_next != 0xfefefefefefefefe && (size_t)_prev != 0xfefefefefefefefe) &&
         ((size_t)_next != 0xefefefefefefefef && (size_t)_prev != 0xefefefefefefefef) &&
         ((size_t)_next != 0xffffffffffffffff && (size_t)_prev != 0xffffffffffffffff) &&
+        #endif // DEBUG
 
-        // unlikely padding
+        // probable padding size
         (_padding <= 256) &&
 
         true
@@ -106,11 +110,9 @@ bool MemMan::BlockInfo::isValid() const {
 
 #if DEBUG
 void MemMan::BlockInfo::print(size_t index) const {
-    #if DEBUG
     if (index == SIZE_MAX) {
         index = _debug_index;
     }
-    #endif // DEBUG
     printl("BLOCK %zu %s (%p, data: %p)", index, memBlockTypeStr(_type), this, data());
     printl("    data size: %zu", _dataSize);
     printl("    padding: %zu", _padding);
@@ -477,6 +479,45 @@ Stack * MemMan::createStack(size_t size) {
     if (!block) return nullptr;
     block->_type = MEM_BLOCK_STACK;
     return new (block->data()) Stack{size};
+}
+
+File * MemMan::createFileHandle(char const * path, bool loadNow) {
+    // open to deternmine size, and also maybe load
+    errno = 0;
+    FILE * fp = fopen(path, "r");
+    if (!fp) {
+        fprintf(stderr, "Error loading file \"%s\": %d\n", path, errno);
+        return nullptr;
+    }
+    long fileSize = getFileSize(fp);
+    if (fileSize == -1) {
+        fprintf(stderr, "Error reading seek position in file \"%s\": %d\n", path, errno);
+        return nullptr;
+    }
+
+    // make size one bigger. load process will write 0x00 in the last byte
+    // after file contents so contents can be printed as string in place.
+    size_t size = (size_t)fileSize + 1;
+
+    BlockInfo * block = create(size + sizeof(File));
+    if (!block) return nullptr;
+    block->_type = MEM_BLOCK_FILE;
+    File * f = new (block->data()) File{size, path};
+
+    // load now if request. send fp to avoid opening twice
+    if (loadNow) {
+        bool success = f->load(fp);
+        // not sure what to do here. block successfully created but error in load...
+        // keep block creation or cancel the whole thing?
+        // File::load should report actual error.
+        if (!success) {
+        }
+    }
+
+    // close fp
+    fclose(fp);
+
+    return f;
 }
 
 void MemMan::createRequestResult() {

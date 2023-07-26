@@ -4,8 +4,6 @@
 #include "../engine.h"
 #include "../common/types.h"
 #include "../common/debug_defines.h"
-#include "FSA.h"
-#include "Stack.h"
 #include "Array.h"
 
 /*
@@ -19,6 +17,10 @@ _padding   BlockInfo      BlockInfo->data()            _padding
                           alignment point
 */
 
+// forward declarations
+class FSA;
+class Stack;
+class File;
 
 class MemMan {
     // FRIENDS
@@ -30,8 +32,10 @@ public:
     using guard_t = std::lock_guard<std::recursive_mutex>;
 
     // "MemBlock"
+    #if DEBUG
     #define BLOCK_MAGIC_STRING {0x4D, 0x65, 0x6D, 0x42, 0x6C, 0x6F, 0x63, 0x6B}
     constexpr static byte_t BlockMagicString[8] = BLOCK_MAGIC_STRING; // "MemBlock"
+    #endif // DEBUG
 
     class BlockInfo {
         // API
@@ -115,15 +119,12 @@ public:
     size_t blockCountForDisplayOnly() const;
 
     // GENERIC ALLOCATION
-    // // generic alloc request, which can return Block data ptr or ptr within FSA
-    // void * alloc(size_t size, size_t align = 0, BlockInfo ** resultBlock = nullptr);
-    // // release generic pointer; expects block->data() ptr or FSA sub-block ptr
-    // bool destroy(void * ptr);
     // copys request param into request block, then executes request
     void * request(Request const & newRequest);
 
     // SPECIAL BLOCK OBJ CREATION
     Stack * createStack(size_t size);
+    File * createFileHandle(char const * path, bool loadNow);
     template<typename T>
     Array<T> * createArray(size_t max);
 

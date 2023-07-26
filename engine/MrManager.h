@@ -3,6 +3,7 @@
 #include "engine.h"
 #include "common/EventQueue.h"
 #include "memory/MemMan.h"
+#include "memory/Stack.h"
 #include "render/Camera.h"
 #include "render/CameraControl.h"
 #include "render/RenderSystem.h"

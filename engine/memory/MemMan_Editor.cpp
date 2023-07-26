@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include "../common/imgui_bgfx_glfw/imgui_bgfx_glfw.h"
 #include "../MrManager.h"
+#include "mem_utils.h"
+#include "Array.h"
+#include "FSA.h"
+#include "File.h"
 
 #if DEV_INTERFACE
 
@@ -77,7 +81,7 @@ void MemMan::editor() {
         // ALLOCATE BLOCK
         PushItemWidth(90);
         TextUnformatted("Manually Create Block Object:");
-        static MemBlockType selectedType = MEM_BLOCK_ARRAY;
+        static MemBlockType selectedType = MEM_BLOCK_FILE;
         if (BeginCombo("###MemBlockType", memBlockTypeStr(selectedType))) {
             for (int i = MEM_BLOCK_CLAIMED; i <= MEM_BLOCK_GOBJ; ++i) {
                 if (Selectable(memBlockTypeStr((MemBlockType)i))) {
@@ -112,7 +116,10 @@ void MemMan::editor() {
         }
         case MEM_BLOCK_POOL:
         case MEM_BLOCK_STACK:
-        case MEM_BLOCK_FILE:
+        case MEM_BLOCK_FILE: {
+            File::editorCreate();
+            break;
+        }
         case MEM_BLOCK_GOBJ:
         default: {
             TextUnformatted("Not implemented yet.");
@@ -211,15 +218,21 @@ void MemMan::editor() {
             switch (b->type()) {
             // FSA
             case MEM_BLOCK_FSA: {
-                    ((FSA *)b->data())->editorEditBlock();
-                    break;
-                }
+                ((FSA *)b->data())->editorEditBlock();
+                break;
+            }
 
             // ARRAY
             case MEM_BLOCK_ARRAY: {
-                    Array_editorEditBlock(*(Array<int> *)b->data());
-                    break;
-                }
+                Array_editorEditBlock(*(Array<int> *)b->data());
+                break;
+            }
+
+            // FILE
+            case MEM_BLOCK_FILE: {
+                ((File *)b->data())->editorEditBlock();
+                break;
+            }
 
             // do nothing
             default: {}
