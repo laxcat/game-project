@@ -11,8 +11,7 @@ void FSA::editorEditBlock() {
         uint16_t nSubBlocks = subBlockCountForGroup(fsaGroup);
         if (nSubBlocks == 0) continue;
         PushID(fsaGroup);
-        char * titleStr = mm.tempStr(64);
-        snprintf(titleStr, 64, "%5d %d-byte sub-blocks (0x%06X)",
+        char const * titleStr = mm.frameFormatStr(64, "%5d %d-byte sub-blocks (0x%06X)",
             nSubBlocks,
             1 << (fsaGroup + 1),
             (uint32_t)((size_t)freeListPtrForGroup(fsaGroup) & 0xffffff));

@@ -71,10 +71,11 @@ public:
     void updateSize(size2 windowSize);
 
 // -------------------------------------------------------------------------- //
-// TEMP STRING
+// FRAME STACK UTILS
 // -------------------------------------------------------------------------- //
-    char * tempStr(size_t size);
-    char const * byteSizeStr(size_t byteSize);
+    char * frameStr(size_t size);
+    char const * frameByteSizeStr(size_t byteSize);
+    char const * frameFormatStr(size_t bufferSize, char const * format, ...);
 
 
 // -------------------------------------------------------------------------- //

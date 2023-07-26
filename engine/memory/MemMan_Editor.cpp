@@ -25,8 +25,7 @@ void MemMan::editor() {
         PushItemWidth(100);
         uint16_t fsaCountStep = 8;
         for (int fsaI = 0; fsaI < MemManFSASetup::Max; ++fsaI) {
-            char * title = mm.tempStr(64);
-            snprintf(title, 64, "%d-byte sub-blocks", 1 << (fsaI+1));
+            char const * title = mm.frameFormatStr(64, "%d-byte sub-blocks", 1 << (fsaI+1));
             InputScalar(title, ImGuiDataType_U16, &fsaSetup.nSubBlocks[fsaI], &fsaCountStep);
         }
         PopItemWidth();
@@ -46,7 +45,7 @@ void MemMan::editor() {
     // MEMMAN IS INITIALIZED ------------------------------------------------ //
 
     // MEMMAN GENERAL INFO
-    Text("MemMan Initialized [%s]", mm.byteSizeStr(size()));
+    Text("MemMan Initialized [%s]", mm.frameByteSizeStr(size()));
     Text("%p - %p", data(), data() + size());
     if (Button("Shutdown")) {
         removeAllAllocs();
@@ -172,13 +171,12 @@ void MemMan::editor() {
         }
 
         // calc block name
-        char * blockName = mm.tempStr(128);
-        snprintf(blockName, 128, "%03d (%p): %s Block [%s][%s]",
+        char const * blockName = mm.frameFormatStr(128, "%03d (%p): %s Block [%s][%s]",
             blockIndex,
             basePtr,
             memBlockTypeStr(b->type()),
-            mm.byteSizeStr(b->paddingSize()),
-            mm.byteSizeStr(b->dataSize())
+            mm.frameByteSizeStr(b->paddingSize()),
+            mm.frameByteSizeStr(b->dataSize())
         );
 
         if (b->type() == MEM_BLOCK_FREE) {

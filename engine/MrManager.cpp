@@ -92,16 +92,16 @@ void MrManager::updateSize(size2 windowSize) {
 // TEMP STRING
 // -------------------------------------------------------------------------- //
 
-char * MrManager::tempStr(size_t size) {
+char * MrManager::frameStr(size_t size) {
     assert(frameStack && "Frame stack not initialized.");
     char * ret = frameStack->alloc<char>(size);
     assert(ret && "Could not allocate temp string.");
     return ret;
 }
 
-char const * MrManager::byteSizeStr(size_t byteSize) {
+char const * MrManager::frameByteSizeStr(size_t byteSize) {
     // " %.0f MB"
-    char * ret = mm.tempStr(16);
+    char * ret = mm.frameStr(16);
     if (byteSize > 1024*1024) {
         snprintf(ret, 16, "%.0f MB", round((double)byteSize/(1024*1024)));
     }
@@ -112,6 +112,15 @@ char const * MrManager::byteSizeStr(size_t byteSize) {
         snprintf(ret, 16, "%.0f bytes", round((double)byteSize));
     }
     return (char const *)ret;
+}
+
+char const * MrManager::frameFormatStr(size_t bufferSize, char const * format, ...) {
+    char * str = frameStr(bufferSize);
+    va_list args;
+    va_start(args, format);
+    vsnprintf(str, bufferSize, format, args);
+    va_end(args);
+    return str;
 }
 
 
