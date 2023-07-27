@@ -25,7 +25,7 @@ void FreeList::editorCreate() {
 
 void FreeList::editorEditBlock() {
     Indent();
-    Text("FreeList, %zu max", _nItems);
+    Text("FreeList, %zu max, first free: %zu", _nItems, _firstFree);
 
     static bool didClaim = false;
     static bool everClicked = false;

@@ -25,14 +25,15 @@ bool FreeList::isFree(size_t index) const {
 }
 
 bool FreeList::claim(size_t * foundIndex) {
-    *foundIndex = findFirstFree();
-    if (*foundIndex == _nItems) {
+    *foundIndex = _firstFree;
+    if (_firstFree == _nItems) {
         return false;
     }
-    size_t byteIndex = *foundIndex / 8;
-    size_t bitIndex =  *foundIndex % 8;
+    size_t byteIndex = _firstFree / 8;
+    size_t bitIndex =  _firstFree % 8;
     byte_t mask = (byte_t)1 << bitIndex;
     data()[byteIndex] |= mask;
+    _firstFree = findFirstFree(_firstFree + 1);
     return true;
 }
 
@@ -42,6 +43,9 @@ void FreeList::release(size_t index) {
     size_t bitIndex =  index % 8;
     byte_t mask = ((byte_t)1 << bitIndex) ^ 0xff;
     data()[byteIndex] &= mask;
+    if (_firstFree > index) {
+        _firstFree = index;
+    }
 }
 
 void FreeList::claimAll() {
@@ -49,6 +53,7 @@ void FreeList::claimAll() {
     for (size_t i = 0; i < nChunks; ++i) {
         dataChunks()[i] = UINT64_MAX;
     }
+    _firstFree = _nItems;
 }
 
 void FreeList::reset() {
@@ -56,12 +61,14 @@ void FreeList::reset() {
     for (size_t i = 0; i < nChunks; ++i) {
         dataChunks()[i] = 0;
     }
+    _firstFree = 0;
 }
 
-
-size_t FreeList::findFirstFree() {
+size_t FreeList::findFirstFree(size_t start) {
     size_t nChunks = _nItems / 64;
-    size_t chunkIndex = 0, byteIndex = 0, bitIndex = 0;
+    size_t chunkIndex = start / 64;
+    size_t byteIndex = 0;
+    size_t bitIndex = 0;
 
     for (; chunkIndex < nChunks; ++chunkIndex) {
         uint64_t chunk = dataChunks()[chunkIndex];

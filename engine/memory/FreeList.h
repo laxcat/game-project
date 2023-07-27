@@ -35,8 +35,9 @@ public:
     // INTERNALS
 private:
     size_t _nItems; // will round up to be divisible by 64
+    size_t _firstFree = 0;
 
-    size_t findFirstFree();
+    size_t findFirstFree(size_t start = 0);
     byte_t * data();
     uint64_t * dataChunks();
     uint64_t const * dataChunks() const;
