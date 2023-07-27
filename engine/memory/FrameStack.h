@@ -4,7 +4,7 @@
 
 /*
 Designed to be used within pre-allocated memory, like inside a MemMan block.
-It's like a stack, but accepts any type. Because of this it can't really "pop", just reset.
+Not exactly a stack. Because it accepts any type, it can't really "pop", just reset.
 Expects `_size` bytes of pre-allocated (safe) memory directly after its own instance.
 */
 
