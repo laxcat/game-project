@@ -1,7 +1,7 @@
 #pragma once
 #include <stddef.h>
 #include "../common/types.h"
-#include "Stack.h"
+#include "FrameStack.h"
 
 namespace gltf {
     // Philosophy: basically mirror the spec

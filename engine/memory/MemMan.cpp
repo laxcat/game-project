@@ -5,7 +5,7 @@
 #include "../dev/print.h"
 #include "../common/file_utils.h"
 #include "Pool.h"
-#include "Stack.h"
+#include "FrameStack.h"
 #include "File.h"
 #include "GObj.h"
 #include "FSA.h"
@@ -123,7 +123,7 @@ void MemMan::BlockInfo::print(size_t index) const {
 }
 #endif // DEBUG
 
-void MemMan::init(EngineSetup const & setup, Stack ** frameStack) {
+void MemMan::init(EngineSetup const & setup, FrameStack ** frameStack) {
     if (setup.memManSize == 0) return;
 
     _size = setup.memManSize;
@@ -155,7 +155,7 @@ void MemMan::init(EngineSetup const & setup, Stack ** frameStack) {
         assert(_fsaBlock && "FSA block error.");
     }
     if (setup.memManFrameStackSize) {
-        Stack * fs = createStack(setup.memManFrameStackSize);
+        FrameStack * fs = createFrameStack(setup.memManFrameStackSize);
         if (fs && frameStack) {
             *frameStack = fs;
         }
@@ -451,13 +451,13 @@ void MemMan::release(BlockInfo * block) {
 //     return (block && release(block)) ? true : false;
 // }
 
-Stack * MemMan::createStack(size_t size) {
+FrameStack * MemMan::createFrameStack(size_t size) {
     guard_t guard{_mainMutex};
 
-    BlockInfo * block = create(sizeof(Stack) + size);
+    BlockInfo * block = create(sizeof(FrameStack) + size);
     if (!block) return nullptr;
     block->_type = MEM_BLOCK_STACK;
-    return new (block->data()) Stack{size};
+    return new (block->data()) FrameStack{size};
 }
 
 File * MemMan::createFileHandle(char const * path, bool loadNow) {

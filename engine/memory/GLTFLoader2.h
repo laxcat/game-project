@@ -1,7 +1,7 @@
 #pragma once
 #include <stddef.h>
 #include "GLTF.h"
-#include "Stack.h"
+#include "FrameStack.h"
 
 struct GLTFLoader2 {
 

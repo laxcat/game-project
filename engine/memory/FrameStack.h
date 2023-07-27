@@ -4,22 +4,23 @@
 
 /*
 Designed to be used within pre-allocated memory, like inside a MemMan block.
+It's like a stack, but accepts any type. Because of this it can't really "pop", just reset.
 Expects `_size` bytes of pre-allocated (safe) memory directly after its own instance.
 */
 
-class Stack {
+class FrameStack {
 public:
     friend class MemMan;
 
-    Stack(size_t size) :
+    FrameStack(size_t size) :
         _size(size)
     {
     }
 
     size_t size() const { return _size; }
-    size_t totalSize() const { return sizeof(Stack) + _size; }
+    size_t totalSize() const { return sizeof(FrameStack) + _size; }
     size_t head() const { return _head; }
-    byte_t * data() const { return (byte_t *)this + sizeof(Stack); }
+    byte_t * data() const { return (byte_t *)this + sizeof(FrameStack); }
     byte_t * dataHead() const { return data() + _head; }
 
     template <typename T>

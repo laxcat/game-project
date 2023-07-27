@@ -19,7 +19,7 @@ _padding   BlockInfo      BlockInfo->data()            _padding
 
 // forward declarations
 class FSA;
-class Stack;
+class FrameStack;
 class File;
 
 class MemMan {
@@ -106,7 +106,7 @@ public:
     // API
 public:
     // LIFECYCLE
-    void init(EngineSetup const & setup, Stack ** frameStack = nullptr);
+    void init(EngineSetup const & setup, FrameStack ** frameStack = nullptr);
     void startFrame(size_t frame);
     void endFrame();
     void shutdown();
@@ -123,7 +123,7 @@ public:
     void * request(Request const & newRequest);
 
     // SPECIAL BLOCK OBJ CREATION
-    Stack * createStack(size_t size);
+    FrameStack * createFrameStack(size_t size);
     File * createFileHandle(char const * path, bool loadNow);
     template<typename T>
     Array<T> * createArray(size_t max);

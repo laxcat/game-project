@@ -3,7 +3,7 @@
 #include "engine.h"
 #include "common/EventQueue.h"
 #include "memory/MemMan.h"
-#include "memory/Stack.h"
+#include "memory/FrameStack.h"
 #include "render/Camera.h"
 #include "render/CameraControl.h"
 #include "render/RenderSystem.h"
@@ -39,7 +39,7 @@ public:
     EventQueue eventQueue;
 
     MemMan memMan;
-    Stack * frameStack = nullptr;
+    FrameStack * frameStack = nullptr;
     RenderSystem rendSys;
 
     bool mouseIsDown = false;

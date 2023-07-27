@@ -85,7 +85,7 @@ void MrManager::updateSize(size2 windowSize) {
 }
 
 // -------------------------------------------------------------------------- //
-// TEMP STRING
+// FRAME STACK UTILS
 // -------------------------------------------------------------------------- //
 
 char * MrManager::frameStr(size_t size) {
