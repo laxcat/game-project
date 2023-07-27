@@ -20,9 +20,12 @@ void Array_editorCreate() {
             mm.memMan.addTestAlloc(arr, "Array<int> block (%d-item max)", max);
         }
     }
+    PopItemWidth();
 }
 
 void Array_editorEditBlock(Array<int> & arr) {
+    PushItemWidth(120);
+
     // auto b = (MemMan::BlockInfo *)block;
     ImGuiStyle * style = &ImGui::GetStyle();
 
@@ -107,6 +110,8 @@ void Array_editorEditBlock(Array<int> & arr) {
         Text("%d", arr.data()[i]);
     }
     EndTable();
+
+    PopItemWidth();
 }
 
 #endif // DEV_INTERFACE

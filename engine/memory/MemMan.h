@@ -21,6 +21,7 @@ _padding   BlockInfo      BlockInfo->data()            _padding
 class FSA;
 class FrameStack;
 class File;
+class FreeList;
 
 class MemMan {
     // FRIENDS
@@ -127,6 +128,7 @@ public:
     File * createFileHandle(char const * path, bool loadNow);
     template<typename T>
     Array<T> * createArray(size_t max);
+    FreeList * createFreeList(size_t max);
 
     #if DEV_INTERFACE
     // DEV INTERFACE ONLY

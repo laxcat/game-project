@@ -6,13 +6,14 @@
 #include "Array.h"
 #include "FSA.h"
 #include "File.h"
+#include "FreeList.h"
 
 #if DEV_INTERFACE
 
 using namespace ImGui;
 
 void MemMan::editor() {
-    if (!CollapsingHeader("Memory")) {
+    if (!CollapsingHeader("Memory", ImGuiTreeNodeFlags_DefaultOpen)) {
         return;
     }
 
@@ -80,7 +81,7 @@ void MemMan::editor() {
         // ALLOCATE BLOCK
         PushItemWidth(90);
         TextUnformatted("Manually Create Block Object:");
-        static MemBlockType selectedType = MEM_BLOCK_FILE;
+        static MemBlockType selectedType = MEM_BLOCK_FREELIST;
         if (BeginCombo("###MemBlockType", memBlockTypeStr(selectedType))) {
             for (int i = MEM_BLOCK_CLAIMED; i <= MEM_BLOCK_GOBJ; ++i) {
                 if (Selectable(memBlockTypeStr((MemBlockType)i))) {
@@ -113,16 +114,16 @@ void MemMan::editor() {
             Array_editorCreate();
             break;
         }
-        case MEM_BLOCK_POOL:
-        case MEM_BLOCK_STACK:
         case MEM_BLOCK_FILE: {
             File::editorCreate();
             break;
         }
-        case MEM_BLOCK_GOBJ:
-        default: {
-            TextUnformatted("Not implemented yet.");
-        }}
+        case MEM_BLOCK_FREELIST: {
+            FreeList::editorCreate();
+            break;
+        }
+        default: {}
+        }
     }
 
     // LIST TEST ALLOCS ----------------------------------------------------- //
@@ -214,12 +215,6 @@ void MemMan::editor() {
 
             // sub type specifics
             switch (b->type()) {
-            // FSA
-            case MEM_BLOCK_FSA: {
-                ((FSA *)b->data())->editorEditBlock();
-                break;
-            }
-
             // ARRAY
             case MEM_BLOCK_ARRAY: {
                 if (isTestAlloc) {
@@ -231,6 +226,18 @@ void MemMan::editor() {
             // FILE
             case MEM_BLOCK_FILE: {
                 ((File *)b->data())->editorEditBlock();
+                break;
+            }
+
+            // FREELIST
+            case MEM_BLOCK_FREELIST: {
+                ((FreeList *)b->data())->editorEditBlock();
+                break;
+            }
+
+            // FSA
+            case MEM_BLOCK_FSA: {
+                ((FSA *)b->data())->editorEditBlock();
                 break;
             }
 

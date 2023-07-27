@@ -26,7 +26,7 @@ bool FSA::isFree(uint16_t groupIndex, uint16_t subBlockIndex) const {
         "Be sure to call updateMap() if that happens.");
     #endif // DEBUG
 
-    // LSB it first sub-index to check, MSB is last
+    // LSB is first sub-index to check, MSB is last
     bool bitValue = (freeList[subBlockIndex/8] >> (subBlockIndex % 8)) & 1;
     return (bitValue == false);
 }

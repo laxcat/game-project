@@ -10,6 +10,7 @@
 #include "GObj.h"
 #include "FSA.h"
 #include "File.h"
+#include "FreeList.h"
 
 #if DEBUG
 constexpr static bool ShowMemManBGFXDbg = false;
@@ -456,11 +457,13 @@ FrameStack * MemMan::createFrameStack(size_t size) {
 
     BlockInfo * block = create(sizeof(FrameStack) + size);
     if (!block) return nullptr;
-    block->_type = MEM_BLOCK_STACK;
+    block->_type = MEM_BLOCK_FRAMESTACK;
     return new (block->data()) FrameStack{size};
 }
 
 File * MemMan::createFileHandle(char const * path, bool loadNow) {
+    guard_t guard{_mainMutex};
+
     // open to deternmine size, and also maybe load
     errno = 0;
     FILE * fp = fopen(path, "r");
@@ -497,6 +500,15 @@ File * MemMan::createFileHandle(char const * path, bool loadNow) {
     fclose(fp);
 
     return f;
+}
+
+FreeList * MemMan::createFreeList(size_t max) {
+    guard_t guard{_mainMutex};
+
+    BlockInfo * block = create(sizeof(FreeList) + FreeList::DataSize(max));
+    if (!block) return nullptr;
+    block->_type = MEM_BLOCK_FREELIST;
+    return new (block->data()) FreeList{max};
 }
 
 void MemMan::createRequestResult() {
