@@ -222,7 +222,9 @@ void MemMan::editor() {
 
             // ARRAY
             case MEM_BLOCK_ARRAY: {
-                Array_editorEditBlock(*(Array<int> *)b->data());
+                if (isTestAlloc) {
+                    Array_editorEditBlock(*(Array<int> *)b->data());
+                }
                 break;
             }
 

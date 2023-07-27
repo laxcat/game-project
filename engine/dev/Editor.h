@@ -22,18 +22,19 @@ public:
     void * winPtr = nullptr;
 };
 
-struct GLTFSlot {
-    char label[64];
-    char key[64];
-    File::Path path;
-    GLTFSlot(char const * label, char const * key) {
-        snprintf(this->label, 64, "%s", label);
-        snprintf(this->key, 64, "%s", key);
-    }
-};
-
 class Editor {
 public:
+
+    struct GLTFSlot {
+        char label[64];
+        char key[64];
+        File::Path path;
+        GLTFSlot(char const * label, char const * key) {
+            snprintf(this->label, 64, "%s", label);
+            snprintf(this->key, 64, "%s", key);
+        }
+    };
+
     void init();
 
     void tick();
