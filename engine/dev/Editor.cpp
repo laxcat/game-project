@@ -417,7 +417,8 @@ void Editor::guiWinMem() {
     Begin(memWin.title, &memWin.open, ImGuiWindowFlags_NoScrollbar);
     memEdit.DrawContents(
         memWin.ptr,
-        memWin.size
+        memWin.size,
+        (size_t)memWin.ptr
     );
     memWin.height = GetWindowSize().y;
     End();
@@ -452,7 +453,7 @@ void Editor::showMemEditWindow(char const * title, void * ptr, size_t size) {
     memWin.ptr = ptr;
     memWin.size = size;
     MemoryEditor::Sizes s;
-    memEdit.CalcSizes(s, size, 0x0000);
+    memEdit.CalcSizes(s, size, 0x100000000);
     memWin.width = s.WindowWidth;
     snprintf(memWin.title, MemEditWindow::TitleSize, "%s###memEditWindow", title);
 }

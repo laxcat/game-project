@@ -82,7 +82,7 @@ void MemMan::editor() {
         TextUnformatted("Manually Create Block Object:");
         static MemBlockType selectedType = MEM_BLOCK_POOL;
         if (BeginCombo("###MemBlockType", memBlockTypeStr(selectedType))) {
-            for (int i = MEM_BLOCK_CLAIMED; i <= MEM_BLOCK_GOBJ; ++i) {
+            for (int i = MEM_BLOCK_CLAIMED; i <= MEM_BLOCK_POOL; ++i) {
                 if (Selectable(memBlockTypeStr((MemBlockType)i))) {
                     selectedType = (MemBlockType)i;
                 }
@@ -216,6 +216,8 @@ void MemMan::editor() {
                 }
             }
 
+            Indent();
+
             // sub type specifics
             switch (b->type()) {
             // ARRAY
@@ -253,6 +255,8 @@ void MemMan::editor() {
             // do nothing
             default: {}
             }
+
+            Unindent();
 
         }
 
