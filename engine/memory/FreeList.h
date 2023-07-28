@@ -26,11 +26,15 @@ public:
     byte_t const * data() const;
 
     FreeList(size_t maxSize);
-    bool isFree(size_t index) const;
     bool claim(size_t * foundIndex);
     void release(size_t index);
     void claimAll();
     void reset();
+
+    bool isFull() const;
+    bool isFree(size_t index) const;
+    size_t nItems() const;
+    size_t size() const;
 
     // INTERNALS
 private:

@@ -15,18 +15,14 @@ bool FreeList::operator[](size_t index) const {
     return (data()[index/8] >> (index % 8)) & 1;
 }
 
-FreeList::FreeList(size_t nBits) {
-    _nItems = ItemCount(nBits);
+FreeList::FreeList(size_t nBits) :
+    _nItems(ItemCount(nBits)) {
     reset();
-}
-
-bool FreeList::isFree(size_t index) const {
-    return ((*this)[index] == false);
 }
 
 bool FreeList::claim(size_t * foundIndex) {
     *foundIndex = _firstFree;
-    if (_firstFree == _nItems) {
+    if (isFull()) {
         return false;
     }
     size_t byteIndex = _firstFree / 8;
@@ -63,6 +59,17 @@ void FreeList::reset() {
     }
     _firstFree = 0;
 }
+
+bool FreeList::isFull() const {
+    return (_firstFree == _nItems);
+}
+
+bool FreeList::isFree(size_t index) const {
+    return ((*this)[index] == false);
+}
+
+size_t FreeList::nItems() const { return _nItems; }
+size_t FreeList::size() const { return _nItems; }
 
 size_t FreeList::findFirstFree(size_t start) {
     size_t nChunks = _nItems / 64;
