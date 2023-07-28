@@ -5,6 +5,7 @@
 #include "../common/types.h"
 #include "../common/debug_defines.h"
 #include "Array.h"
+#include "Pool.h"
 
 /*
 
@@ -129,6 +130,8 @@ public:
     template<typename T>
     Array<T> * createArray(size_t max);
     FreeList * createFreeList(size_t max);
+    template<typename T>
+    Pool<T> * createPool(size_t max);
 
     #if DEV_INTERFACE
     // DEV INTERFACE ONLY
@@ -231,4 +234,14 @@ Array<T> * MemMan::createArray(size_t max) {
     if (!block) return nullptr;
     block->_type = MEM_BLOCK_ARRAY;
     return new (block->data()) Array<T>{max};
+}
+
+template<typename T>
+Pool<T> * MemMan::createPool(size_t size) {
+    guard_t guard{_mainMutex};
+
+    BlockInfo * block = create(sizeof(Pool<T>) + Pool<T>::DataSize(size));
+    if (!block) return nullptr;
+    block->_type = MEM_BLOCK_POOL;
+    return new (block->data()) Pool<T>{size};
 }

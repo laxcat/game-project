@@ -3,7 +3,6 @@
 #include "../common/imgui_bgfx_glfw/imgui_bgfx_glfw.h"
 #include "../MrManager.h"
 #include "mem_utils.h"
-#include "Array.h"
 #include "FSA.h"
 #include "File.h"
 #include "FreeList.h"
@@ -81,7 +80,7 @@ void MemMan::editor() {
         // ALLOCATE BLOCK
         PushItemWidth(90);
         TextUnformatted("Manually Create Block Object:");
-        static MemBlockType selectedType = MEM_BLOCK_FREELIST;
+        static MemBlockType selectedType = MEM_BLOCK_POOL;
         if (BeginCombo("###MemBlockType", memBlockTypeStr(selectedType))) {
             for (int i = MEM_BLOCK_CLAIMED; i <= MEM_BLOCK_GOBJ; ++i) {
                 if (Selectable(memBlockTypeStr((MemBlockType)i))) {
@@ -120,6 +119,10 @@ void MemMan::editor() {
         }
         case MEM_BLOCK_FREELIST: {
             FreeList::editorCreate();
+            break;
+        }
+        case MEM_BLOCK_POOL: {
+            Pool_editorCreate();
             break;
         }
         default: {}
@@ -238,6 +241,12 @@ void MemMan::editor() {
             // FSA
             case MEM_BLOCK_FSA: {
                 ((FSA *)b->data())->editorEditBlock();
+                break;
+            }
+
+            // POOL
+            case MEM_BLOCK_POOL: {
+                Pool_editorEditBlock(*(Pool<int> *)b->data());
                 break;
             }
 

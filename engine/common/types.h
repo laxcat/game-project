@@ -76,6 +76,7 @@ enum MemBlockType {
     MEM_BLOCK_FREELIST,
     MEM_BLOCK_GLTF,
     MEM_BLOCK_GOBJ,
+    MEM_BLOCK_POOL,
 
     // requested by BGFX. (no special treatment atm)
     MEM_BLOCK_BGFX,

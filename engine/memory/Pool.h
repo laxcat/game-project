@@ -1,3 +1,85 @@
+#pragma once
+#include <assert.h>
+#include "../common/debug_defines.h"
+#include "../common/types.h"
+#include "FreeList.h"
+
+/*
+Designed to be used in pre-allocated memory.
+
+Memory layout:
+
+|------------|------------|------------|------------|------
+ Pool         FreeList     T            T            T     ...
+             ^            ^
+             dataBase()   dataItems()
+
+*/
+
+template <typename T>
+class Pool {
+public:
+
+    static constexpr size_t DataSize(size_t size) {
+        return
+            sizeof(FreeList) + FreeList::DataSize(size) +
+            size * sizeof(T);
+    }
+
+    Pool(size_t size) :
+        _size(size) {
+        debugBreak();
+        new (freeList()) FreeList(size);
+        for (size_t i = 0; i < _size; ++i) {
+            dataItems()[i] = {};
+        }
+    }
+
+    T * claim() {
+        if (freeList()->isFull()) {
+            return nullptr;
+        }
+        size_t index = freeList()->claim();
+        return dataItems()[index];
+    }
+
+    bool isFree(size_t index) const {
+        assert(index < _size && "Out of range.");
+        return freeList()->isFree(index);
+    }
+
+    void reset() {
+        freeList()->reset();
+        for (size_t i = 0; i < _size; ++i) {
+            dataItems()[i] = {};
+        }
+    }
+
+private:
+    size_t _size;
+
+    byte_t * dataBase() { return (byte_t *)this + sizeof(Pool); }
+    byte_t const * dataBase() const { return (byte_t *)this + sizeof(Pool); }
+    FreeList * freeList() { return (FreeList *)dataBase(); }
+    FreeList const * freeList() const { return (FreeList *)dataBase(); }
+    T * dataItems() { return (T *)(dataBase() + FreeList::DataSize(_size)); }
+
+    #if DEV_INTERFACE
+    friend void Pool_editorCreate();
+    friend void Pool_editorEditBlock(Pool<int> &);
+    #endif // DEV_INTERFACE
+};
+
+#if DEV_INTERFACE
+void Pool_editorCreate();
+void Pool_editorEditBlock(Pool<int> &);
+#endif // DEV_INTERFACE
+
+
+
+
+
+
 // #pragma once
 // #include <assert.h>
 // #include <stdarg.h>
