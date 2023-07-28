@@ -17,19 +17,23 @@ void FreeList::editorCreate() {
         mm.editor.clearMemEditWindow();
         FreeList * list = mm.memMan.createFreeList((size_t)max);
         if (list) {
-            mm.memMan.addTestAlloc(list, "FreeList block (%zu items)", list->_nItems);
+            mm.memMan.addTestAlloc(list, "FreeList block (%zu)", list->_size);
         }
     }
     PopItemWidth();
 }
 
 void FreeList::editorEditBlock() {
-    Indent();
-    Text("FreeList, %zu max, first free: %zu", _nItems, _firstFree);
+    Text("FreeList (%zu), nSlots: %zu, first free: %zu%s",
+        _size,
+        _nSlots,
+        _firstFree,
+        isFull() ? " (full)" : ""
+    );
 
     static bool didClaim = false;
     static bool everClicked = false;
-    static size_t claimed = _nItems;
+    static size_t claimed = _nSlots;
     if (Button("Claim")) {
         didClaim = claim(&claimed);
         everClicked = true;
@@ -63,14 +67,14 @@ void FreeList::editorEditBlock() {
 
     int nCols = 16;
     float colSize = 20.f;
-    int rowCount = _nItems / nCols + (_nItems % nCols != 0);
+    int rowCount = _nSlots / nCols + (_nSlots % nCols != 0);
     int index = 0;
     BeginTable("FreeList", nCols);
     for (int row = 0; row < rowCount; ++row) {
         TableNextRow();
         for (int col = 0; col < nCols; ++col) {
             TableSetColumnIndex(col);
-            if (index < _nItems) {
+            if (index < _nSlots) {
                 bool isFree = this->isFree(index);
                 uint32_t color = isFree ? 0xff888888 : 0xff993333;
                 TableSetBgColor(ImGuiTableBgTarget_CellBg, color);
@@ -83,5 +87,4 @@ void FreeList::editorEditBlock() {
         }
     }
     EndTable();
-    Unindent();
 }

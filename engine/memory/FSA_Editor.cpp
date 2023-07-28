@@ -5,8 +5,6 @@
 using namespace ImGui;
 
 void FSA::editorEditBlock() {
-
-    Indent();
     for (uint16_t fsaGroup = 0; fsaGroup < FSA::Max; ++fsaGroup) {
         uint16_t nSubBlocks = subBlockCountForGroup(fsaGroup);
         if (nSubBlocks == 0) continue;
@@ -41,5 +39,4 @@ void FSA::editorEditBlock() {
         }
         PopID();
     }
-    Unindent();
 }
