@@ -78,17 +78,30 @@ void Pool_editorEditBlock(Pool<int> & pool) {
         static int releaseIndex = 0;
         PushItemWidth(90);
         InputInt("##ReleaseInput", &releaseIndex);
+        // limit input
+        if (releaseIndex < 0) releaseIndex = 0;
+        if (releaseIndex >= pool._size) releaseIndex = pool._size - 1;
+
         PopItemWidth();
         SameLine();
+        bool isCurrentIndexFree = pool.isFree(releaseIndex);
+        if (isCurrentIndexFree) BeginDisabled();
         if (Button("Release")) {
             bool success = pool.release((size_t)releaseIndex);
             if (success) {
+                if (lastClaimed) {
+                    size_t index = lastClaimed - pool.dataItems();
+                    if (index == releaseIndex) {
+                        lastClaimed = nullptr;
+                    }
+                }
                 snprintf(msg, 128, "Did release %d", releaseIndex);
             }
             else {
                 snprintf(msg, 128, "Did not release.");
             }
         }
+        if (isCurrentIndexFree) EndDisabled();
 
         // show action message
         TextUnformatted(msg);
