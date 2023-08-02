@@ -7,7 +7,16 @@
 
 /*
 
-FSA data structure (within block)
+Fixed-size allocator.
+
+Designed to be used within pre-allocated memory.
+
+Handles memory requests that can fit small bytes sizes (2^1–2^12, or 2-4096).
+Uses some basic POT tricks to quickly find previous allocs and free slots.
+Designed to exist in a MemMan block, setup privately, and utilized to avoid
+creating new blocks.
+
+FSA data structure (within a MemMan block):
             data() start
             v
             | 2-byte group of sub-blocks (if present) || 4-byte group etc    ...

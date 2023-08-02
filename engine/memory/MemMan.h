@@ -4,6 +4,8 @@
 #include "../engine.h"
 #include "../common/types.h"
 #include "../common/debug_defines.h"
+
+// special block-types that are templates need to be fully included
 #include "Array.h"
 #include "Pool.h"
 
@@ -19,6 +21,7 @@ _padding   BlockInfo      BlockInfo->data()            _padding
 */
 
 // forward declarations
+// special block-types that aren't templates can be forward declared
 class FSA;
 class FrameStack;
 class File;
@@ -133,8 +136,8 @@ public:
     template<typename T>
     Pool<T> * createPool(size_t max);
 
-    #if DEV_INTERFACE
     // DEV INTERFACE ONLY
+    #if DEV_INTERFACE
 public:
     struct TestAlloc {
         constexpr static size_t DescSize = 64;
@@ -178,11 +181,11 @@ private:
 
     // INTERNALS
 private:
-    // execute request as found in request block
+    // execute request as found in request block; combined alloc/realloc/free
     void request();
     // explicitly finds/creates free block of size
     BlockInfo * create(size_t size, size_t align = 0, BlockInfo * copyFrom = nullptr);
-    // explicity releases block. set type to free and reset padding
+    // explicitly releases block. set type to free and reset padding
     void release(BlockInfo * block);
     // alters _padding and _dataSize to align data() to alignment
     BlockInfo * claim(BlockInfo * block, size_t size, size_t align = 0, BlockInfo * copyFrom = nullptr);

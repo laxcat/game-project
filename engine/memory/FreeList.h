@@ -2,6 +2,12 @@
 #include "../common/debug_defines.h"
 #include "../common/types.h"
 
+/*
+
+FreeList using a bit-array and 64-bit chunks to quickly scan.
+Designed to be used within pre-allocated memory.
+
+*/
 
 class FreeList {
     // FRIENDS
@@ -41,7 +47,7 @@ private:
     size_t _nSlots; // _size rounded up to be divisible by 64
     size_t _firstFree = 0;
 
-    size_t findFirstFree(size_t start = 0);
+    size_t findFirstFree(size_t start = 0); // returns _size it not found
     byte_t * data();
     uint64_t * dataChunks();
     size_t nSlots() const;

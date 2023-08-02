@@ -224,6 +224,11 @@ void * MemMan::request(Request const & newRequest) {
     return _result->ptr;
 }
 
+/*
+request() handles two main questions:
+    • is the user requesting an alloc, realloc, or free?
+    • can the request use the FSA (fixed-sized allocator), or a standard block?
+*/
 void MemMan::request() {
     // thread guard
     guard_t guard{_mainMutex};

@@ -110,5 +110,6 @@ size_t FreeList::findFirstFree(size_t start) {
         return (index > _size) ? _size : index;
     }
 
+    // not found
     return _size;
 }
