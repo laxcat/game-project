@@ -22,9 +22,10 @@ _padding   BlockInfo      BlockInfo->data()            _padding
 
 // forward declarations
 // special block-types that aren't templates can be forward declared
+class CharKeys;
 class FSA;
-class FrameStack;
 class File;
+class FrameStack;
 class FreeList;
 
 class MemMan {
@@ -135,6 +136,7 @@ public:
     FreeList * createFreeList(size_t max);
     template<typename T>
     Pool<T> * createPool(size_t max);
+    CharKeys * createCharKeys(size_t max);
 
     // DEV INTERFACE ONLY
     #if DEV_INTERFACE

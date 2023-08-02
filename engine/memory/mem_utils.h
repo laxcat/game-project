@@ -9,6 +9,7 @@ inline char const * memBlockTypeStr(MemBlockType type) {
     case MEM_BLOCK_FSA:        return "FSA";
     case MEM_BLOCK_CLAIMED:    return "CLAIMED";
     case MEM_BLOCK_ARRAY:      return "ARRAY";
+    case MEM_BLOCK_CHARKEYS:   return "CHARKEYS";
     case MEM_BLOCK_FILE:       return "FILE";
     case MEM_BLOCK_FRAMESTACK: return "FRAMESTACK";
     case MEM_BLOCK_FREELIST:   return "FREELIST";

@@ -11,6 +11,7 @@
 #include "FSA.h"
 #include "File.h"
 #include "FreeList.h"
+#include "CharKeys.h"
 
 #if DEBUG
 constexpr static bool ShowMemManBGFXDbg = false;
@@ -515,6 +516,16 @@ FreeList * MemMan::createFreeList(size_t max) {
     block->_type = MEM_BLOCK_FREELIST;
     return new (block->data()) FreeList{max};
 }
+
+CharKeys * MemMan::createCharKeys(size_t max) {
+    guard_t guard{_mainMutex};
+
+    BlockInfo * block = create(sizeof(CharKeys) + CharKeys::DataSize(max));
+    if (!block) return nullptr;
+    block->_type = MEM_BLOCK_CHARKEYS;
+    return new (block->data()) CharKeys{max};
+}
+
 
 void MemMan::createRequestResult() {
     guard_t guard{_mainMutex};

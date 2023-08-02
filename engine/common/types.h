@@ -71,6 +71,7 @@ enum MemBlockType {
     // internal container types, with special treatment
     MEM_BLOCK_CLAIMED,  // claimed but type not set yet or generic
     MEM_BLOCK_ARRAY,
+    MEM_BLOCK_CHARKEYS,
     MEM_BLOCK_FILE,
     MEM_BLOCK_FRAMESTACK,
     MEM_BLOCK_FREELIST,

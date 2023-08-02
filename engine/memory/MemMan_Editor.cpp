@@ -6,6 +6,7 @@
 #include "FSA.h"
 #include "File.h"
 #include "FreeList.h"
+#include "CharKeys.h"
 
 #if DEV_INTERFACE
 
@@ -80,7 +81,7 @@ void MemMan::editor() {
         // ALLOCATE BLOCK
         PushItemWidth(90);
         TextUnformatted("Manually Create Block Object:");
-        static MemBlockType selectedType = MEM_BLOCK_POOL;
+        static MemBlockType selectedType = MEM_BLOCK_CHARKEYS;
         if (BeginCombo("###MemBlockType", memBlockTypeStr(selectedType))) {
             for (int i = MEM_BLOCK_CLAIMED; i <= MEM_BLOCK_POOL; ++i) {
                 if (Selectable(memBlockTypeStr((MemBlockType)i))) {
@@ -111,6 +112,10 @@ void MemMan::editor() {
         }
         case MEM_BLOCK_ARRAY: {
             Array_editorCreate();
+            break;
+        }
+        case MEM_BLOCK_CHARKEYS: {
+            CharKeys::editorCreate();
             break;
         }
         case MEM_BLOCK_FILE: {
@@ -225,6 +230,12 @@ void MemMan::editor() {
                 if (isTestAlloc) {
                     Array_editorEditBlock(*(Array<int> *)b->data());
                 }
+                break;
+            }
+
+            // CHARKEYS
+            case MEM_BLOCK_CHARKEYS: {
+                ((CharKeys *)b->data())->editorEditBlock();
                 break;
             }
 

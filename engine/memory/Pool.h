@@ -20,6 +20,7 @@ Memory layout:
 template <typename T>
 class Pool {
 public:
+    friend class CharKeys;
 
     static constexpr size_t DataSize(size_t size) {
         return
@@ -97,6 +98,8 @@ public:
             dataItems()[i] = {};
         }
     }
+
+    T const * dataItems() const { return (T const *)(dataBase() + sizeof(FreeList) + FreeList::DataSize(_size)); }
 
 private:
     size_t _size;
