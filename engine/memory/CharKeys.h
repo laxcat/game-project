@@ -82,7 +82,8 @@ private:
     Node       * nodeForKey(char const * key);
     Node const * nodeForKey(char const * key) const;
 
-    Node const * treeSearch(Node * node, char const * key) const;
+    Node       * search(Node * node, char const * key);
+    Node const * search(Node * node, char const * key) const;
 
     #if DEV_INTERFACE
     static void editorCreate();

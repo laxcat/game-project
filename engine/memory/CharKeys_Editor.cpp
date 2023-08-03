@@ -22,13 +22,13 @@ void CharKeys::editorCreate() {
 
 static void drawTree(CharKeys::Node * n) {
     if (n == nullptr) {
-        TextUnformatted("(null)");
+        TextUnformatted("-");
         return;
     }
 
     SetNextItemOpen(true, ImGuiCond_Once);
 
-    char const * title = mm.frameFormatStr("Node(%s, %zu)", n->key, n->ptr);
+    char const * title = mm.frameFormatStr("%s (%zu)", n->key, n->ptr);
     if (TreeNode(title)) {
         TextUnformatted("L:");
         SameLine();

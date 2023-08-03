@@ -69,29 +69,36 @@ CharKeys::Status CharKeys::insert(char const * key, void * ptr) {
 }
 
 bool CharKeys::hasKey(char const * key) const {
-    Node const * found = treeSearch(_root, key);
+    Node const * found = search(_root, key);
     return (found != nullptr);
 }
 
 void * CharKeys::operator[](char const * key) const {
-    Node const * found = treeSearch(_root, key);
+    Node const * found = search(_root, key);
     return (found) ? found->ptr : nullptr;
 }
 
 void * CharKeys::ptrForKey(char const * key) const {
-    Node const * found = treeSearch(_root, key);
+    Node const * found = search(_root, key);
     return (found) ? found->ptr : nullptr;
 }
 
 CharKeys::Node * CharKeys::nodeForKey(char const * key) {
-    return (Node *)treeSearch(_root, key);
+    return search(_root, key);
 }
 
 CharKeys::Node const * CharKeys::nodeForKey(char const * key) const {
-    return treeSearch(_root, key);
+    return search(_root, key);
 }
 
-CharKeys::Node const * CharKeys::treeSearch(Node * node, char const * key) const {
+// some debate as to whether the casting to and from const is a good idea
+// (seems like it's the best solution to DRY, and pretty safe)
+// https://stackoverflow.com/questions/856542
+// https://stackoverflow.com/questions/123758
+CharKeys::Node * CharKeys::search(Node * node, char const * key) {
+    return (Node *)((CharKeys const *)this)->search(node, key);
+}
+CharKeys::Node const * CharKeys::search(Node * node, char const * key) const {
     // tree/branch empty
     if (node == nullptr) {
         return nullptr;
@@ -104,11 +111,11 @@ CharKeys::Node const * CharKeys::treeSearch(Node * node, char const * key) const
     }
     // key < node->key
     else if (compare < 0) {
-        return treeSearch(node->left, key);
+        return search(node->left, key);
     }
     // key > node->key
     else {
-        return treeSearch(node->right, key);
+        return search(node->right, key);
     }
 }
 
