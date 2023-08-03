@@ -32,10 +32,17 @@ public:
     // SUB-TYPES
 public:
     class Node {
+    public:
         char key[KEY_MAX];
         void * ptr = nullptr;
         Node * left = nullptr;
         Node * right = nullptr;
+    };
+
+    enum Status {
+        SUCCESS = 0,
+        DUPLICATE_KEY,
+        BUFFER_FULL
     };
 
     using PoolT = Pool<Node>;
@@ -44,16 +51,26 @@ public:
 public:
     CharKeys(size_t size);
 
+    Status add(char const * key, void * ptr);
+
+    size_t nNodes() const;
+    bool isFull() const;
+
     // STORAGE
 private:
     size_t _size;
-    size_t _root = SIZE_MAX;
+    Node * _root = nullptr;
 
     // INTERNALS
 private:
-    byte_t * data();
-    PoolT * pool();
-    Node * nodes();
+    byte_t       * data()       ;
+    byte_t const * data()  const;
+    PoolT        * pool()       ;
+    PoolT  const * pool()  const;
+    Node         * nodes()      ;
+    Node   const * nodes() const;
+
+    Status treeInsert(Node *& root, char const * key, void * ptr);
 
     #if DEV_INTERFACE
     static void editorCreate();
