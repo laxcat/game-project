@@ -4,13 +4,14 @@
 #include "Pool.h"
 
 /*
-Binary tree that only uses a short char string for the key (node data).
+Binary tree that uses a short char string for the key (used to sort nodes),
+with a void* on each node.
 Designed to be used in pre-allocated memory.
 
 Memory layout:
 
 |------------|-----------------...---|
- CharKeys  Pool<Node>
+ CharKeys    Pool<Node>
              ^
              pool()
              |---- DataSize ---...---|
