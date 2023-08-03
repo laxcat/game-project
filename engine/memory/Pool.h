@@ -2,8 +2,11 @@
 #include <assert.h>
 #include "../common/debug_defines.h"
 #include "../common/types.h"
-#include "../dev/print.h"
 #include "FreeList.h"
+
+#if DEBUG
+#include "../dev/print.h"
+#endif // DEBUG
 
 /*
 Designed to be used in pre-allocated memory.
@@ -34,13 +37,7 @@ public:
         for (size_t i = 0; i < _size; ++i) {
             dataItems()[i] = {};
         }
-        printl("Pool:");
-        printl("    Pool size:  %zu", sizeof(Pool));
-        printl("    DataSize:   %zu  (does not include Pool itself)", DataSize(size));
-        printl("    this:       %p", this);
-        printl("    dataBase:   %p", dataBase());
-        printl("    freeList:   %p", freeList());
-        printl("    dataItem:   %p", dataItems());
+        print();
     }
 
     T * claim(size_t * foundIndex = nullptr) {
@@ -106,6 +103,18 @@ public:
     }
 
     T const * dataItems() const { return (T const *)(dataBase() + sizeof(FreeList) + FreeList::DataSize(_size)); }
+
+    #if DEBUG
+    void print() {
+        printl("Pool:");
+        printl("    Pool size:  %zu", sizeof(Pool));
+        printl("    DataSize:   %zu  (does not include Pool itself)", DataSize(_size));
+        printl("    this:       %p", this);
+        printl("    dataBase:   %p", dataBase());
+        printl("    freeList:   %p", freeList());
+        printl("    dataItem:   %p", dataItems());
+    }
+    #endif // DEBUG
 
 private:
     size_t _size;
