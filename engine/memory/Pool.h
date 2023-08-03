@@ -55,6 +55,7 @@ public:
         if (foundIndex) {
             *foundIndex = index;
         }
+        ++_nClaimed;
         return dataItems() + index;
     }
 
@@ -84,12 +85,17 @@ public:
         }
         freeList()->release(index);
         dataItems()[index] = {};
+        --_nClaimed;
         return true;
     }
 
     bool isFree(size_t index) const {
         assert(index < _size && "Out of range.");
         return freeList()->isFree(index);
+    }
+
+    bool isFull() const {
+        return freeList()->isFull();
     }
 
     void reset() {
@@ -103,6 +109,7 @@ public:
 
 private:
     size_t _size;
+    size_t _nClaimed;
 
     byte_t       * dataBase()       { return (byte_t *)this + sizeof(Pool); }
     byte_t const * dataBase() const { return (byte_t *)this + sizeof(Pool); }

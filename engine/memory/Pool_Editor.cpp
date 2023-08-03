@@ -23,7 +23,7 @@ void Pool_editorCreate() {
 
 void Pool_editorEditBlock(Pool<int> & pool) {
 
-    Text("Pool<int> (%zu):", pool._size);
+    Text("Pool<int> (%zu/%zu):", pool._nClaimed, pool._size);
 
     // actions
     {
