@@ -28,8 +28,44 @@ CharKeys::PoolT const * CharKeys::pool() const { return (PoolT *)data(); }
 CharKeys::Node       * CharKeys::nodes()       { return pool()->dataItems(); }
 CharKeys::Node const * CharKeys::nodes() const { return pool()->dataItems(); }
 
-CharKeys::Status CharKeys::add(char const * key, void * ptr) {
-    return treeInsert(_root, key, ptr);
+CharKeys::Status CharKeys::insert(char const * key, void * ptr) {
+    // if pool full
+    if (pool()->isFull()) {
+        return BUFFER_FULL;
+    }
+    // find insersion point
+    Node * parent = nullptr;
+    Node * runner = _root;
+    int compare;
+    while (runner) {
+        parent = runner;
+        compare = strcmp(key, parent->key);
+        if (compare == 0) {
+            return DUPLICATE_KEY;
+        }
+        else if (compare < 0) {
+            runner = runner->left;
+        }
+        else {
+            runner = runner->right;
+        }
+    }
+    // create node in buffer
+    Node * newNode = pool()->claim();
+    newNode->setKey(key);
+    newNode->ptr = ptr;
+    newNode->parent = parent;
+    // connect newNode to tree
+    if (parent == nullptr) {
+        _root = newNode;
+        return SUCCESS;
+    }
+    // compare will still hold comparison of (key < parent->key)
+    // key < parent->key
+    if (compare < 0) { parent->left = newNode; }
+    // key >= parent->key
+    else             { parent->right = newNode; }
+    return SUCCESS;
 }
 
 bool CharKeys::hasKey(char const * key) const {
@@ -53,34 +89,6 @@ CharKeys::Node * CharKeys::nodeForKey(char const * key) {
 
 CharKeys::Node const * CharKeys::nodeForKey(char const * key) const {
     return treeSearch(_root, key);
-}
-
-CharKeys::Status CharKeys::treeInsert(Node *& node, char const * key, void * ptr) {
-    // node not set
-    if (node == nullptr) {
-        // create new node
-        node = pool()->claim();
-        if (node == nullptr) {
-            return BUFFER_FULL;
-        }
-        // copy data
-        node->setKey(key);
-        node->ptr = ptr;
-        // no problem
-        return SUCCESS;
-    }
-    // compare strings
-    int compare = strcmp(key, node->key);
-    // key < node->key
-    if (compare < 0) {
-        return treeInsert(node->left, key, ptr);
-    }
-    // key > node->key
-    else if (compare > 0) {
-        return treeInsert(node->right, key, ptr);
-    }
-    // key == node->key
-    return DUPLICATE_KEY;
 }
 
 CharKeys::Node const * CharKeys::treeSearch(Node * node, char const * key) const {

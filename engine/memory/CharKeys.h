@@ -35,6 +35,7 @@ public:
     public:
         char key[KEY_MAX];
         void * ptr = nullptr;
+        Node * parent = nullptr;
         Node * left = nullptr;
         Node * right = nullptr;
 
@@ -51,10 +52,13 @@ public:
 
     // API
 public:
+    // init
     CharKeys(size_t size);
 
-    Status add(char const * key, void * ptr);
+    // modify tree
+    Status insert(char const * key, void * ptr);
 
+    // access/query
     bool hasKey(char const * key) const;
     void * operator[](char const * key) const;
     void * ptrForKey(char const * key) const;
@@ -78,7 +82,6 @@ private:
     Node       * nodeForKey(char const * key);
     Node const * nodeForKey(char const * key) const;
 
-    Status treeInsert(Node *& root, char const * key, void * ptr);
     Node const * treeSearch(Node * node, char const * key) const;
 
     #if DEV_INTERFACE

@@ -58,6 +58,9 @@ void CharKeys::editorEditBlock() {
     bool disableInput = isFull();
     static constexpr size_t msgMax = 64;
     static char msg[msgMax];
+    int inputFlags = ImGuiInputTextFlags_CharsNoBlank |
+                     ImGuiInputTextFlags_AutoSelectAll |
+                     ImGuiInputTextFlags_EnterReturnsTrue;
 
     // insert
     {
@@ -66,14 +69,17 @@ void CharKeys::editorEditBlock() {
         static char key[KEY_MAX];
         static int ptr = 1;
         TextUnformatted("Create New Node");
-        InputText("##key", key, KEY_MAX, ImGuiInputTextFlags_CharsNoBlank);
+        bool didPressEnter = InputText("##key", key, KEY_MAX, inputFlags);
+        if (didPressEnter && !disableInput) {
+            SetKeyboardFocusHere(-1);
+        }
         SameLine();
         InputInt("##ptr", &ptr);
         SameLine();
         TextUnformatted("key/ptr");
         PopItemWidth();
-        if (Button("Create")) {
-            CharKeys::Status status = add(key, (void *)(size_t)ptr);
+        if (Button("Create") || didPressEnter) {
+            CharKeys::Status status = insert(key, (void *)(size_t)ptr);
             switch (status) {
             case CharKeys::SUCCESS:         snprintf(msg, msgMax, "Added node");                    break;
             case CharKeys::BUFFER_FULL:     snprintf(msg, msgMax, "Buffer full; did not add.");     break;
