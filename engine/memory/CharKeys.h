@@ -37,6 +37,8 @@ public:
         void * ptr = nullptr;
         Node * left = nullptr;
         Node * right = nullptr;
+
+        void setKey(char const * key); // might as well avoid snprintf since it's easy
     };
 
     enum Status {
@@ -53,6 +55,9 @@ public:
 
     Status add(char const * key, void * ptr);
 
+    bool hasKey(char const * key) const;
+    void * operator[](char const * key) const;
+    void * ptrForKey(char const * key) const;
     size_t nNodes() const;
     bool isFull() const;
 
@@ -70,7 +75,11 @@ private:
     Node         * nodes()      ;
     Node   const * nodes() const;
 
+    Node       * nodeForKey(char const * key);
+    Node const * nodeForKey(char const * key) const;
+
     Status treeInsert(Node *& root, char const * key, void * ptr);
+    Node const * treeSearch(Node * node, char const * key) const;
 
     #if DEV_INTERFACE
     static void editorCreate();

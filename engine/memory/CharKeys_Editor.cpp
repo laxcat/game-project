@@ -44,12 +44,13 @@ static void listKeys(CharKeys::Node * n) {
     if (n == nullptr) return;
     // inorder traversal
     listKeys(n->left);
-    TextUnformatted(n->key);
+    Text("%s,", n->key);
+    SameLine();
     listKeys(n->right);
 }
 
 void CharKeys::editorEditBlock() {
-
+    // info
     Text("CharKeys (%zu/%zu):", nNodes(), _size);
 
     Dummy(ImVec2(0.0f, 10.0f));
@@ -58,35 +59,40 @@ void CharKeys::editorEditBlock() {
     static constexpr size_t msgMax = 64;
     static char msg[msgMax];
 
-    if (disableInput) BeginDisabled();
-    PushItemWidth(90);
-    static char key[16];
-    static int ptr = 1;
-    TextUnformatted("Create New Node");
-    InputText("##key", key, 16, ImGuiInputTextFlags_CharsNoBlank);
-    SameLine();
-    InputInt("##ptr", &ptr);
-    SameLine();
-    TextUnformatted("key/ptr");
-    PopItemWidth();
-    if (Button("Create")) {
-        CharKeys::Status status = add(key, (void *)(size_t)ptr);
-        switch (status) {
-        case CharKeys::SUCCESS:         snprintf(msg, msgMax, "Added node");                    break;
-        case CharKeys::BUFFER_FULL:     snprintf(msg, msgMax, "Buffer full; did not add.");     break;
-        case CharKeys::DUPLICATE_KEY:   snprintf(msg, msgMax, "Duplicate key; did not add.");   break;
+    // insert
+    {
+        if (disableInput) BeginDisabled();
+        PushItemWidth(90);
+        static char key[KEY_MAX];
+        static int ptr = 1;
+        TextUnformatted("Create New Node");
+        InputText("##key", key, KEY_MAX, ImGuiInputTextFlags_CharsNoBlank);
+        SameLine();
+        InputInt("##ptr", &ptr);
+        SameLine();
+        TextUnformatted("key/ptr");
+        PopItemWidth();
+        if (Button("Create")) {
+            CharKeys::Status status = add(key, (void *)(size_t)ptr);
+            switch (status) {
+            case CharKeys::SUCCESS:         snprintf(msg, msgMax, "Added node");                    break;
+            case CharKeys::BUFFER_FULL:     snprintf(msg, msgMax, "Buffer full; did not add.");     break;
+            case CharKeys::DUPLICATE_KEY:   snprintf(msg, msgMax, "Duplicate key; did not add.");   break;
+            }
         }
+        if (disableInput) EndDisabled();
+        TextUnformatted(msg);
+        Dummy(ImVec2(0.0f, 10.0f));
     }
-    if (disableInput) EndDisabled();
-    TextUnformatted(msg);
 
-    Dummy(ImVec2(0.0f, 10.0f));
 
+    // draw tree
     TextUnformatted("Nodes");
     drawTree(_root);
-
     Dummy(ImVec2(0.0f, 10.0f));
 
+    // list keys
     TextUnformatted("Key list");
     listKeys(_root);
+    TextUnformatted("");
 }
