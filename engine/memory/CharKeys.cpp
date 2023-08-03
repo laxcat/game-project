@@ -99,24 +99,13 @@ CharKeys::Node * CharKeys::search(Node * node, char const * key) {
     return (Node *)((CharKeys const *)this)->search(node, key);
 }
 CharKeys::Node const * CharKeys::search(Node * node, char const * key) const {
-    // tree/branch empty
-    if (node == nullptr) {
-        return nullptr;
+    while(node) {
+        int compare = strcmp(key, node->key);
+        if      (compare == 0)  { return node; }
+        else if (compare <  0)  { node = node->left; }
+        else                    { node = node->right; }
     }
-    // compare strings
-    int compare = strcmp(key, node->key);
-    // key == node->key; found it!
-    if (compare == 0) {
-        return node;
-    }
-    // key < node->key
-    else if (compare < 0) {
-        return search(node->left, key);
-    }
-    // key > node->key
-    else {
-        return search(node->right, key);
-    }
+    return nullptr;
 }
 
 size_t CharKeys::nNodes() const {
