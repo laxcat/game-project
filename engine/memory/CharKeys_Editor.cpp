@@ -59,9 +59,9 @@ void CharKeys::editorEditBlock() {
     bool disableRemove = (pool()->_nClaimed == 0);
     static constexpr size_t msgMax = 64;
     static char msg[msgMax];
-    int inputFlags = ImGuiInputTextFlags_CharsNoBlank |
-                     ImGuiInputTextFlags_AutoSelectAll |
-                     ImGuiInputTextFlags_EnterReturnsTrue;
+    static int inputFlags = ImGuiInputTextFlags_CharsNoBlank |
+                            ImGuiInputTextFlags_AutoSelectAll |
+                            ImGuiInputTextFlags_EnterReturnsTrue;
 
     // insert
     {
@@ -80,6 +80,14 @@ void CharKeys::editorEditBlock() {
         TextUnformatted("key/ptr");
         PopItemWidth();
         SameLine();
+        // prevent keyboard repeat
+        if (didPressEnter) {
+            bool retFirst = IsKeyPressed(ImGuiKey_Enter, false) || IsKeyPressed(ImGuiKey_KeypadEnter, false);
+            bool retRepeat = IsKeyPressed(ImGuiKey_Enter, true) || IsKeyPressed(ImGuiKey_KeypadEnter, true);
+            if (!retFirst && retRepeat) {
+                didPressEnter = false;
+            }
+        }
         if (Button("Insert") || didPressEnter) {
             CharKeys::Status status = insert(key, (void *)(size_t)ptr);
             switch (status) {
@@ -104,6 +112,14 @@ void CharKeys::editorEditBlock() {
         }
         PopItemWidth();
         SameLine();
+        // prevent keyboard repeat
+        if (didPressEnter) {
+            bool retFirst = IsKeyPressed(ImGuiKey_Enter, false) || IsKeyPressed(ImGuiKey_KeypadEnter, false);
+            bool retRepeat = IsKeyPressed(ImGuiKey_Enter, true) || IsKeyPressed(ImGuiKey_KeypadEnter, true);
+            if (!retFirst && retRepeat) {
+                didPressEnter = false;
+            }
+        }
         if (Button("Remove") || didPressEnter) {
             bool didRemove = remove(key);
             if (didRemove) { snprintf(msg, msgMax, "Removed node"); }
