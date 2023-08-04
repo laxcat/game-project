@@ -74,7 +74,7 @@ CharKeys::Status CharKeys::insert(char const * key, void * ptr) {
     if (compare < 0) { parent->left = newNode; }
     // key >= parent->key
     else             { parent->right = newNode; }
-    // cache successor for const-time interation; TODO: this MIGHT be better optimized
+    // cache "next" for const-time interation; TODO: this MIGHT be better optimized?
     newNode->next = successor(newNode);
     Node * prev = predecessor(newNode);
     if (prev) {
@@ -145,8 +145,14 @@ bool CharKeys::remove(char const * key) {
     return true;
 }
 
+void CharKeys::reset() {
+    _root = nullptr;
+    _first = nullptr;
+    pool()->reset();
+}
+
 void CharKeys::remove(Node * d) {
-    // link prev->next up to post-removal next node; TODO: this MIGHT be better optimized
+    // link prev->next up to post-removal next node; TODO: this MIGHT be better optimized?
     if (d == _first) {
         _first = successor(d);
     }

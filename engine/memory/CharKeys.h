@@ -41,13 +41,14 @@ public:
     public:
         char key[KEY_MAX];
         void * ptr = nullptr;
+    private:
         Node * parent = nullptr;
         Node * left = nullptr;
         Node * right = nullptr;
-        Node * next = nullptr; // set to successor(this)
-
+        Node * next = nullptr; // cache of successor(this)
         void setKey(char const * key); // might as well avoid snprintf since it's easy
         void * operator*() const { return ptr; }
+        friend class CharKeys;
     };
 
     enum Status {
@@ -76,6 +77,7 @@ public:
     // modify tree
     Status insert(char const * key, void * ptr);
     bool remove(char const * key);
+    void reset();
 
     // access/query
     bool hasKey(char const * key) const;
@@ -123,5 +125,6 @@ private:
     #if DEV_INTERFACE
     static void editorCreate();
     void editorEditBlock();
+    void drawTree(Node * n);
     #endif // DEV_INTERFACE
 };

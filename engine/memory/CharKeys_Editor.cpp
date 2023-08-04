@@ -20,7 +20,7 @@ void CharKeys::editorCreate() {
     PopItemWidth();
 }
 
-static void drawTree(CharKeys::Node * n) {
+void CharKeys::drawTree(CharKeys::Node * n) {
     if (n == nullptr) {
         TextUnformatted("-");
         return;
@@ -38,15 +38,6 @@ static void drawTree(CharKeys::Node * n) {
         drawTree(n->right);
         TreePop();
     }
-}
-
-static void listKeys(CharKeys::Node * n) {
-    if (n == nullptr) return;
-    // inorder traversal
-    listKeys(n->left);
-    Text("%s,", n->key);
-    SameLine();
-    listKeys(n->right);
 }
 
 void CharKeys::editorEditBlock() {
@@ -125,6 +116,12 @@ void CharKeys::editorEditBlock() {
             if (didRemove) { snprintf(msg, msgMax, "Removed node"); }
             else           { snprintf(msg, msgMax, "Did not remove node"); }
         }
+        SameLine();
+        Dummy(ImVec2(100.f, 0.f));
+        SameLine();
+        if (Button("Reset")) {
+            reset();
+        }
         if (disableRemove) EndDisabled();
         Dummy(ImVec2(0.0f, 10.0f));
     }
@@ -142,16 +139,12 @@ void CharKeys::editorEditBlock() {
 
     // list keys
     TextUnformatted("Key list");
-    listKeys(_root);
-    TextUnformatted("");
-    Dummy(ImVec2(0.0f, 10.0f));
-
-    // test list keys with next iterator
-    for (auto n : *this) {
+    for (Node const * n : *this) {
         Text("%s,", n->key);
         SameLine();
     }
     TextUnformatted("");
+    Dummy(ImVec2(0.0f, 10.0f));
 
     // show pool
     if (CollapsingHeader("Pool")) {
