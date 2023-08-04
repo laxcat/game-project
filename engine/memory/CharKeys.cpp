@@ -14,6 +14,13 @@ void CharKeys::Node::setKey(char const * key) {
     this->key[KEY_MAX-1] = '\0';
 }
 
+CharKeys::Iterator::Iterator(CharKeys::Node * node) : _node(node) {}
+CharKeys::Iterator CharKeys::Iterator::operator++() { if (_node) { _node = _node->next; } return *this; }
+bool CharKeys::Iterator::operator!=(CharKeys::Iterator const & other) const { return _node != other._node;  }
+CharKeys::Node const * CharKeys::Iterator::operator*() const { return _node; }
+CharKeys::Iterator CharKeys::begin() const { return {_first}; }
+CharKeys::Iterator CharKeys::end() const { return {nullptr}; }
+
 CharKeys::CharKeys(size_t size) :
     _size(size) {
     new (pool()) PoolT{size};
@@ -54,10 +61,12 @@ CharKeys::Status CharKeys::insert(char const * key, void * ptr) {
     Node * newNode = pool()->claim();
     newNode->setKey(key);
     newNode->ptr = ptr;
-    newNode->parent = parent;
     // connect newNode to tree
+    newNode->parent = parent;
+    // fast exit if first node added
     if (parent == nullptr) {
         _root = newNode;
+        _first = newNode;
         return SUCCESS;
     }
     // compare will still hold comparison of (key < parent->key)
@@ -65,6 +74,16 @@ CharKeys::Status CharKeys::insert(char const * key, void * ptr) {
     if (compare < 0) { parent->left = newNode; }
     // key >= parent->key
     else             { parent->right = newNode; }
+    // cache successor for const-time interation; TODO: this MIGHT be better optimized
+    newNode->next = successor(newNode);
+    Node * prev = predecessor(newNode);
+    if (prev) {
+        prev->next = newNode;
+    }
+    // if newNode is new inorder _first. TODO: minimum traversal faster than extra comparison?
+    if (_first == nullptr || strcmp(key, _first->key) < 0) {
+        _first = newNode;
+    }
     return SUCCESS;
 }
 
@@ -127,6 +146,13 @@ bool CharKeys::remove(char const * key) {
 }
 
 void CharKeys::remove(Node * d) {
+    // link prev->next up to post-removal next node; TODO: this MIGHT be better optimized
+    if (d == _first) {
+        _first = successor(d);
+    }
+    else {
+        predecessor(d)->next = successor(d);
+    }
     // remove from tree
     if (d->left == nullptr) {
         shift(d, d->right);
@@ -174,6 +200,25 @@ CharKeys::Node * CharKeys::successor(Node * x) const {
         y = y->parent;
     }
     return y;
+}
+
+CharKeys::Node * CharKeys::predecessor(Node * x) const {
+    if (x->left != nullptr) {
+        return maximum(x->left);
+    }
+    Node * y = x->parent;
+    while (y != nullptr && x == y->left) {
+        x = y;
+        y = y->parent;
+    }
+    return y;
+}
+
+CharKeys::Node * CharKeys::maximum(Node * n) const {
+    while (n->right != nullptr) {
+        n = n->right;
+    }
+    return n;
 }
 
 CharKeys::Node * CharKeys::minimum(Node * n) const {

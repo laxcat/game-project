@@ -8,6 +8,12 @@ Binary tree that uses a short char string for the key (used to sort nodes),
 with a void* on each node.
 Designed to be used in pre-allocated memory.
 
+FEATURES:
+    - Forward iterator
+    - Extra "next" pointer in node for constant-time forward iteration
+TODO:
+    - Red-black impl
+
 Memory layout:
 
 |------------|-----------------...---|
@@ -38,8 +44,10 @@ public:
         Node * parent = nullptr;
         Node * left = nullptr;
         Node * right = nullptr;
+        Node * next = nullptr; // set to successor(this)
 
         void setKey(char const * key); // might as well avoid snprintf since it's easy
+        void * operator*() const { return ptr; }
     };
 
     enum Status {
@@ -49,6 +57,16 @@ public:
     };
 
     using PoolT = Pool<Node>;
+
+    // forward iterator
+    struct Iterator {
+        Iterator(Node * node);
+        Iterator operator++();
+        bool operator!=(Iterator const & other) const;
+        Node const * operator*() const;
+    private:
+        Node * _node;
+    };
 
     // API
 public:
@@ -66,10 +84,15 @@ public:
     size_t nNodes() const;
     bool isFull() const;
 
+    // iteration (inorder by key)
+    Iterator begin() const;
+    Iterator end() const;
+
     // STORAGE
 private:
     size_t _size;
     Node * _root = nullptr;
+    Node * _first = nullptr; // cache "first" (inorder) node
 
     // INTERNALS
 private:
@@ -93,6 +116,8 @@ private:
     // helper
     void shift(Node * a, Node * b);
     Node * successor(Node * n) const;
+    Node * predecessor(Node * n) const;
+    Node * maximum(Node * n) const;
     Node * minimum(Node * n) const;
 
     #if DEV_INTERFACE

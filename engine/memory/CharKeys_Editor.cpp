@@ -146,6 +146,13 @@ void CharKeys::editorEditBlock() {
     TextUnformatted("");
     Dummy(ImVec2(0.0f, 10.0f));
 
+    // test list keys with next iterator
+    for (auto n : *this) {
+        Text("%s,", n->key);
+        SameLine();
+    }
+    TextUnformatted("");
+
     // show pool
     if (CollapsingHeader("Pool")) {
         PoolT & pool = *this->pool();
