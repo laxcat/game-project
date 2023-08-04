@@ -1,5 +1,5 @@
 #pragma once
-#include "../render/Renderable.h"
+#include "../render/Renderable2.h"
 #include "../shader/shaders/unlit/VertUnlit.h"
 
 

@@ -1,7 +1,7 @@
 #pragma once
 #include <mutex>
 #include <glm/mat4x4.hpp>
-#include "Renderable.h"
+#include "Renderable2.h"
 
 
 class GLTFLoader {
