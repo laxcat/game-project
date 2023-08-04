@@ -43,6 +43,8 @@ void RenderSystem::init() {
     materialPBRValues = bgfx::createUniform("u_materialPBRValues",  bgfx::UniformType::Vec4);
     normModel = bgfx::createUniform("u_normModel", bgfx::UniformType::Mat3);
 
+    newPool = mm.memMan.createCharKeys(8);
+
     byte_t data[] = {
         255,255,255,255,
         255,255,255,255,

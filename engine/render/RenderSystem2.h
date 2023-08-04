@@ -17,6 +17,8 @@
 
 using RenderableIterator = KeyedPool<std::string, Renderable>::Iterator;
 
+class CharKeys;
+
 class RenderSystem {
 public:
     //
@@ -64,6 +66,8 @@ private:
     bgfx::UniformHandle normModel;
     Texture whiteTexture;
     BXAllocator bxAllocator;
+
+    CharKeys * newPool = nullptr;
     
     RenderableIterator destroy(char const * key);
     void reset(char const * key);
