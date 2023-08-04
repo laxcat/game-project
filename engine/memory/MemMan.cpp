@@ -139,11 +139,11 @@ void MemMan::init(EngineSetup const & setup, FrameStack ** frameStack) {
     _firstFree = _head;
 
     #if DEBUG
-    printl("MEM MAN RANGE %*p—%*p", 8, _data, 8, _data+_size);
-    printl("MEM MAN DATA SIZE %zu", _size);
-    printFreeSizes();
-    printl("BlockInfoSize %zu", BlockInfoSize);
-    printl("Request size %zu", sizeof(Request));
+    // printl("MEM MAN RANGE %*p—%*p", 8, _data, 8, _data+_size);
+    // printl("MEM MAN DATA SIZE %zu", _size);
+    // printFreeSizes();
+    // printl("BlockInfoSize %zu", BlockInfoSize);
+    // printl("Request size %zu", sizeof(Request));
     #endif // DEBUG
 
     // create some special blocks on init

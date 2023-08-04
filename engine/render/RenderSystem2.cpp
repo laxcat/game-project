@@ -16,7 +16,7 @@
     #include "../shader/shaders/unlit/fs_unlit.metal.bin.geninc"
 #endif
 
-static bool constexpr ShowRenderDbg = false;
+static bool constexpr ShowRenderDbg = true;
 static bool constexpr ShowRenderDbgTick = ShowRenderDbg && false;
 
 // 
@@ -99,7 +99,7 @@ void RenderSystem::draw() {
                 printc(ShowRenderDbg, "Finished loading renderable %p\n", &r);
             }
             else if (foundLoadState == Renderable::LoadState::FailedToLoad) {
-                printc(ShowRenderDbg, "FALING TO LOAD");
+                printc(ShowRenderDbg, "FAILING TO LOAD\n");
                 loadingThreads.at(&r).join();
                 loadingThreads.erase(&r);
                 rit = destroy(r.key);

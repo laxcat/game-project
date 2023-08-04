@@ -87,7 +87,7 @@ FSA::FSA(Setup const & setup) {
     updateMap();
     setAllFree();
 
-    printInfo();
+    // printInfo();
 }
 
 void FSA::updateMap() {

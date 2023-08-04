@@ -5,7 +5,7 @@
 #include "../common/string_utils.h"
 
 
-static bool constexpr ShowGLTFLoadDbg = false;
+static bool constexpr ShowGLTFLoadDbg = true;
 
 
 void GLTFLoader::load(char const * filename, Renderable & renderable) {

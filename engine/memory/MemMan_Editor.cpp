@@ -13,7 +13,7 @@
 using namespace ImGui;
 
 void MemMan::editor() {
-    if (!CollapsingHeader("Memory", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (!CollapsingHeader("Memory")) {
         return;
     }
 
