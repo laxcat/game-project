@@ -69,43 +69,18 @@ CharKeys::Status CharKeys::insert(char const * key, void * ptr) {
 }
 
 bool CharKeys::hasKey(char const * key) const {
-    Node const * found = search(_root, key);
+    Node const * found = search(key);
     return (found != nullptr);
 }
 
 void * CharKeys::operator[](char const * key) const {
-    Node const * found = search(_root, key);
+    Node const * found = search(key);
     return (found) ? found->ptr : nullptr;
 }
 
 void * CharKeys::ptrForKey(char const * key) const {
-    Node const * found = search(_root, key);
+    Node const * found = search(key);
     return (found) ? found->ptr : nullptr;
-}
-
-CharKeys::Node * CharKeys::nodeForKey(char const * key) {
-    return search(_root, key);
-}
-
-CharKeys::Node const * CharKeys::nodeForKey(char const * key) const {
-    return search(_root, key);
-}
-
-// some debate as to whether the casting to and from const is a good idea
-// (seems like it's the best solution to DRY, and pretty safe)
-// https://stackoverflow.com/questions/856542
-// https://stackoverflow.com/questions/123758
-CharKeys::Node * CharKeys::search(Node * node, char const * key) {
-    return (Node *)((CharKeys const *)this)->search(node, key);
-}
-CharKeys::Node const * CharKeys::search(Node * node, char const * key) const {
-    while(node) {
-        int compare = strcmp(key, node->key);
-        if      (compare == 0)  { return node; }
-        else if (compare <  0)  { node = node->left; }
-        else                    { node = node->right; }
-    }
-    return nullptr;
 }
 
 size_t CharKeys::nNodes() const {
@@ -116,3 +91,94 @@ bool CharKeys::isFull() const {
     return pool()->isFull();
 }
 
+CharKeys::Node * CharKeys::nodeForKey(char const * key) {
+    return search(key);
+}
+
+CharKeys::Node const * CharKeys::nodeForKey(char const * key) const {
+    return search(key);
+}
+
+// some debate as to whether the casting to and from const is a good idea
+// (seems like it's the best solution to DRY, and pretty safe)
+// https://stackoverflow.com/questions/856542
+// https://stackoverflow.com/questions/123758
+CharKeys::Node * CharKeys::search(char const * key) {
+    return (Node *)((CharKeys const *)this)->search(key);
+}
+CharKeys::Node const * CharKeys::search(char const * key) const {
+    Node * node = _root;
+    while(node) {
+        int compare = strcmp(key, node->key);
+        if      (compare == 0)  { return node; }
+        else if (compare <  0)  { node = node->left; }
+        else                    { node = node->right; }
+    }
+    return nullptr;
+}
+
+bool CharKeys::remove(char const * key) {
+    Node * d = search(key);
+    if (d == nullptr) {
+        return false;
+    }
+    remove(d);
+    return true;
+}
+
+void CharKeys::remove(Node * d) {
+    // remove from tree
+    if (d->left == nullptr) {
+        shift(d, d->right);
+    }
+    else if (d->right == nullptr) {
+        shift(d, d->left);
+    }
+    else {
+        Node * e = successor(d);
+        if (e->parent != d) {
+            shift(e, e->right);
+            e->right = d->right;
+            e->right->parent = e;
+        }
+        shift(d, e);
+        e->left = d->left;
+        e->left->parent = e;
+    }
+    // remove from pool
+    pool()->release(d);
+}
+
+void CharKeys::shift(Node * a, Node * b) {
+    if (a->parent == nullptr) {
+        _root = b;
+    }
+    else if (a == a->parent->left) {
+        a->parent->left = b;
+    }
+    else {
+        a->parent->right = b;
+    }
+    if (b != nullptr) {
+        b->parent = a->parent;
+    }
+}
+
+CharKeys::Node * CharKeys::successor(Node * x) const {
+    if (x->right != nullptr) {
+        return minimum(x->right);
+    }
+    Node * y = x->parent;
+    while(y != nullptr && x == y->right) {
+        x = y;
+        y = y->parent;
+    }
+    return y;
+}
+
+CharKeys::Node * CharKeys::minimum(Node * n) const {
+    while (n->left != nullptr) {
+        n = n->left;
+    }
+    return n;
+}

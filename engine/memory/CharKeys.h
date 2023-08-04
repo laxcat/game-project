@@ -57,6 +57,7 @@ public:
 
     // modify tree
     Status insert(char const * key, void * ptr);
+    bool remove(char const * key);
 
     // access/query
     bool hasKey(char const * key) const;
@@ -72,6 +73,7 @@ private:
 
     // INTERNALS
 private:
+    // data access
     byte_t       * data()       ;
     byte_t const * data()  const;
     PoolT        * pool()       ;
@@ -79,11 +81,19 @@ private:
     Node         * nodes()      ;
     Node   const * nodes() const;
 
+    // search
     Node       * nodeForKey(char const * key);
     Node const * nodeForKey(char const * key) const;
+    Node       * search(char const * key);
+    Node const * search(char const * key) const;
 
-    Node       * search(Node * node, char const * key);
-    Node const * search(Node * node, char const * key) const;
+    // modify
+    void remove(Node * d);
+
+    // helper
+    void shift(Node * a, Node * b);
+    Node * successor(Node * n) const;
+    Node * minimum(Node * n) const;
 
     #if DEV_INTERFACE
     static void editorCreate();

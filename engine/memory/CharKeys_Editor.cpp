@@ -55,7 +55,8 @@ void CharKeys::editorEditBlock() {
 
     Dummy(ImVec2(0.0f, 10.0f));
 
-    bool disableInput = isFull();
+    bool disableInsert = isFull();
+    bool disableRemove = (pool()->_nClaimed == 0);
     static constexpr size_t msgMax = 64;
     static char msg[msgMax];
     int inputFlags = ImGuiInputTextFlags_CharsNoBlank |
@@ -64,13 +65,13 @@ void CharKeys::editorEditBlock() {
 
     // insert
     {
-        if (disableInput) BeginDisabled();
-        PushItemWidth(90);
+        if (disableInsert) BeginDisabled();
+        PushItemWidth(120);
         static char key[KEY_MAX];
         static int ptr = 1;
-        TextUnformatted("Create New Node");
-        bool didPressEnter = InputText("##key", key, KEY_MAX, inputFlags);
-        if (didPressEnter && !disableInput) {
+        TextUnformatted("Insert New Node");
+        bool didPressEnter = InputText("##insertKey", key, KEY_MAX, inputFlags);
+        if (didPressEnter && !disableInsert) {
             SetKeyboardFocusHere(-1);
         }
         SameLine();
@@ -78,19 +79,45 @@ void CharKeys::editorEditBlock() {
         SameLine();
         TextUnformatted("key/ptr");
         PopItemWidth();
-        if (Button("Create") || didPressEnter) {
+        SameLine();
+        if (Button("Insert") || didPressEnter) {
             CharKeys::Status status = insert(key, (void *)(size_t)ptr);
             switch (status) {
-            case CharKeys::SUCCESS:         snprintf(msg, msgMax, "Added node");                    break;
-            case CharKeys::BUFFER_FULL:     snprintf(msg, msgMax, "Buffer full; did not add.");     break;
-            case CharKeys::DUPLICATE_KEY:   snprintf(msg, msgMax, "Duplicate key; did not add.");   break;
+            case CharKeys::SUCCESS:         snprintf(msg, msgMax, "Inserted node");                 break;
+            case CharKeys::BUFFER_FULL:     snprintf(msg, msgMax, "Buffer full; did not insert");   break;
+            case CharKeys::DUPLICATE_KEY:   snprintf(msg, msgMax, "Duplicate key; did not insert"); break;
             }
         }
-        if (disableInput) EndDisabled();
-        TextUnformatted(msg);
+        if (disableInsert) EndDisabled();
         Dummy(ImVec2(0.0f, 10.0f));
     }
 
+    // remove
+    {
+        if (disableRemove) BeginDisabled();
+        PushItemWidth(120);
+        static char key[KEY_MAX];
+        TextUnformatted("Remove Node");
+        bool didPressEnter = InputText("key##removeKey", key, KEY_MAX, inputFlags);
+        if (didPressEnter && !disableRemove) {
+            SetKeyboardFocusHere(-1);
+        }
+        PopItemWidth();
+        SameLine();
+        if (Button("Remove") || didPressEnter) {
+            bool didRemove = remove(key);
+            if (didRemove) { snprintf(msg, msgMax, "Removed node"); }
+            else           { snprintf(msg, msgMax, "Did not remove node"); }
+        }
+        if (disableRemove) EndDisabled();
+        Dummy(ImVec2(0.0f, 10.0f));
+    }
+
+    // show message
+    TextUnformatted(msg);
+    if (msg[0]) {
+        Dummy(ImVec2(0.0f, 10.0f));
+    }
 
     // draw tree
     TextUnformatted("Nodes");
@@ -101,4 +128,33 @@ void CharKeys::editorEditBlock() {
     TextUnformatted("Key list");
     listKeys(_root);
     TextUnformatted("");
+    Dummy(ImVec2(0.0f, 10.0f));
+
+    // show pool
+    if (CollapsingHeader("Pool")) {
+        PoolT & pool = *this->pool();
+
+        float colSize = 20.f;
+        int nCols = 16;
+        int nRows = pool._size / nCols + (pool._size % nCols != 0);
+        int index = 0;
+        BeginTable("Pool", nCols);
+        for (int row = 0; row < nRows; ++row) {
+            TableNextRow();
+            for (int col = 0; col < nCols; ++col) {
+                TableSetColumnIndex(col);
+                if (index < pool._size) {
+                    bool isFree = pool.isFree(index);
+                    uint32_t color = isFree ? 0xff888888 : 0xff993333;
+                    TableSetBgColor(ImGuiTableBgTarget_CellBg, color);
+                    TextUnformatted(pool.dataItems()[index].key);
+                }
+                else {
+                    TableSetBgColor(ImGuiTableBgTarget_CellBg, GetColorU32(ImGuiCol_WindowBg));
+                }
+                ++index;
+            }
+        }
+        EndTable();
+    }
 }
