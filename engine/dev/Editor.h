@@ -49,6 +49,7 @@ public:
     void guiFog();
     void guiColors();
     void guiMem();
+    void guiDebugger();
 
     // separate movable windows
     void guiWinMem();
