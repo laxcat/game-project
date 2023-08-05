@@ -18,11 +18,15 @@ File::Path & File::Path::operator=(char const * str) {
 }
 
 void File::Path::set(char const * str) {
-    snprintf(full, Max, "%s", str);
+    snprintf(full, MAX, "%s", str);
     // filename points to char after last slash. if no slash found, points to full
     size_t len = strlen(full);
     while (len > 0 && full[len-1] != '/') --len;
     filename = ((char const *)full) + len;
+}
+
+bool File::Path::isSet() const {
+    return (full[0] != '\0');
 }
 
 size_t File::size() const { return _size; }

@@ -14,13 +14,14 @@ public:
 
     class Path {
     public:
-        static constexpr size_t Max = 1024;
+        static constexpr size_t MAX = 1024;
         Path();
         Path(char const * str);
         Path & operator=(char const * str);
         void set(char const * str);
-        char full[Max];
+        char full[MAX];
         char const * filename;
+        bool isSet() const;
     };
 
     // data size is one bigger than actual file size. 0x00 byte written at end.

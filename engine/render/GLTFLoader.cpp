@@ -3,16 +3,20 @@
 #include "../MrManager.h"
 #include "../common/utils.h"
 #include "../common/string_utils.h"
+#include "../render/Renderable2.h"
 
 
 static bool constexpr ShowGLTFLoadDbg = true;
 
 
-void GLTFLoader::load(char const * filename, Renderable & renderable) {
+void GLTFLoader::load(Renderable * r) {
+
+    printl("GLTF loader filename %s", r->path);
+
     // loadState SHOULD be the only thing we need to lock 🤞
     // start loading
     loadingMutex.lock();
-    renderable.loadState = Renderable::LoadState::Loading;
+    r->loadState = Renderable::LoadState::Loading;
     loadingMutex.unlock();
 
     // setup vars
@@ -24,28 +28,28 @@ void GLTFLoader::load(char const * filename, Renderable & renderable) {
     // try to load as binary
     bool loaded = false;
     try {
-        printc(ShowGLTFLoadDbg, "Trying to load as binary: %s\n", relPath(filename));
+        printc(ShowGLTFLoadDbg, "Trying to load as binary: %s\n", r->path);
         // populate member variable `model`
-        loaded = loader.LoadBinaryFromFile(&model, &err, &warn, filename);
+        loaded = loader.LoadBinaryFromFile(&model, &err, &warn, r->path.full);
     }
     catch(...) {}
 
     // binary load failed, try text
     if (!loaded) {
-        printc(ShowGLTFLoadDbg, "Failed to load as binary: %s\n", relPath(filename));
+        printc(ShowGLTFLoadDbg, "Failed to load as binary: %s\n", r->path);
         try {
-            printc(ShowGLTFLoadDbg, "Trying to load as text: %s\n", relPath(filename));
+            printc(ShowGLTFLoadDbg, "Trying to load as text: %s\n", r->path);
             // populate member variable `model`
-            loaded = loader.LoadASCIIFromFile(&model, &err, &warn, filename);
+            loaded = loader.LoadASCIIFromFile(&model, &err, &warn, r->path.full);
         }
         catch(...) {}
     }
 
     // both loads failed
     if (!loaded) {
-        printc(ShowGLTFLoadDbg, "Failed to load as text: %s\n", relPath(filename));
+        printc(ShowGLTFLoadDbg, "Failed to load as text: %s\n", r->path);
         loadingMutex.lock();
-        renderable.loadState = Renderable::LoadState::FailedToLoad;
+        r->loadState = Renderable::LoadState::FailedToLoad;
         loadingMutex.unlock();
         return;
     }
@@ -58,9 +62,9 @@ void GLTFLoader::load(char const * filename, Renderable & renderable) {
     if (model.buffers.size() > 1) {
         print("WARNING, UNSUPPORTED: more than one buffer found in gltf.\n");
     }
-    renderable.bufferSize = model.buffers[0].data.size();
-    renderable.buffer = (byte_t *)malloc(renderable.bufferSize);
-    memcpy(renderable.buffer, model.buffers[0].data.data(), renderable.bufferSize);
+    r->bufferSize = model.buffers[0].data.size();
+    r->buffer = (byte_t *)malloc(r->bufferSize);
+    memcpy(r->buffer, model.buffers[0].data.data(), r->bufferSize);
 
     // setup images
     for (size_t i = 0; i < model.images.size(); ++i) {
@@ -71,14 +75,14 @@ void GLTFLoader::load(char const * filename, Renderable & renderable) {
         img.dataSize = model.images[i].image.size();
         img.data = (byte_t *)malloc(img.dataSize);
         memcpy(img.data, model.images[i].image.data(), img.dataSize);
-        renderable.images.push_back(img);
+        r->images.push_back(img);
     }
 
     // setup textures
     for (size_t i = 0; i < model.textures.size(); ++i) {
 
         auto iid = model.textures[i].source;
-        Image & img = renderable.images[iid];
+        Image & img = r->images[iid];
 
         auto handle = bgfx::createTexture2D(
             uint16_t(img.width), 
@@ -90,7 +94,7 @@ void GLTFLoader::load(char const * filename, Renderable & renderable) {
             img.ref()
         );
 
-        renderable.textures.push_back(handle);
+        r->textures.push_back(handle);
     }
 
     // setup materials
@@ -102,36 +106,36 @@ void GLTFLoader::load(char const * filename, Renderable & renderable) {
         setName(mat.name, material.name.c_str());
         // mat.name[0] = '\0', strncat(mat.name, material.name.c_str(), 31);
         mat.baseColor = glmVec4(material.pbrMetallicRoughness.baseColorFactor.data());
-        renderable.materials.push_back(mat);
+        r->materials.push_back(mat);
     }
 
     // rotate Y axis 180° by default
-    renderable.adjRotAxes[0] = false;
-    renderable.adjRotAxes[1] = true;
-    renderable.adjRotAxes[2] = false;
-    renderable.updateAdjRot();
+    r->adjRotAxes[0] = false;
+    r->adjRotAxes[1] = false;
+    r->adjRotAxes[2] = false;
+    r->updateAdjRot();
 
     glm::mat4 mat{1.f};
 
     // traverse all nodes to find our primatives and meshes
-    renderable.meshes.clear();
-    traverseNodes(renderable, model, mat, model.scenes[model.defaultScene].nodes, 0);
+    r->meshes.clear();
+    traverseNodes(r, model, mat, model.scenes[model.defaultScene].nodes, 0);
 
     // move all alpha meshes to end of regular meshes
-    renderable.meshes.insert(
-        renderable.meshes.end(),
-        renderable.meshesWithAlpha.begin(),
-        renderable.meshesWithAlpha.end()
+    r->meshes.insert(
+        r->meshes.end(),
+        r->meshesWithAlpha.begin(),
+        r->meshesWithAlpha.end()
     );
-    renderable.meshesWithAlpha.clear();
+    r->meshesWithAlpha.clear();
 
     loadingMutex.lock();
-    renderable.loadState = Renderable::LoadState::WaitingToFinalize;
+    r->loadState = Renderable::LoadState::WaitingToFinalize;
     loadingMutex.unlock();
 }
 
 void GLTFLoader::traverseNodes(
-    Renderable & renderable, 
+    Renderable * r,
     tinygltf::Model const & model, 
     glm::mat4 parentMat,
     std::vector<int> const & nodes, 
@@ -219,15 +223,15 @@ void GLTFLoader::traverseNodes(
         if (node.mesh >= 0) {
             tinygltf::Mesh const & mesh = model.meshes[node.mesh];
             for (size_t p = 0; p < mesh.primitives.size(); ++p) {
-                processPrimitive(renderable, model, mesh.primitives[p], mat);
+                processPrimitive(r, model, mesh.primitives[p], mat);
             }
         }
-        traverseNodes(renderable, model, mat, node.children, level+1);
+        traverseNodes(r, model, mat, node.children, level+1);
     }
 }
 
 void GLTFLoader::processPrimitive(
-    Renderable & renderable, 
+    Renderable * r,
     tinygltf::Model const & model, 
     tinygltf::Primitive const & primitive,
     glm::mat4 mat
@@ -236,7 +240,7 @@ void GLTFLoader::processPrimitive(
 
     // make one "Mesh" for every primitive
     Mesh mesh;
-    mesh.renderableKey = renderable.key;
+    mesh.renderableKey = r->key;
 
     // will sort into seperate vector, then merge into sorted vector afterwards
     bool hasAlpha = false;
@@ -256,7 +260,7 @@ void GLTFLoader::processPrimitive(
     }
     tinygltf::BufferView const & indexBV = model.bufferViews[indexAcc.bufferView];
     // byte_t const * indexData = model.buffers[indexBV.buffer].data.data();
-    auto indices_temp = (unsigned short *)(renderable.buffer + indexAcc.byteOffset + indexBV.byteOffset);
+    auto indices_temp = (unsigned short *)(r->buffer + indexAcc.byteOffset + indexBV.byteOffset);
     // fprintf(stderr, "TRIANGLES!!!!\n");
     // for (size_t i = 0; i < indexAcc.count / 3; ++i) {
     //     unsigned short * d = indices_temp + i * 3;
@@ -388,7 +392,7 @@ void GLTFLoader::processPrimitive(
             layout.add(ai.type, ai.compCount, ai.compType);
             layout.end();
 
-            auto ref = bgfx::makeRef(renderable.buffer + ai.offset, ai.byteSize);
+            auto ref = bgfx::makeRef(r->buffer + ai.offset, ai.byteSize);
             auto vbuf = bgfx::createVertexBuffer(ref, layout);
 
             // add a vbuf
@@ -410,10 +414,10 @@ void GLTFLoader::processPrimitive(
     }
 
     if (hasAlpha){
-        renderable.meshesWithAlpha.push_back(mesh);
+        r->meshesWithAlpha.push_back(mesh);
     }
     else {
-        renderable.meshes.push_back(mesh);
+        r->meshes.push_back(mesh);
     }
 }
 

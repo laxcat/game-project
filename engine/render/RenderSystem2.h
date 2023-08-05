@@ -64,4 +64,8 @@ private:
     
     bool destroy(char const * key);
     void reset(char const * key);
+
+    #if DEV_INTERFACE
+    friend class Editor;
+    #endif // DEV_INTERFACE
 };

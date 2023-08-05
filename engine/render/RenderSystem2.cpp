@@ -257,7 +257,7 @@ Renderable * RenderSystem::create(bgfx::ProgramHandle program, char const * key)
 }
 
 Renderable * RenderSystem::createFromGLTF(char const * filename, char const * key) { 
-    printc(ShowRenderDbg, "Attempting to load for key(%s) : %s.\n", key, relPath(filename));
+    printc(ShowRenderDbg, "Attempting to load for key(%s) : %s.\n", key, filename);
     // if this key is already loading somewhere, kill this load request
     if (!isKeySafeToDrawOrLoad(key)) {
         printc(ShowRenderDbg, "at(%s)->isSafeToDraw = %d", key, at(key)->isSafeToDraw);
@@ -279,13 +279,18 @@ Renderable * RenderSystem::createFromGLTF(char const * filename, char const * ke
         }
     }
 
+    #if DEV_INTERFACE
+    printl("setting filename %s", filename);
+    r->path = filename;
+    printl("set filename %s, %s", r->path.full, r->path.filename);
+    #endif // DEV_INTERFACE
     r->isSafeToDraw = false;
 
     // !!!
     // spawns thread by emplacing in std::unordered_map<Renderable *, std::thread>
     // will be joined by RenderSystem::draw when load complete detected
     loadingThreads.emplace(r, [=]{
-        gltfLoader.load(filename, *r);
+        gltfLoader.load(r);
     });
 
     return r;

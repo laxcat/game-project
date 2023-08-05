@@ -5,6 +5,7 @@
 #include "../MrManager.h"
 #include "OriginWidget.h"
 #include "../memory/mem_utils.h"
+#include "../render/Renderable2.h"
 
 // ImGuiTreeNodeFlags_DefaultOpen
 using namespace ImGui;
@@ -15,8 +16,6 @@ void Editor::init() {
     memEdit.OptShowDataPreview = true;
     // memEdit.ReadOnly = true;
     // memEdit.OptAddrDigitsCount = 4;
-
-    gltfSlots = mm.memMan.createArray<GLTFSlot>(100);
 }
 
 void Editor::tick() {
@@ -36,7 +35,7 @@ void Editor::tick() {
     guiLighting();
     guiCamera();
     guiHelpers();
-    guiGLTFs();
+    guiRenderables();
     guiFog();
     guiColors();
     guiMem();
@@ -217,8 +216,8 @@ void Editor::guiCamera() {
 
 void Editor::guiHelpers() {
     if (CollapsingHeader("Helpers")) {
-        try { 
-            auto r = mm.rendSys.at(Renderable::OriginWidgetKey);
+        auto r = mm.rendSys.at(Renderable::OriginWidgetKey);
+        if (r != nullptr) {
             Checkbox("Show Origin Widget", &r->instances[0].active);
             if (r->instances[0].active) {
                 SameLine();
@@ -229,47 +228,31 @@ void Editor::guiHelpers() {
                 }
                 ColorEdit3("base color", (float *)&r->materials[0].baseColor, ImGuiColorEditFlags_DisplayHex);
             }
-        } catch (...) {}
-        // try { 
-        //     auto r = mm.rendSys.at(Renderable::GlobalLightWidgetKey);
-        //     Checkbox("Show Global Light Widget", &r->active);
-        //     if (r->active) {
-        //         float scale = GlobalLightWidget::scale;
-        //         glm::vec3 pos = GlobalLightWidget::pos;
-        //         SliderFloat3("position", (float *)&GlobalLightWidget::pos, -20.0f, 20.0f, "%.3f");
-        //         SliderFloat("scale##globallight", &GlobalLightWidget::scale, 1.0f, 20.0f, "%.3f");
-        //         if (scale != GlobalLightWidget::scale || pos != GlobalLightWidget::pos) {
-        //             GlobalLightWidget::updateModel();
-        //         }
-        //     }
-        // } catch (...) {}
-        
-        // wireframe moved to "debug state"
-        // auto temp = bgfxDebug.capture();
-        // Checkbox("Show Wireframe", &bgfxDebug.wireframe);
-        // bgfxDebug.update(temp);
-        // Dummy(ImVec2(0.0f, 20.0f));
+        }
     }    
 }
 
-void Editor::guiGLTFs() {
-    if (CollapsingHeader("GLTFs")) {
-        size_t slotCount = gltfSlots->size();
-        for (size_t i = 0; i < slotCount; ++i) {
-            guiGLTF(gltfSlots->data()[i]);
+void Editor::guiRenderables() {
+    if (CollapsingHeader("Renderables", ImGuiTreeNodeFlags_DefaultOpen)) {
+
+        for (auto n : mm.rendSys.pool) {
+            guiRenderable((Renderable *)n->ptr);
         }
 
-        if (gltfSlots->size() < gltfSlots->maxSize()) {
-            static char newLabel[64];
-            PushItemWidth(200);
-            InputText("GLTF Slot", newLabel, 64, ImGuiInputTextFlags_CharsNoBlank);
+
+        // size_t slotCount = gltfSlots->size();
+        // for (size_t i = 0; i < slotCount; ++i) {
+        //     guiRenderable(gltfSlots->data()[i]);
+        // }
+
+        if (mm.rendSys.pool->isFull() == false) {
+            static char newLabel[CharKeys::KEY_MAX];
+            PushItemWidth(120);
+            InputText("Renderable Slot", newLabel, CharKeys::KEY_MAX, ImGuiInputTextFlags_CharsNoBlank);
             PopItemWidth();
             SameLine();
             if (Button("Create New") && strlen(newLabel)) {
-                static size_t nextKey = 0;
-                char * newKey = mm.frameFormatStr("editorLoaded_%03zu", nextKey++);
-                gltfSlots->append({newLabel, newKey});
-                newLabel[0] = '\0';
+                mm.rendSys.create(mm.rendSys.gltfProgram, newLabel);
             }
         }
 
@@ -278,30 +261,33 @@ void Editor::guiGLTFs() {
 
 }
 
-void Editor::guiGLTF(GLTFSlot & slot) {
+void Editor::guiRenderable(Renderable * r) {
     // print("guiGLTF KEY (%p) %s\n", slot.key, slot.key);
 
-    PushID(slot.key);
+    PushID(r);
 
-    bool ready = mm.rendSys.isKeySafeToDrawOrLoad(slot.key);
-    bool keyExistsInRender = mm.rendSys.keyExists(slot.key);
+    bool ready = mm.rendSys.isKeySafeToDrawOrLoad(r->key);
+    bool isLoaded = r->path.isSet();
+    bool keyExistsInRender = mm.rendSys.keyExists(r->key);
 
-    TextUnformatted(slot.label);
+    TextUnformatted(r->key);
+
+    Indent();
 
     BeginDisabled(!ready);
 
     char buttonLabel[100];
-    sprintf(buttonLabel, "%s GLTF###loadButton", keyExistsInRender ? "Swap":"Load");
+    sprintf(buttonLabel, "%s GLTF###loadButton", isLoaded ? "Swap":"Load");
     if (Button(buttonLabel)) {
         nfdchar_t * outPath = NULL;
         nfdresult_t result = NFD_OpenDialog(NULL, "/Users/Shared/Dev/gltf_assets", &outPath);
 
-        printl("GLTF %s FOR KEY: %s", keyExistsInRender ? "SWAP":"LOAD", slot.key);
+        printl("GLTF %s FOR KEY: %s", isLoaded ? "SWAP":"LOAD", r->key);
 
         if (result == NFD_OKAY) {
-            slot.path = outPath;
-            mm.rendSys.createFromGLTF(slot.path.full, slot.key);
+            mm.rendSys.createFromGLTF(outPath, r->key);
             free(outPath);
+            printl("path after release %s", r->path);
         }
         else if (result == NFD_CANCEL) {
         }
@@ -313,9 +299,8 @@ void Editor::guiGLTF(GLTFSlot & slot) {
     if (keyExistsInRender) {
         // printl("keyExistsInRender %s", slot.key);
         SameLine();
-        TextUnformatted(ready ? slot.path.filename : "loading");
+        TextUnformatted(ready ? r->path.filename : "loading");
 
-        auto r = mm.rendSys.at(slot.key);
         bool rotx = r->adjRotAxes[0];
         bool roty = r->adjRotAxes[1];
         bool rotz = r->adjRotAxes[2];
@@ -376,9 +361,9 @@ void Editor::guiGLTF(GLTFSlot & slot) {
         EndDisabled();
     }
     EndDisabled();
-    Separator();
-
+    Unindent();
     PopID();
+    Separator();
 }
 
 void Editor::guiFog() {

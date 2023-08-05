@@ -1,25 +1,26 @@
 #pragma once
 #include <mutex>
 #include <glm/mat4x4.hpp>
-#include "Renderable2.h"
+#include <tiny_gltf.h>
 
+class Renderable;
 
 class GLTFLoader {
 public:
     std::mutex loadingMutex;
 
-    void load(char const * filename, Renderable & renderable);
+    void load(Renderable * renderable);
 
 private:
     void traverseNodes(
-        Renderable & renderable, 
+        Renderable * r,
         tinygltf::Model const & model, 
         glm::mat4 mat, 
         std::vector<int> const & nodes, 
         int level);
     
     void processPrimitive(
-        Renderable & renderable, 
+        Renderable * r,
         tinygltf::Model const & model, 
         tinygltf::Primitive const & primitive,
         glm::mat4 mat

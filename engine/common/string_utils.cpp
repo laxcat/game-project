@@ -1,13 +1,7 @@
 #include "string_utils.h"
-#include <filesystem>
 #include <stb_image.h>
 #include "../MrManager.h"
 #include "modp_b64.h"
-
-char const * relPath(char const * path) {
-    auto rel = std::filesystem::relative(path);
-    return mm.frameStack->formatStr("%s", rel.c_str());
-}
 
 void setName(char * dest, char const * name, int size) {
     if (size == 0) return;

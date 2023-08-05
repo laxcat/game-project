@@ -4,7 +4,9 @@
 #include <tiny_gltf.h>
 #include <glm/mat4x4.hpp>
 #include <glm/ext/matrix_transform.hpp>
+#include "../common/debug_defines.h"
 #include "../memory/CharKeys.h"
+#include "../memory/File.h"
 #include "Mesh.h"
 #include "Image.h"
 
@@ -22,6 +24,10 @@ public:
     // handled or required by rendersys
     // bool active = false;
     char key[CharKeys::KEY_MAX] = "";
+    #if DEV_INTERFACE
+    File::Path path;
+    #endif // DEV_INTERFACE
+
     bgfx::ProgramHandle program;
     std::vector<Image> images;
     std::vector<bgfx::TextureHandle> textures;

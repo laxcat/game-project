@@ -1,7 +1,7 @@
 #pragma once
 #include <stddef.h>
-#include "../memory/File.h"
-#include "../memory/Array.h"
+
+class Renderable;
 
 class MemEditWindow {
 public:
@@ -25,16 +25,6 @@ public:
 class Editor {
 public:
 
-    struct GLTFSlot {
-        char label[64];
-        char key[64];
-        File::Path path;
-        GLTFSlot(char const * label, char const * key) {
-            snprintf(this->label, 64, "%s", label);
-            snprintf(this->key, 64, "%s", key);
-        }
-    };
-
     void init();
 
     void tick();
@@ -44,8 +34,8 @@ public:
     void guiLighting();
     void guiCamera();
     void guiHelpers();
-    void guiGLTFs();
-    void guiGLTF(GLTFSlot & slot);
+    void guiRenderables();
+    void guiRenderable(Renderable * r);
     void guiFog();
     void guiColors();
     void guiMem();
@@ -59,5 +49,4 @@ public:
 
     MemEditWindow memWin;
 
-    Array<GLTFSlot> * gltfSlots;
 };
