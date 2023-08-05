@@ -11,13 +11,7 @@
 #include "RenderSettings.h"
 #include "Samplers.h"
 #include "Texture.h"
-#include "../common/KeyedPool.h"
 #include "../memory/MemMan.h"
-
-
-using RenderableIterator = KeyedPool<std::string, Renderable>::Iterator;
-
-class CharKeys;
 
 class RenderSystem {
 public:
@@ -55,10 +49,9 @@ public:
     void showStatus();
     void showMoreStatus(char const * prefix = "");
 
-    size_t renderableCount() const { return renderablePool.size(); };
+    size_t renderableCount() const;
 
 private:
-    KeyedPool<std::string, Renderable> renderablePool;
     GLTFLoader gltfLoader;
     std::unordered_map<Renderable *, std::thread> loadingThreads;
     bgfx::UniformHandle materialBaseColor;
@@ -69,6 +62,6 @@ private:
 
     CharKeys * newPool = nullptr;
     
-    RenderableIterator destroy(char const * key);
+    bool destroy(char const * key);
     void reset(char const * key);
 };

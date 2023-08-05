@@ -127,6 +127,8 @@ public:
     // GENERIC ALLOCATION
     // copys request param into request block, then executes request
     void * request(Request const & newRequest);
+    template <typename T, typename ... TS>
+    T * create(TS && ... params);
 
     // SPECIAL BLOCK OBJ CREATION
     FrameStack * createFrameStack(size_t size);
@@ -249,4 +251,14 @@ Pool<T> * MemMan::createPool(size_t size) {
     if (!block) return nullptr;
     block->_type = MEM_BLOCK_POOL;
     return new (block->data()) Pool<T>{size};
+}
+
+template <typename T, typename ... TS>
+T * MemMan::create(TS && ... params) {
+    guard_t guard{_mainMutex};
+
+    BlockInfo * block = create(sizeof(T) + T::DataSize());
+    if (!block) return nullptr;
+    block->_type = MEM_BLOCK_EXTERNAL;
+    return new (block->data()) T{static_cast<TS &&>(params)...};
 }

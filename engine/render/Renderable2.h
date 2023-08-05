@@ -4,6 +4,7 @@
 #include <tiny_gltf.h>
 #include <glm/mat4x4.hpp>
 #include <glm/ext/matrix_transform.hpp>
+#include "../memory/CharKeys.h"
 #include "Mesh.h"
 #include "Image.h"
 
@@ -14,11 +15,13 @@ class Renderable final {
 public:
     friend class RenderSystem;
 
+    constexpr static size_t DataSize() { return 0; }
+
     enum class LoadState {Loading, WaitingToFinalize, NotLoading, FailedToLoad};
 
     // handled or required by rendersys
     // bool active = false;
-    char key[32] = "";
+    char key[CharKeys::KEY_MAX] = "";
     bgfx::ProgramHandle program;
     std::vector<Image> images;
     std::vector<bgfx::TextureHandle> textures;

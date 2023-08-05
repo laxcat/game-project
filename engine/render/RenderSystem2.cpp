@@ -64,13 +64,12 @@ void RenderSystem::draw() {
 
     size_t submitCount = 0;
 
-    auto rit = renderablePool.begin();
-    while (rit != renderablePool.end()) {
-        auto & r = *rit;
+    // for each renderable
+    for (auto node : newPool) {
+        auto & r = *(Renderable *)node->ptr;
 
         // skip if ready to draw but not active
         if (!r.hasActiveInstance() && r.isSafeToDraw) {
-            ++rit;
             continue;
         }
 
@@ -86,7 +85,6 @@ void RenderSystem::draw() {
             // if renderable is loading, skip draw
             auto foundLoadState = Renderable::LoadState::NotLoading;
             if (isRenderableLoading(r, foundLoadState)) {
-                ++rit;
                 continue;
             }
             // done loading, finalize renderable, join threads
@@ -104,7 +102,7 @@ void RenderSystem::draw() {
                 printc(ShowRenderDbg, "FAILING TO LOAD\n");
                 loadingThreads.at(&r).join();
                 loadingThreads.erase(&r);
-                rit = destroy(r.key);
+                destroy(r.key);
                 continue;
             }
         }
@@ -189,10 +187,8 @@ void RenderSystem::draw() {
                 // restor any ignored lights
                 // lights.restorePointGlobalStrength(maxIgnoredPointLight);
             }
-        }
-
-        ++rit;
-    }
+        } // for each instance
+    } // for each renderable
 
     if (!submitCount) {
         bgfx::touch(mm.mainView);
@@ -204,10 +200,11 @@ void RenderSystem::draw() {
 }
 
 void RenderSystem::shutdown() {
-    auto it = renderablePool.begin();
-    while (it != renderablePool.end()) {
-        it = destroy(it->key);
+    for (auto node : newPool) {
+        mm.memMan.request({.ptr=node->ptr, .size=0});
     }
+    mm.memMan.request({.ptr=newPool, .size=0});
+
     bgfx::destroy(gltfProgram);
     bgfx::destroy(unlitProgram);
     for (auto & t : loadingThreads) {
@@ -241,16 +238,22 @@ Renderable * RenderSystem::create(bgfx::ProgramHandle program, char const * key)
         return nullptr;
     }
 
-    auto rit = renderablePool.create(key);
-    Renderable & renderable = *rit;
-    size_t index = rit - renderablePool.begin();
-    printc(ShowRenderDbg, "CREATING AT %zu (%s, %p)\n", index, key, &renderable);
-    renderable.program = program;
-    renderable.key[0] = '\0', strncat(renderable.key, key, 31);
-    renderable.resetInstances(1);
+    // create renderable and map to location
+    Renderable * rptr = mm.memMan.create<Renderable>();
+    CharKeys::Status status = newPool->insert(key, rptr);
+    if (status != CharKeys::SUCCESS) {
+        printc(ShowRenderDbg, "Problem adding renderable pointer to pool.\n");
+        return nullptr;
+    }
+    Renderable & r = *rptr;
+
+    printc(ShowRenderDbg, "CREATING %s AT %p\n", key, rptr);
+    r.program = program;
+    fixstrcpy<CharKeys::KEY_MAX>(r.key, key);
+    r.resetInstances(1);
 
     showMoreStatus("(AFTER CREATE)");
-    return &renderable;
+    return &r;
 }
 
 Renderable * RenderSystem::createFromGLTF(char const * filename, char const * key) { 
@@ -289,33 +292,36 @@ Renderable * RenderSystem::createFromGLTF(char const * filename, char const * ke
 }
 
 Renderable * RenderSystem::at(char const * key) {
-    return &renderablePool.at(key);
+    return (Renderable *)newPool->ptrForKey(key);
 }
 
-RenderableIterator RenderSystem::destroy(char const * key) {
-    printc(ShowRenderDbg, "Destroying renderable(%s, %zu).\n", key);
-    if (!renderablePool.contains(key)) {
+bool RenderSystem::destroy(char const * key) {
+    printc(ShowRenderDbg, "Destroying renderable(%s).\n", key);
+    if (!newPool->hasKey(key)) {
         printc(ShowRenderDbg, "WARNING: did not destroy renderable. Key not found.");
-        return renderablePool.end();
+        return false;
     }
 
     showMoreStatus("(BEFORE DESTROY)");
 
+    Renderable * r = at(key);
+
     // reset the renderable object slot
     // frees a bunch of stuff so don't foreget it!
     reset(key);
-    renderablePool.at(key).resetInstances(0);
+    r->resetInstances(0);
 
     // delete the renderable in the pool
-    auto nextIt = renderablePool.erase(key);
+    newPool->remove(key);
+    mm.memMan.request({.ptr=r, .size=0});
 
     showMoreStatus("(AFTER DESTROY)");
 
-    return nextIt;
+    return true;
 }
 
 void RenderSystem::reset(char const * key) {
-    auto & r = renderablePool.at(key);
+    auto & r = *at(key);
 
     // foreach mesh
     auto handleM = [](Mesh & m) {
@@ -359,7 +365,7 @@ void RenderSystem::reset(char const * key) {
 //
 
 bool RenderSystem::keyExists(char const * key) {
-    return renderablePool.contains(key);
+    return newPool->hasKey(key);
 }
 
 bool RenderSystem::isKeySafeToDrawOrLoad(char const * key) {
@@ -384,12 +390,20 @@ bool RenderSystem::isRenderableLoading(Renderable const & r, Renderable::LoadSta
 }
 
 void RenderSystem::showStatus() {
-    printc(ShowRenderDbg, "RENDERABLE COUNT: %zu\n", renderablePool.size());
+    printc(ShowRenderDbg, "RENDERABLE COUNT: %zu\n", newPool->nNodes());
 }
 
 void RenderSystem::showMoreStatus(char const * prefix) {
     if (strcmp(prefix, "")) {
         printc(ShowRenderDbg, "%s ", prefix);
     }
-    printc(ShowRenderDbg, "RENDERABLEPOOL: %s\n", renderablePool.toString().c_str());
+    if constexpr (ShowRenderDbg) {
+        char * buf = mm.frameStr(1024);
+        newPool->printToBuf(buf, 1024);
+        printc(ShowRenderDbg, "RENDERABLEPOOL: \n%s\n", buf);
+    }
+}
+
+size_t RenderSystem::renderableCount() const {
+    return newPool->nNodes();
 }
