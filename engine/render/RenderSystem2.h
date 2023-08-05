@@ -60,7 +60,7 @@ private:
     Texture whiteTexture;
     BXAllocator bxAllocator;
 
-    CharKeys * newPool = nullptr;
+    CharKeys * pool = nullptr;
     
     bool destroy(char const * key);
     void reset(char const * key);

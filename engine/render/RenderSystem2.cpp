@@ -43,7 +43,7 @@ void RenderSystem::init() {
     materialPBRValues = bgfx::createUniform("u_materialPBRValues",  bgfx::UniformType::Vec4);
     normModel = bgfx::createUniform("u_normModel", bgfx::UniformType::Mat3);
 
-    newPool = mm.memMan.createCharKeys(8);
+    pool = mm.memMan.createCharKeys(8);
 
     byte_t data[] = {
         255,255,255,255,
@@ -65,7 +65,7 @@ void RenderSystem::draw() {
     size_t submitCount = 0;
 
     // for each renderable
-    for (auto node : newPool) {
+    for (auto node : pool) {
         auto & r = *(Renderable *)node->ptr;
 
         // skip if ready to draw but not active
@@ -200,10 +200,10 @@ void RenderSystem::draw() {
 }
 
 void RenderSystem::shutdown() {
-    for (auto node : newPool) {
+    for (auto node : pool) {
         mm.memMan.request({.ptr=node->ptr, .size=0});
     }
-    mm.memMan.request({.ptr=newPool, .size=0});
+    mm.memMan.request({.ptr=pool, .size=0});
 
     bgfx::destroy(gltfProgram);
     bgfx::destroy(unlitProgram);
@@ -240,7 +240,7 @@ Renderable * RenderSystem::create(bgfx::ProgramHandle program, char const * key)
 
     // create renderable and map to location
     Renderable * rptr = mm.memMan.create<Renderable>();
-    CharKeys::Status status = newPool->insert(key, rptr);
+    CharKeys::Status status = pool->insert(key, rptr);
     if (status != CharKeys::SUCCESS) {
         printc(ShowRenderDbg, "Problem adding renderable pointer to pool.\n");
         return nullptr;
@@ -292,12 +292,12 @@ Renderable * RenderSystem::createFromGLTF(char const * filename, char const * ke
 }
 
 Renderable * RenderSystem::at(char const * key) {
-    return (Renderable *)newPool->ptrForKey(key);
+    return (Renderable *)pool->ptrForKey(key);
 }
 
 bool RenderSystem::destroy(char const * key) {
     printc(ShowRenderDbg, "Destroying renderable(%s).\n", key);
-    if (!newPool->hasKey(key)) {
+    if (!pool->hasKey(key)) {
         printc(ShowRenderDbg, "WARNING: did not destroy renderable. Key not found.");
         return false;
     }
@@ -312,7 +312,7 @@ bool RenderSystem::destroy(char const * key) {
     r->resetInstances(0);
 
     // delete the renderable in the pool
-    newPool->remove(key);
+    pool->remove(key);
     mm.memMan.request({.ptr=r, .size=0});
 
     showMoreStatus("(AFTER DESTROY)");
@@ -365,7 +365,7 @@ void RenderSystem::reset(char const * key) {
 //
 
 bool RenderSystem::keyExists(char const * key) {
-    return newPool->hasKey(key);
+    return pool->hasKey(key);
 }
 
 bool RenderSystem::isKeySafeToDrawOrLoad(char const * key) {
@@ -390,7 +390,7 @@ bool RenderSystem::isRenderableLoading(Renderable const & r, Renderable::LoadSta
 }
 
 void RenderSystem::showStatus() {
-    printc(ShowRenderDbg, "RENDERABLE COUNT: %zu\n", newPool->nNodes());
+    printc(ShowRenderDbg, "RENDERABLE COUNT: %zu\n", pool->nNodes());
 }
 
 void RenderSystem::showMoreStatus(char const * prefix) {
@@ -399,11 +399,11 @@ void RenderSystem::showMoreStatus(char const * prefix) {
     }
     if constexpr (ShowRenderDbg) {
         char * buf = mm.frameStr(1024);
-        newPool->printToBuf(buf, 1024);
+        pool->printToBuf(buf, 1024);
         printc(ShowRenderDbg, "RENDERABLEPOOL: \n%s\n", buf);
     }
 }
 
 size_t RenderSystem::renderableCount() const {
-    return newPool->nNodes();
+    return pool->nNodes();
 }
