@@ -1,17 +1,10 @@
 #include "CharKeys.h"
 #include <new>
+#include "../common/string_utils.h"
 // #include "../dev/print.h"
 
 void CharKeys::Node::setKey(char const * key) {
-    for (size_t i = 0; i < KEY_MAX; ++i) {
-        this->key[i] = key[i];
-        if (key[i] == '\0') {
-            // printl("broke early");
-            return;
-        }
-    }
-    // printl("setting key[%zu] to null (was %c)", KEY_MAX-1, this->key[KEY_MAX-1]);
-    this->key[KEY_MAX-1] = '\0';
+    fixstrcpy<KEY_MAX>(this->key, key);
 }
 
 CharKeys::Iterator::Iterator(CharKeys::Node * node) : _node(node) {}

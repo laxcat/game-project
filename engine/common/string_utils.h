@@ -25,3 +25,27 @@ struct ImageData {
 };
 ImageData loadImageBase64(char const * data, size_t length);
 
+template <size_t MAX>
+void fixstrcpy(char * dst, char const * src) {
+    // if even multiple of 8 bytes, copy as 8-byte chunks
+    // TODO: this could be changed to copy chunks for all strings longer than 8
+    // bytes, even if not a multiple of 8. (do as many chucks as possible, then
+    // fill in the rest, etc.)
+    if constexpr (MAX % 8 == 0) {
+        constexpr size_t N_CHUNKS = MAX / 8;
+        for (size_t i = 0; i < N_CHUNKS; ++i) {
+            ((uint64_t *)dst)[i] = ((uint64_t *)src)[i];
+        }
+    }
+    // otherwise copy byte by byte, potentially returning early
+    else {
+        for (size_t i = 0; i < MAX; ++i) {
+            dst[i] = src[i];
+            if (src[i] == '\0') {
+                return;
+            }
+        }
+    }
+    // place final null byte
+    dst[MAX-1] = '\0';
+}
