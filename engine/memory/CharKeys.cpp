@@ -103,6 +103,54 @@ bool CharKeys::isFull() const {
     return pool()->isFull();
 }
 
+void CharKeys::printToBuf(char * out, size_t size) const {
+    char * pen = out;
+    int written;
+    for (size_t i = 0; i < _size; ++i) {
+        if (i == 0) {
+            written = snprintf(pen, size, "|----------------");
+        }
+        else {
+            written = snprintf(pen, size, "+----------------");
+        }
+        size -= written;
+        pen += written;
+    }
+    written = snprintf(pen, size, "|\n");
+    size -= written;
+    pen += written;
+    for (size_t i = 0; i < _size; ++i) {
+        auto & n = pool()->dataItems()[i];
+        written = snprintf(pen, size, "|%-16s", n.key);
+        size -= written;
+        pen += written;
+    }
+    written = snprintf(pen, size, "|\n");
+    size -= written;
+    pen += written;
+    for (size_t i = 0; i < _size; ++i) {
+        auto & n = pool()->dataItems()[i];
+        written = snprintf(pen, size, "|%-16p", n.ptr);
+        size -= written;
+        pen += written;
+    }
+    written = snprintf(pen, size, "|\n");
+    size -= written;
+    pen += written;
+    for (size_t i = 0; i < _size; ++i) {
+        if (i == 0) {
+            written = snprintf(pen, size, "|----------------");
+        }
+        else {
+            written = snprintf(pen, size, "+----------------");
+        }
+        size -= written;
+        pen += written;
+    }
+    snprintf(pen, size, "|");
+}
+
+
 CharKeys::Node * CharKeys::nodeForKey(char const * key) {
     return search(key);
 }

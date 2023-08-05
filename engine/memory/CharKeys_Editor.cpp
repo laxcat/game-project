@@ -139,7 +139,7 @@ void CharKeys::editorEditBlock() {
 
     // list keys
     TextUnformatted("Key list");
-    for (Node const * n : *this) {
+    for (auto n : this) {
         Text("%s,", n->key);
         SameLine();
     }

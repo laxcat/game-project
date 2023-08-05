@@ -90,6 +90,10 @@ public:
     Iterator begin() const;
     Iterator end() const;
 
+    #if DEBUG
+    void printToBuf(char * out, size_t size) const;
+    #endif // DEBUG
+
     // STORAGE
 private:
     size_t _size;
@@ -128,3 +132,10 @@ private:
     void drawTree(Node * n);
     #endif // DEV_INTERFACE
 };
+
+inline CharKeys::Iterator begin(CharKeys const * keys) {
+    return keys->begin();
+}
+inline CharKeys::Iterator end(CharKeys const * keys) {
+    return keys->end();
+}
