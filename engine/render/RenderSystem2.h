@@ -45,7 +45,7 @@ public:
     //
     bool keyExists(char const * key);
     bool isKeySafeToDrawOrLoad(char const * key);
-    bool isRenderableLoading(Renderable const & r, Renderable::LoadState & foundLoadState);
+    bool isRenderableLoading(Renderable const * r, Renderable::LoadState & foundLoadState);
     void showStatus();
     void showMoreStatus(char const * prefix = "");
 
@@ -53,7 +53,7 @@ public:
 
 private:
     GLTFLoader gltfLoader;
-    std::unordered_map<Renderable *, std::thread> loadingThreads;
+    std::unordered_map<Renderable const *, std::thread> loadingThreads;
     bgfx::UniformHandle materialBaseColor;
     bgfx::UniformHandle materialPBRValues;
     bgfx::UniformHandle normModel;
@@ -63,7 +63,7 @@ private:
     CharKeys * pool = nullptr;
     
     bool destroy(char const * key);
-    void reset(char const * key);
+    void reset(Renderable * r);
 
     #if DEV_INTERFACE
     friend class Editor;

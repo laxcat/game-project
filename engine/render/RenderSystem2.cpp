@@ -66,10 +66,10 @@ void RenderSystem::draw() {
 
     // for each renderable
     for (auto node : pool) {
-        auto & r = *(Renderable *)node->ptr;
+        auto r = (Renderable *)node->ptr;
 
         // skip if ready to draw but not active
-        if (!r.hasActiveInstance() && r.isSafeToDraw) {
+        if (!r->hasActiveInstance() && r->isSafeToDraw) {
             continue;
         }
 
@@ -77,11 +77,11 @@ void RenderSystem::draw() {
             "----------------------------------------\n"
             "RENDERABLE %s (%p)\n"
             "----------------------------------------\n",
-            r.key, r.key
+            r->key, r->key
         );
 
         // is loading
-        if (!r.isSafeToDraw) {
+        if (!r->isSafeToDraw) {
             // if renderable is loading, skip draw
             auto foundLoadState = Renderable::LoadState::NotLoading;
             if (isRenderableLoading(r, foundLoadState)) {
@@ -90,19 +90,19 @@ void RenderSystem::draw() {
             // done loading, finalize renderable, join threads
             else if (foundLoadState == Renderable::LoadState::WaitingToFinalize) {
                 gltfLoader.loadingMutex.lock();
-                r.loadState = Renderable::LoadState::NotLoading;
+                r->loadState = Renderable::LoadState::NotLoading;
                 gltfLoader.loadingMutex.unlock();
-                r.isSafeToDraw = true;
+                r->isSafeToDraw = true;
 
-                loadingThreads.at(&r).join();
-                loadingThreads.erase(&r);
-                printc(ShowRenderDbg, "Finished loading renderable %p\n", &r);
+                loadingThreads.at(r).join();
+                loadingThreads.erase(r);
+                printc(ShowRenderDbg, "Finished loading renderable %p\n", r);
             }
             else if (foundLoadState == Renderable::LoadState::FailedToLoad) {
                 printc(ShowRenderDbg, "FAILING TO LOAD\n");
-                loadingThreads.at(&r).join();
-                loadingThreads.erase(&r);
-                destroy(r.key);
+                loadingThreads.at(r).join();
+                loadingThreads.erase(r);
+                reset(r);
                 continue;
             }
         }
@@ -114,8 +114,8 @@ void RenderSystem::draw() {
         // !!!
 
         // draw model instances... not using GPU intancing (but it could be optimized to do so!)
-        for (size_t i = 0, e = r.instances.size(); i < e; ++i) {
-            auto const & instance = r.instances[i];
+        for (size_t i = 0, e = r->instances.size(); i < e; ++i) {
+            auto const & instance = r->instances[i];
             // skip if not active
             if (!instance.active) continue;
 
@@ -127,7 +127,7 @@ void RenderSystem::draw() {
             );
 
             // draw meshes
-            for (auto const & mesh : r.meshes) {
+            for (auto const & mesh : r->meshes) {
 
                 printc(ShowRenderDbgTick, 
                     "----------\n"
@@ -137,8 +137,8 @@ void RenderSystem::draw() {
                 );
 
                 if constexpr (ShowRenderDbg) {
-                    if (mesh.renderableKey == nullptr || strcmp(mesh.renderableKey, r.key) != 0) {
-                        print("WARNING! Key not set on mesh in %s\n", r.key);
+                    if (mesh.renderableKey == nullptr || strcmp(mesh.renderableKey, r->key) != 0) {
+                        print("WARNING! Key not set on mesh in %s\n", r->key);
                     }
                 }
 
@@ -156,7 +156,7 @@ void RenderSystem::draw() {
 
                 // set textures
                 if (mesh.images.color >= 0) {
-                    bgfx::setTexture(0, samplers.color, r.textures[mesh.images.color]);
+                    bgfx::setTexture(0, samplers.color, r->textures[mesh.images.color]);
                 }
                 else {
                     bgfx::setTexture(0, samplers.color, whiteTexture.handle);
@@ -170,7 +170,7 @@ void RenderSystem::draw() {
                 bgfx::setUniform(materialPBRValues, &material.pbrValues);
 
                 // get this meshes's final model
-                auto model = instance.model * r.adjRotModel * mesh.model;
+                auto model = instance.model * r->adjRotModel * mesh.model;
                 bgfx::setTransform((float *)&model);
 
                 // make a reduced version of the rotation for the shader normals
@@ -181,7 +181,7 @@ void RenderSystem::draw() {
                 lights.ignorePointLights(instance.ignorePointLights);
 
                 // submit
-                bgfx::submit(mm.mainView, r.program);
+                bgfx::submit(mm.mainView, r->program);
                 ++submitCount;
 
                 // restor any ignored lights
@@ -269,7 +269,7 @@ Renderable * RenderSystem::createFromGLTF(char const * filename, char const * ke
     Renderable * r;
     if (keyExists(key)) {
         r = at(key);
-        reset(key);
+        reset(r);
     }
     else {
         r = create(gltfProgram, key);
@@ -313,7 +313,7 @@ bool RenderSystem::destroy(char const * key) {
 
     // reset the renderable object slot
     // frees a bunch of stuff so don't foreget it!
-    reset(key);
+    reset(r);
     r->resetInstances(0);
 
     // delete the renderable in the pool
@@ -325,9 +325,7 @@ bool RenderSystem::destroy(char const * key) {
     return true;
 }
 
-void RenderSystem::reset(char const * key) {
-    auto & r = *at(key);
-
+void RenderSystem::reset(Renderable * r) {
     // foreach mesh
     auto handleM = [](Mesh & m) {
         for (auto vbuf : m.vbufs) {
@@ -337,32 +335,37 @@ void RenderSystem::reset(char const * key) {
             bgfx::destroy(m.ibuf);
         }
     };
-    for (auto & m : r.meshes) { handleM(m); }
-    for (auto & m : r.meshesWithAlpha) { handleM(m); }
-    r.meshes.clear();
-    r.meshesWithAlpha.clear();
+    for (auto & m : r->meshes) { handleM(m); }
+    for (auto & m : r->meshesWithAlpha) { handleM(m); }
+    r->meshes.clear();
+    r->meshesWithAlpha.clear();
 
-    if (r.buffer) {
-        free(r.buffer);
-        r.buffer = nullptr;
-        r.bufferSize = 0;
+    if (r->buffer) {
+        free(r->buffer);
+        r->buffer = nullptr;
+        r->bufferSize = 0;
     }
 
-    for (auto & image : r.images) {
+    for (auto & image : r->images) {
         if (image.data) {
             free(image.data);
             image.data = nullptr;
             image.dataSize = 0;
         }
     }
-    r.images.clear();
+    r->images.clear();
 
-    for (auto & texture : r.textures) {
+    for (auto & texture : r->textures) {
         bgfx::destroy(texture);
     }
-    r.textures.clear();
+    r->textures.clear();
 
-    r.materials.clear();
+    r->materials.clear();
+
+    r->loadState = Renderable::LoadState::NotLoading;
+    r->isSafeToDraw = true;
+
+    r->path = "";
 }
 
 // 
@@ -380,16 +383,16 @@ bool RenderSystem::isKeySafeToDrawOrLoad(char const * key) {
     return at(key)->isSafeToDraw;
 }
 
-bool RenderSystem::isRenderableLoading(Renderable const & r, Renderable::LoadState & foundLoadState) {
+bool RenderSystem::isRenderableLoading(Renderable const * r, Renderable::LoadState & foundLoadState) {
     // bail as early as possible
     if (loadingThreads.size() == 0 || 
-        !keyExists(r.key) || 
-        loadingThreads.count(at(r.key)) == 0
+        !keyExists(r->key) ||
+        loadingThreads.count(r) == 0
         ) {
         return false;
     }
     gltfLoader.loadingMutex.lock();
-    foundLoadState = r.loadState;
+    foundLoadState = r->loadState;
     gltfLoader.loadingMutex.unlock();
     return (foundLoadState == Renderable::LoadState::Loading);
 }
