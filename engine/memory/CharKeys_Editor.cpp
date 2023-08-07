@@ -1,5 +1,6 @@
 #include "CharKeys.h"
 #include "../common/imgui_bgfx_glfw/imgui_bgfx_glfw.h"
+#include "../common/imgui_bgfx_glfw/imgui_utils.h"
 #include "../MrManager.h"
 
 using namespace ImGui;
@@ -65,20 +66,13 @@ void CharKeys::editorEditBlock() {
         if (didPressEnter && !disableInsert) {
             SetKeyboardFocusHere(-1);
         }
+        removeKeyEnterKeyRepeat(&didPressEnter);
         SameLine();
         InputInt("##ptr", &ptr);
         SameLine();
         TextUnformatted("key/ptr");
         PopItemWidth();
         SameLine();
-        // prevent keyboard repeat
-        if (didPressEnter) {
-            bool retFirst = IsKeyPressed(ImGuiKey_Enter, false) || IsKeyPressed(ImGuiKey_KeypadEnter, false);
-            bool retRepeat = IsKeyPressed(ImGuiKey_Enter, true) || IsKeyPressed(ImGuiKey_KeypadEnter, true);
-            if (!retFirst && retRepeat) {
-                didPressEnter = false;
-            }
-        }
         if (Button("Insert") || didPressEnter) {
             CharKeys::Status status = insert(key, (void *)(size_t)ptr);
             switch (status) {
@@ -101,16 +95,9 @@ void CharKeys::editorEditBlock() {
         if (didPressEnter && !disableRemove) {
             SetKeyboardFocusHere(-1);
         }
+        removeKeyEnterKeyRepeat(&didPressEnter);
         PopItemWidth();
         SameLine();
-        // prevent keyboard repeat
-        if (didPressEnter) {
-            bool retFirst = IsKeyPressed(ImGuiKey_Enter, false) || IsKeyPressed(ImGuiKey_KeypadEnter, false);
-            bool retRepeat = IsKeyPressed(ImGuiKey_Enter, true) || IsKeyPressed(ImGuiKey_KeypadEnter, true);
-            if (!retFirst && retRepeat) {
-                didPressEnter = false;
-            }
-        }
         if (Button("Remove") || didPressEnter) {
             bool didRemove = remove(key);
             if (didRemove) { snprintf(msg, msgMax, "Removed node"); }
