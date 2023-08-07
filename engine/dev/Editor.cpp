@@ -1,11 +1,13 @@
 #include "Editor.h"
 #include "../common/imgui_bgfx_glfw/imgui_bgfx_glfw.h"
+#include "../common/imgui_bgfx_glfw/imgui_utils.h"
 #include <imgui_memory_editor/imgui_memory_editor.h>
 #include <nfd.h>
 #include "../MrManager.h"
 #include "OriginWidget.h"
 #include "../memory/mem_utils.h"
 #include "../render/Renderable2.h"
+#include "../common/string_utils.h"
 
 // ImGuiTreeNodeFlags_DefaultOpen
 using namespace ImGui;
@@ -235,34 +237,41 @@ void Editor::guiHelpers() {
 void Editor::guiRenderables() {
     if (CollapsingHeader("Renderables", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-        for (auto n : mm.rendSys.pool) {
-            guiRenderable((Renderable *)n->ptr);
-        }
+        static void * didCreateNew = nullptr;
 
-
-        // size_t slotCount = gltfSlots->size();
-        // for (size_t i = 0; i < slotCount; ++i) {
-        //     guiRenderable(gltfSlots->data()[i]);
-        // }
-
+        // add new renderable
         if (mm.rendSys.pool->isFull() == false) {
             static char newLabel[CharKeys::KEY_MAX];
+            static int flags = ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue;
             PushItemWidth(120);
-            InputText("Renderable Slot", newLabel, CharKeys::KEY_MAX, ImGuiInputTextFlags_CharsNoBlank);
+            bool didPressEnter = InputText("New Renderable Slot", newLabel, CharKeys::KEY_MAX, flags);
+            removeKeyEnterKeyRepeat(&didPressEnter);
             PopItemWidth();
             SameLine();
-            if (Button("Create New") && strlen(newLabel)) {
-                mm.rendSys.create(mm.rendSys.gltfProgram, newLabel);
+            if ((Button("Create New") || didPressEnter) && strlen(newLabel)) {
+                didCreateNew = mm.rendSys.create(mm.rendSys.gltfProgram, newLabel);
+                fixstrcpy<CharKeys::KEY_MAX>(newLabel, "");
             }
+            Separator();
         }
 
-        Dummy(ImVec2(0.0f, 20.0f));
+        // list current loaded renderables
+        for (auto n : mm.rendSys.pool) {
+            guiRenderable((Renderable *)n->ptr, (n->ptr == didCreateNew));
+        }
     }
 
 }
 
-void Editor::guiRenderable(Renderable * r) {
-    // print("guiGLTF KEY (%p) %s\n", slot.key, slot.key);
+void Editor::guiRenderable(Renderable * r, bool defaultOpen) {
+    int flags = 0;
+    if (defaultOpen) flags |= ImGuiTreeNodeFlags_DefaultOpen;
+
+    // COLLAPSING HEADER GUARDIAN STYLE
+    if (!TreeNodeEx(r->key, flags)) {
+        Separator();
+        return;
+    }
 
     PushID(r);
 
@@ -270,9 +279,6 @@ void Editor::guiRenderable(Renderable * r) {
     bool isLoaded = r->path.isSet();
     bool keyExistsInRender = mm.rendSys.keyExists(r->key);
 
-    TextUnformatted(r->key);
-
-    Indent();
 
     BeginDisabled(!ready);
 
@@ -361,7 +367,7 @@ void Editor::guiRenderable(Renderable * r) {
         EndDisabled();
     }
     EndDisabled();
-    Unindent();
+    TreePop();
     PopID();
     Separator();
 }

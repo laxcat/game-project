@@ -35,7 +35,7 @@ public:
     void guiCamera();
     void guiHelpers();
     void guiRenderables();
-    void guiRenderable(Renderable * r);
+    void guiRenderable(Renderable * r, bool defaultOpen = false);
     void guiFog();
     void guiColors();
     void guiMem();
