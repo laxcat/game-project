@@ -27,6 +27,7 @@ class FSA;
 class File;
 class FrameStack;
 class FreeList;
+class Renderable;
 
 class MemMan {
     // FRIENDS
@@ -139,6 +140,15 @@ public:
     template<typename T>
     Pool<T> * createPool(size_t max);
     CharKeys * createCharKeys(size_t max);
+
+    // TODO: Renderable -> Gobj (convert new GLTF loader to Gobj loader)
+    Renderable * createRenderable(char const * gltfPath);
+
+    // class does not exist yet, but something like this for game-object
+    // creation when not based directly on a gltf. GobjInfo would need to have
+    // enough info to know the memory required.
+    class GobjInfo;
+    Renderable * createRenderable(char const & GobjInfo);
 
     // DEV INTERFACE ONLY
     #if DEV_INTERFACE

@@ -12,6 +12,7 @@
 #include "Samplers.h"
 #include "Texture.h"
 #include "../memory/MemMan.h"
+#include "../memory/Gobj.h"
 
 class RenderSystem {
 public:

@@ -249,7 +249,7 @@ Renderable * RenderSystem::create(bgfx::ProgramHandle program, char const * key)
 
     printc(ShowRenderDbg, "CREATING %s AT %p\n", key, rptr);
     r.program = program;
-    fixstrcpy<CharKeys::KEY_MAX>(r.key, key);
+    r.setKey(key);
     r.resetInstances(1);
 
     showMoreStatus("(AFTER CREATE)");

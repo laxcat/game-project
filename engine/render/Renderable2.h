@@ -5,6 +5,7 @@
 #include <glm/mat4x4.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include "../common/debug_defines.h"
+#include "../common/string_utils.h"
 #include "../memory/CharKeys.h"
 #include "../memory/File.h"
 #include "Mesh.h"
@@ -24,6 +25,7 @@ public:
     // handled or required by rendersys
     // bool active = false;
     char key[CharKeys::KEY_MAX] = "";
+    void setKey(char const * key) { fixstrcpy<CharKeys::KEY_MAX>(this->key, key); }
     #if DEV_INTERFACE
     File::Path path;
     #endif // DEV_INTERFACE
