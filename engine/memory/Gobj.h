@@ -8,17 +8,19 @@
 
 Memory layout:
 
-|------------|----------------|----------|----------|----------|--...---|
- Gobj        FrameStack
-             ^
-             stringStack()
-             |---- DataSize --------------------------------------------|
-
+|-------|-------------|------|---------...-|---------...-|-...-----|-----------|
+ Gobj   FrameStack    frame  Accessors...  Animations...   sub-     raw buffer
+                      stack                                structs
+                      data                                 etc...
+        ^                    ^             ^                        ^
+        stringStack()        accessors     animations               buffer
+        data()
+        |---- DataSize --------------------------------------------------------|
 
 */
 
 class Gobj {
-    // Philosophy: basically mirror the GLTF spec
+    // Philosophy: basically mirror the GLTF spec for visual data
     // https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html
     //
     // General rules:
@@ -75,6 +77,7 @@ class Gobj {
     Scene            * scenes            = nullptr;
     Skin             * skins             = nullptr;
     Texture          * textures          = nullptr;
+    byte_t           * buffer            = nullptr;
 
     uint16_t nAccessors = 0;
     uint16_t nAnimations = 0;
@@ -326,7 +329,7 @@ class Gobj {
 
     struct Node {
         Camera * camera;
-        int * children;
+        Node * children;
         int nChildren;
         Skin * skin;
         float matrix[16];

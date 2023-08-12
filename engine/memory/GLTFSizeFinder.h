@@ -35,7 +35,7 @@ struct GLTFSizeFinder {
 
         void setKey(char const * key) {
             if (key) {
-                snprintf(this->key, MaxKeyLen, "%s", key);
+                fixstrcpy<MaxKeyLen>(this->key, key);
             }
             else {
                 this->key[0] = '\0';
@@ -180,7 +180,7 @@ struct GLTFSizeFinder {
     }
 
     void captureKey(char const * key) {
-        snprintf(this->key, MaxKeyLen, "%s", key);
+        fixstrcpy<MaxKeyLen>(this->key, key);
     }
 
     // check condition against current state
