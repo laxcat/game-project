@@ -7,7 +7,7 @@
 #include "Pool.h"
 #include "FrameStack.h"
 #include "File.h"
-#include "GObj.h"
+#include "Gobj.h"
 #include "FSA.h"
 #include "File.h"
 #include "FreeList.h"
