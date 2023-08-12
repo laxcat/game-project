@@ -189,7 +189,9 @@ private:
     Result * _result = nullptr;
     FSA * _fsa = nullptr;
     BlockInfo * _fsaBlock = nullptr;
+    #if DEBUG
     size_t _frame = 0;
+    #endif // DEBUG
     size_t _blockCount = 0; // updated during end frame, for display purposes only
     mutable std::recursive_mutex _mainMutex;
 

@@ -168,8 +168,8 @@ void MemMan::init(EngineSetup const & setup, FrameStack ** frameStack) {
 void MemMan::startFrame(size_t frame) {
     #if DEBUG
     if (!_data) return;
-    #endif // DEBUG
     _frame = frame;
+    #endif // DEBUG
 }
 
 void MemMan::endFrame() {
