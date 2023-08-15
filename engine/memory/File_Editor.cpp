@@ -8,12 +8,16 @@ using namespace ImGui;
 void File::editorCreate() {
     SameLine();
 
+    static bool loadHigh = false;
+    Checkbox("Load in high memory", &loadHigh);
+    SameLine();
+
     if (Button("Choose File")) {
         nfdchar_t * outPath = NULL;
         nfdresult_t result = NFD_OpenDialog(NULL, "/Users/Shared/Dev/test_assets", &outPath);
 
         if (result == NFD_OKAY) {
-            File * file = mm.memMan.createFileHandle(outPath, false);
+            File * file = mm.memMan.createFileHandle(outPath, false, loadHigh);
             free(outPath);
             if (file) {
                 mm.memMan.addTestAlloc(file, "File: %s", file->_path.filename);
