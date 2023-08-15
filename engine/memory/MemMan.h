@@ -226,6 +226,7 @@ private:
     // NOTE: WE SHOULDN'T NEED THIS IF HANDLED PROPERLY IN RELEASE
     // void updateFirstFree();
 
+public:
     #if DEBUG
     // validate all blocks, update debug info like _debug_index
     void validateAll();

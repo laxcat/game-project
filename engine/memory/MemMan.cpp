@@ -582,6 +582,8 @@ MemMan::BlockInfo * MemMan::claim(BlockInfo * block, size_t size, size_t align, 
 
         // update block info
         bool isFirstFree = (block == _firstFree);
+        bool isHead = (block == _head);
+        bool isTail = (block == _tail);
         block = (BlockInfo *)newBlockInfoPtr;
         block->_dataSize = blockSize - padding - BlockInfoSize;
         block->_padding = padding;
@@ -594,6 +596,12 @@ MemMan::BlockInfo * MemMan::claim(BlockInfo * block, size_t size, size_t align, 
         }
         if (isFirstFree) {
             _firstFree = block;
+        }
+        if (isHead) {
+            _head = block;
+        }
+        if (isTail) {
+            _tail = block;
         }
     }
 
@@ -651,6 +659,10 @@ MemMan::BlockInfo * MemMan::mergeWithNext(BlockInfo * block) {
         return nullptr;
     }
 
+    // next is tail, so now block should be tail
+    if (block->_next == _tail) {
+        _tail = block;
+    }
     block->_dataSize += block->_next->blockSize();
     block->_next = block->_next->_next;
     if (block->_next) {
@@ -845,6 +857,8 @@ void MemMan::validateAll() {
     guard_t guard{_mainMutex};
 
     assert(!_firstFree || _firstFree->isValid() && "_firstFree invalid.");
+    assert(_head && _head->isValid() && "_head invalid.");
+    assert(_tail && _tail->isValid() && "_tail invalid.");
 
     size_t i = 0;
     BlockInfo * checkFirstFree = nullptr;
@@ -860,6 +874,13 @@ void MemMan::validateAll() {
                 fprintf(stderr, "found free at %p but _firstFree is set to %p\n", bi, _firstFree);
                 assert(false && "_firstFree not correct");
             }
+        }
+
+        if (i == 0) {
+            assert(bi == _head && "_head not set to first in list.");
+        }
+        else if (bi->_next == nullptr) {
+            assert(bi == _tail && "_tail not set to last in list.");
         }
 
         totalMemManSize += bi->blockSize();
