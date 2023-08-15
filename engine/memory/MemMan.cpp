@@ -12,6 +12,7 @@
 #include "File.h"
 #include "FreeList.h"
 #include "CharKeys.h"
+#include "GLTFLoader3.h"
 
 #if DEBUG
 constexpr static bool ShowMemManBGFXDbg = false;
@@ -520,6 +521,46 @@ CharKeys * MemMan::createCharKeys(size_t max) {
     return new (block->data()) CharKeys{max};
 }
 
+Gobj * MemMan::createGobj(char const * gltfPath) {
+    guard_t guard{_mainMutex};
+
+    // load gltf into high memory
+    File * gltf = createFileHandle(gltfPath, true, true);
+    if (gltf == nullptr) {
+        fprintf(stderr, "Error creating File block\n");
+        return nullptr;
+    }
+
+    // calculate the data size
+    GLTFLoader3 loader;
+    Gobj::Counts counter = loader.calcDataSize((char const *)gltf->data());
+
+    // create and load into
+    Gobj * g = createGobj(counter);
+    if (g == nullptr) {
+        fprintf(stderr, "Error creating Gobj block\n");
+        return nullptr;
+    }
+    bool success = loader.load(g, (char const *)gltf->data());
+    if (!success) {
+        fprintf(stderr, "Error loading GLTF data into Gobj\n");
+        return nullptr;
+    }
+
+    // free gltf file
+    request({.ptr=gltf, .size=0});
+
+    return g;
+}
+
+Gobj * MemMan::createGobj(Gobj::Counts const & counts) {
+    guard_t guard{_mainMutex};
+
+    BlockInfo * block = create(counts.totalSize());
+    if (!block) return nullptr;
+    block->_type = MEM_BLOCK_GOBJ;
+    return new (block->data()) Gobj{};
+}
 
 void MemMan::createRequestResult() {
     guard_t guard{_mainMutex};

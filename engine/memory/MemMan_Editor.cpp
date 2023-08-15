@@ -13,7 +13,7 @@
 using namespace ImGui;
 
 void MemMan::editor() {
-    if (!CollapsingHeader("Memory")) {
+    if (!CollapsingHeader("Memory", ImGuiTreeNodeFlags_DefaultOpen)) {
         return;
     }
 
@@ -81,7 +81,7 @@ void MemMan::editor() {
         // ALLOCATE BLOCK
         PushItemWidth(90);
         TextUnformatted("Manually Create Block Object:");
-        static MemBlockType selectedType = MEM_BLOCK_CHARKEYS;
+        static MemBlockType selectedType = MEM_BLOCK_GOBJ;
         if (BeginCombo("###MemBlockType", memBlockTypeStr(selectedType))) {
             for (int i = MEM_BLOCK_CLAIMED; i <= MEM_BLOCK_POOL; ++i) {
                 if (Selectable(memBlockTypeStr((MemBlockType)i))) {
@@ -124,6 +124,10 @@ void MemMan::editor() {
         }
         case MEM_BLOCK_FREELIST: {
             FreeList::editorCreate();
+            break;
+        }
+        case MEM_BLOCK_GOBJ: {
+            Gobj::editorCreate();
             break;
         }
         case MEM_BLOCK_POOL: {
@@ -254,6 +258,12 @@ void MemMan::editor() {
             // FSA
             case MEM_BLOCK_FSA: {
                 ((FSA *)b->data())->editorEditBlock();
+                break;
+            }
+
+            // FSA
+            case MEM_BLOCK_GOBJ: {
+                ((Gobj *)b->data())->editorEditBlock();
                 break;
             }
 

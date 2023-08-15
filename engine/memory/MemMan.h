@@ -5,9 +5,10 @@
 #include "../common/types.h"
 #include "../common/debug_defines.h"
 
-// special block-types that are templates need to be fully included
+// special block-types that need to be fully included
 #include "Array.h"
 #include "Pool.h"
+#include "Gobj.h"
 
 /*
 
@@ -27,7 +28,6 @@ class FSA;
 class File;
 class FrameStack;
 class FreeList;
-class Renderable;
 
 class MemMan {
     // FRIENDS
@@ -133,23 +133,23 @@ public:
     T * create(TS && ... params);
 
     // SPECIAL BLOCK OBJ CREATION
-    FrameStack * createFrameStack(size_t size);
-    File * createFileHandle(char const * path, bool loadNow, bool high = false);
+    // MEM_BLOCK_ARRAY
     template<typename T>
     Array<T> * createArray(size_t max);
+    // MEM_BLOCK_CHARKEYS
+    CharKeys * createCharKeys(size_t max);
+    // MEM_BLOCK_FILE
+    File * createFileHandle(char const * path, bool loadNow, bool high = false);
+    // MEM_BLOCK_FRAMESTACK
+    FrameStack * createFrameStack(size_t size);
+    // MEM_BLOCK_FREELIST
     FreeList * createFreeList(size_t max);
+    // MEM_BLOCK_GOBJ
+    Gobj * createGobj(char const * gltfPath);
+    Gobj * createGobj(Gobj::Counts const & counts);
+    // MEM_BLOCK_POOL
     template<typename T>
     Pool<T> * createPool(size_t max);
-    CharKeys * createCharKeys(size_t max);
-
-    // TODO: Renderable -> Gobj (convert new GLTF loader to Gobj loader)
-    Renderable * createRenderable(char const * gltfPath);
-
-    // class does not exist yet, but something like this for game-object
-    // creation when not based directly on a gltf. GobjInfo would need to have
-    // enough info to know the memory required.
-    class GobjInfo;
-    Renderable * createRenderable(char const & GobjInfo);
 
     // DEV INTERFACE ONLY
     #if DEV_INTERFACE

@@ -1,6 +1,7 @@
 #pragma once
 #include <stdarg.h>
 #include <stdio.h>
+#include <assert.h>
 
 /*
 Designed to be used within pre-allocated memory, like inside a MemMan block.

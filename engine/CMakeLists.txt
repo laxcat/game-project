@@ -72,12 +72,15 @@ target_sources(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/Array_Editor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/CharKeys.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/CharKeys_Editor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/File.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/File_Editor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/FreeList.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/FreeList_Editor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/FSA.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/FSA_Editor.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/memory/File.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/memory/File_Editor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/GLTFLoader3.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/Gobj.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/Gobj_Editor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemMan.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemMan_Editor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/Pool_Editor.cpp

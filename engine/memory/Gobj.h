@@ -1,23 +1,26 @@
 #pragma once
 
 #include <stddef.h>
+#include "../common/debug_defines.h"
 #include "../common/types.h"
-#include "FrameStack.h"
 
 /*
 
 Memory layout:
 
-|-------|-------------|------|---------...-|---------...-|-...-----|-----------|
- Gobj   FrameStack    frame  Accessors...  Animations...   sub-     raw buffer
-                      stack                                structs
-                      data                                 etc...
-        ^                    ^             ^                        ^
-        stringStack()        accessors     animations               buffer
+|-------|-----------|------|---------...-|---------...-|-...-------|-----------|
+ Gobj   FrameStack  frame  Accessors...  Animations...   all sub-   raw buffer
+                    stack                                parts
+                    data                                 (Node,
+        ^                  ^             ^               Mesh, etc) ^
+        stringStack()      accessors     animations                 buffer
         data()
         |---- DataSize --------------------------------------------------------|
 
 */
+
+// forward
+class FrameStack;
 
 class Gobj {
     // Philosophy: basically mirror the GLTF spec for visual data
@@ -34,7 +37,9 @@ class Gobj {
     // • single instance classes must exist should be packed into the parent if it makes sense.
     //   for example the PBRMetalicRoughness class is packed directly into Material.
 
-    // forward
+    // FORWARD
+public:
+    // sub-parts
     struct Accessor;
     struct Animation;
     struct AnimationChannel;
@@ -58,10 +63,35 @@ class Gobj {
     struct Texture;
     struct TextureInfo;
 
-    struct Counter;
+    // COUNTS
+    struct Counts {
+        uint16_t accessors = 0;
+        uint16_t animations = 0;
+        uint16_t animationChannels = 0;
+        uint16_t animationSamplers = 0;
+        uint16_t buffers = 0;
+        uint16_t bufferViews = 0;
+        uint16_t cameras = 0;
+        uint16_t images = 0;
+        uint16_t materials = 0;
+        uint16_t meshes = 0;
+        uint16_t meshPrimatives = 0;
+        uint16_t meshAttributes = 0; // combined count of nAttributes and nTargets for all primatives
+        uint16_t nodes = 0;
+        uint16_t samplers = 0;
+        uint16_t scenes = 0;
+        uint16_t skins = 0;
+        uint16_t textures = 0;
 
-    // storage
+        uint32_t allStrLen = 0;
+        uint32_t buffersLen = 0;
 
+        size_t totalSize() const;
+    };
+
+
+    // STORAGE
+public:
     Accessor         * accessors         = nullptr;
     Animation        * animations        = nullptr;
     AnimationChannel * animationChannels = nullptr;
@@ -79,21 +109,7 @@ class Gobj {
     Texture          * textures          = nullptr;
     byte_t           * buffer            = nullptr;
 
-    uint16_t nAccessors = 0;
-    uint16_t nAnimations = 0;
-    uint16_t nAnimationChannels = 0;
-    uint16_t nAnimationSamplers = 0;
-    uint16_t nBuffers = 0;
-    uint16_t nBufferViews = 0;
-    uint16_t nCameras = 0;
-    uint16_t nImages = 0;
-    uint16_t nMaterials = 0;
-    uint16_t nMeshes = 0;
-    uint16_t nNodes = 0;
-    uint16_t nSamplers = 0;
-    uint16_t nScenes = 0;
-    uint16_t nSkins = 0;
-    uint16_t nTextures = 0;
+    Counts counts;
 
     int16_t scene = -1;
 
@@ -105,17 +121,17 @@ class Gobj {
 
     // STATIC API
 
-    constexpr size_t DataSize(Counter const & counter) {
-        return counter.totalSize();
+    constexpr size_t DataSize(Counts const & counts) {
+        return counts.totalSize();
     }
 
     // API
+public:
+    byte_t const * data () const;
+    FrameStack const * stringStack () const;
 
-    byte_t const * data () const { return (byte_t *)this + sizeof(Gobj); }
-    FrameStack const * stringStack () const { return (FrameStack *)data(); }
-
-    // enums, types
-
+    // ENUMS, TYPES
+public:
     // matches bgfx, TODO: compare to "official" gltf supported list
     enum Attr {
         ATTR_POSITION,
@@ -145,7 +161,7 @@ class Gobj {
         ANIM_TAR_SCALE,
     };
 
-    // structs
+    // SUB-PARTS
 
     struct Accessor {
         BufferView * bufferView = nullptr;
@@ -388,57 +404,14 @@ class Gobj {
         Attr texCoord;
     };
 
-    struct Counter {
-        uint16_t nAccessors = 0;
-        uint16_t nAnimations = 0;
-        uint16_t nAnimationChannels = 0;
-        uint16_t nAnimationSamplers = 0;
-        uint16_t nBuffers = 0;
-        uint16_t nBufferViews = 0;
-        uint16_t nCameras = 0;
-        uint16_t nImages = 0;
-        uint16_t nMaterials = 0;
-        uint16_t nMeshes = 0;
-        uint16_t nMeshPrimatives = 0;
-        uint16_t nMeshAttributes = 0; // combined count of nAttributes and nTargets for all primatives
-        uint16_t nNodes = 0;
-        uint16_t nSamplers = 0;
-        uint16_t nScenes = 0;
-        uint16_t nSkins = 0;
-        uint16_t nTextures = 0;
-
-        uint32_t allStrLen = 0;
-        uint32_t buffersLen = 0;
-
-        size_t totalSize() const {
-            // mirrors memory order
-            return
-                sizeof(Gobj) +
-                sizeof(FrameStack) + allStrLen +
-                sizeof(Accessor) * nAccessors +
-                sizeof(Animation) * nAnimations +
-                sizeof(AnimationChannel) * nAnimationChannels +
-                sizeof(AnimationSampler) * nAnimationSamplers +
-                sizeof(Buffer) * nBuffers +
-                sizeof(BufferView) * nBufferViews +
-                sizeof(Camera) * nCameras +
-                sizeof(Image) * nImages +
-                sizeof(Material) * nMaterials +
-                sizeof(Mesh) * nMeshes +
-                sizeof(MeshPrimative) * nMeshPrimatives +
-                sizeof(MeshAttribute) * nMeshAttributes +
-                sizeof(Node) * nNodes +
-                sizeof(Sampler) * nSamplers +
-                sizeof(Scene) * nScenes +
-                sizeof(Skin) * nSkins +
-                sizeof(Texture) * nTextures +
-                buffersLen
-            ;
-        }
-    };
-
+    // DEBUG
+public:
+    #if DEBUG
     void print(Gobj const * g);
-    Counter getGLTFDataSize(char const * jsonStr);
-    bool load(byte_t * dst, size_t dstSize);
+    #endif // DEBUG
 
+    #if DEV_INTERFACE
+    static void editorCreate();
+    void editorEditBlock();
+    #endif // DEV_INTERFACE
 };

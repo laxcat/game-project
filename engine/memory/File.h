@@ -14,7 +14,7 @@ public:
 
     class Path {
     public:
-        static constexpr size_t MAX = 1024;
+        static constexpr size_t MAX = 256;
         Path();
         Path(char const * str);
         Path & operator=(char const * str);
