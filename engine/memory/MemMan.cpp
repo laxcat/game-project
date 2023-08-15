@@ -258,7 +258,8 @@ void MemMan::request() {
                 _result->block = create(
                     _request->size,
                     _request->align,
-                    _request->copyFrom
+                    _request->copyFrom,
+                    _request->high
                 );
                 if (_result->block) {
                     if (_request->type) {
@@ -329,7 +330,12 @@ void MemMan::request() {
 
                 // fsa to block
                 if (ptrInFSA) {
-                    _result->block = create(_request->size, _request->align);
+                    _result->block = create(
+                        _request->size,
+                        _request->align,
+                        nullptr,
+                        _request->high
+                    );
 
                     assert(_result->block && "Could not reallocate memory.");
 
@@ -377,15 +383,15 @@ void MemMan::request() {
     // do nothing (size=0,ptr=0)
 }
 
-MemMan::BlockInfo * MemMan::create(size_t size, size_t align, BlockInfo * copyFrom) {
+MemMan::BlockInfo * MemMan::create(size_t size, size_t align, BlockInfo * copyFrom, bool high) {
     guard_t guard{_mainMutex};
 
     BlockInfo * found = nullptr;
 
-    if (align) {
-        for (BlockInfo * bi = _firstFree; bi; bi = bi->_next) {
-            if (bi->_type == MEM_BLOCK_FREE && bi->calcAlignDataSize(align) >= size) {
-                found = claim(bi, size, align, copyFrom);
+    if (high) {
+        for (BlockInfo * bi = _tail; bi; bi = bi->_prev) {
+            if (bi->_type == MEM_BLOCK_FREE && bi->_dataSize >= size) {
+                found = claimBack(bi, size, align, copyFrom);
                 if (found) break;
             }
         }
@@ -393,7 +399,7 @@ MemMan::BlockInfo * MemMan::create(size_t size, size_t align, BlockInfo * copyFr
     else {
         for (BlockInfo * bi = _firstFree; bi; bi = bi->_next) {
             if (bi->_type == MEM_BLOCK_FREE && bi->_dataSize >= size) {
-                found = claim(bi, size, 0, copyFrom);
+                found = claim(bi, size, align, copyFrom);
                 if (found) break;
             }
         }
@@ -455,7 +461,7 @@ FrameStack * MemMan::createFrameStack(size_t size) {
     return new (block->data()) FrameStack{size};
 }
 
-File * MemMan::createFileHandle(char const * path, bool loadNow) {
+File * MemMan::createFileHandle(char const * path, bool loadNow, bool high) {
     guard_t guard{_mainMutex};
 
     // open to deternmine size, and also maybe load
@@ -475,7 +481,7 @@ File * MemMan::createFileHandle(char const * path, bool loadNow) {
     // after file contents so contents can be printed as string in place.
     size_t size = (size_t)fileSize + 1;
 
-    BlockInfo * block = create(size + sizeof(File));
+    BlockInfo * block = create(size + sizeof(File), 0, nullptr, high);
     if (!block) return nullptr;
     block->_type = MEM_BLOCK_FILE;
     File * f = new (block->data()) File{size, path};
@@ -642,7 +648,88 @@ MemMan::BlockInfo * MemMan::claim(BlockInfo * block, size_t size, size_t align, 
     }
 
     return block;
+}
 
+MemMan::BlockInfo * MemMan::claimBack(BlockInfo * block, size_t size, size_t align, BlockInfo * copyFrom) {
+    guard_t guard{_mainMutex};
+
+    #if DEBUG
+    assert(block->_type == MEM_BLOCK_FREE && "Block not free.");
+    assert(block->isValid() && "Block not valid.");
+    #endif // DEBUG
+
+    debugBreak();
+
+    // ensure sufficient size even if realignment happens
+    if (block->calcAlignDataSize(align) < size) {
+        return nullptr;
+    }
+
+    // from end of block data, move back size+align+sizeof(BlockInfo).
+    // if align==0, this will be the new block location.
+    // if needs alignment, will be forward slightly, but should still be able
+    // to accomodate `size`.
+    byte_t * newBlockPtr = block->data() + block->_dataSize - (size + align + sizeof(BlockInfo));
+    // get padding
+    size_t newBlockPadding = alignPadding((size_t)newBlockPtr, align);
+    // actual block location
+    byte_t * newBlockAlignedPtr = newBlockPtr + newBlockPadding;
+
+    // check potential newBlock location
+    assert((size_t)newBlockAlignedPtr > (size_t)block &&
+        "Unexpected location for new block pointer.");
+    assert((size_t)newBlockAlignedPtr < (size_t)_data + _size &&
+        "New block pointer must be in memory space.");
+
+    // set new block info
+    BlockInfo * newBlock = new (newBlockAlignedPtr) BlockInfo{};
+    newBlock->_padding = newBlockPadding;
+    newBlock->_prev = block;
+    newBlock->_next = block->_next;
+    newBlock->_type = MEM_BLOCK_CLAIMED;
+    newBlock->_dataSize = (block->data() + block->_dataSize) - newBlock->data();
+
+    #if DEBUG
+    assert(newBlock->_dataSize >= size && "New block's data size is not big enough.");
+    #endif // DEBUG
+
+    // update old block info
+    block->_dataSize = newBlock->basePtr() - block->data();
+    if (block->_next) {
+        block->_next->_prev = newBlock;
+    }
+    block->_next = newBlock;
+    if (block == _tail) {
+        _tail = newBlock;
+    }
+
+    // if we are copying data from another block, copy then release other block,
+    // then find first free starting with our newly released copyFrom block
+    if (copyFrom && copyFrom->_dataSize <= size) {
+        assert(block->_dataSize >= copyFrom->_dataSize && "Newly claimed block not big enough for copyFrom block data.");
+
+        block->_type = copyFrom->_type;
+        memcpy(block->data(), copyFrom->data(), copyFrom->_dataSize);
+        release(copyFrom);
+
+        #if DEBUG
+        validateAll();
+        #endif // DEBUG
+
+    }
+    // no copyFrom block. zero out data in newly claimed block.
+    else {
+        // set data bytes to 0
+        #if DEBUG
+        memset(block->data(), 0, block->_dataSize);
+        #endif // DEBUG
+
+        #if DEBUG
+        validateAll();
+        #endif // DEBUG
+    }
+
+    return newBlock;
 }
 
 MemMan::BlockInfo * MemMan::mergeWithNext(BlockInfo * block) {

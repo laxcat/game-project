@@ -101,6 +101,7 @@ public:
         void * ptr = nullptr;
         BlockInfo * copyFrom = nullptr;
         MemBlockType type = MEM_BLOCK_NONE;
+        bool high = false; // request from tail of block
     };
     class Result {
     public:
@@ -133,7 +134,7 @@ public:
 
     // SPECIAL BLOCK OBJ CREATION
     FrameStack * createFrameStack(size_t size);
-    File * createFileHandle(char const * path, bool loadNow);
+    File * createFileHandle(char const * path, bool loadNow, bool high = false);
     template<typename T>
     Array<T> * createArray(size_t max);
     FreeList * createFreeList(size_t max);
@@ -200,11 +201,13 @@ private:
     // execute request as found in request block; combined alloc/realloc/free
     void request();
     // explicitly finds/creates free block of size
-    BlockInfo * create(size_t size, size_t align = 0, BlockInfo * copyFrom = nullptr);
+    BlockInfo * create(size_t size, size_t align = 0, BlockInfo * copyFrom = nullptr, bool high = false);
     // explicitly releases block. set type to free and reset padding
     void release(BlockInfo * block);
     // alters _padding and _dataSize to align data() to alignment
     BlockInfo * claim(BlockInfo * block, size_t size, size_t align = 0, BlockInfo * copyFrom = nullptr);
+    // same as claim but splits off back of block instead of front
+    BlockInfo * claimBack(BlockInfo * block, size_t size, size_t align, BlockInfo * copyFrom = nullptr);
     // consumes next block if free
     BlockInfo * mergeWithNext(BlockInfo * block);
     // realigns block in place
