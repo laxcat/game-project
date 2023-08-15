@@ -22,7 +22,7 @@ _padding   BlockInfo      BlockInfo->data()            _padding
 */
 
 // forward declarations
-// special block-types that aren't templates can be forward declared
+// special block-types that can be forward declared
 class CharKeys;
 class FSA;
 class File;

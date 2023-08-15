@@ -1,14 +1,10 @@
 #include "GLTFLoader3.h"
 #include <rapidjson/reader.h>
 #include <rapidjson/stream.h>
+#include "../common/file_utils.h"
+#include "../common/modp_b64.h"
+#include "FrameStack.h"
 
-
-/*
-
-A rapidjson Handler that gathers the necessary info from the GLTF json to
-calculate byte-size of final game object.
-
-*/
 
 GLTFLoader3::SizeFinder::Crumb::Crumb(
     ObjType objType,
@@ -274,6 +270,461 @@ void GLTFLoader3::SizeFinder::printStats() const {
     printl("Total Size:   %8zu", cntr.totalSize());
 }
 
+
+
+// =============================================================================
+// =============================================================================
+// =============================================================================
+
+
+
+
+#define C(OFFSET, ...) (depth && 1-(int)depth <= (OFFSET) && (OFFSET) <= 0 && crumbAt(OFFSET).matches(__VA_ARGS__))
+#define CC(KEY)        (depth && crumbAt(0).matches(KEY))
+
+GLTFLoader3::Loader::Crumb::Crumb(ObjType objType, char const * key) {
+    this->objType = objType;
+    setKey(key);
+}
+
+void GLTFLoader3::Loader::Crumb::setKey(char const * key) {
+    if (key) {
+        snprintf(this->key, MaxKeyLen, "%s", key);
+    }
+    else {
+        this->key[0] = '\0';
+    }
+}
+
+// match key?
+bool GLTFLoader3::Loader::Crumb::matches(char const * key) const {
+    // passed null key matches any (no check, always true)
+    if (!key || key[0] == '\0') return true;
+    // always false if Crumb has no key, except true when empty string is passed
+    if (!hasKey()) return strEqu(key, "");
+    // both passed and Crumb key exists, check if passed key contains Crumb key
+    return strWithin(this->key, key);
+}
+
+// match obj type and (optionally) key?
+bool GLTFLoader3::Loader::Crumb::matches(ObjType objType, char const * key) const {
+    if (objType != this->objType) return false;
+    return matches(key);
+}
+
+char const * GLTFLoader3::Loader::Crumb::objTypeStr() const {
+    return
+        (objType == TYPE_OBJ)   ? "OBJ" :
+        (objType == TYPE_ARR)   ? "ARR" :
+        (objType == TYPE_STR)   ? "STR" :
+        (objType == TYPE_UINT)  ? "UINT" :
+        (objType == TYPE_INT)   ? "INT" :
+        (objType == TYPE_FLOAT) ? "FLOAT" :
+        "UNKNOWN";
+}
+
+bool GLTFLoader3::Loader::Crumb::hasKey() const { return (key[0] != '\0'); }
+
+GLTFLoader3::Loader::Loader(byte_t * dst, size_t dstSize, Gobj::Counts const & counts) :
+    _dst(dst),
+    _dstSize(dstSize),
+    counts(counts)
+{
+    debugBreak();
+    
+    gobj = new (head()) Gobj{};
+    _head += sizeof(Gobj);
+
+    strStack = new (head()) FrameStack{counts.allStrLen};
+    _head += strStack->totalSize();
+
+    if (counts.accessors) {
+        gobj->accessors = (Gobj::Accessor *)head();
+        for (int i = 0; i < counts.accessors; ++i) *(gobj->accessors + i) = {};
+        _head += sizeof(Gobj::Accessor) * counts.accessors;
+    }
+    if (counts.animations) {
+        gobj->animations = (Gobj::Animation *)head();
+        for (int i = 0; i < counts.animations; ++i) *(gobj->animations + i) = {};
+        _head += sizeof(Gobj::Animation) * counts.animations;
+        gobj->animationChannels = (Gobj::AnimationChannel *)head();
+        for (int i = 0; i < counts.animationChannels; ++i) *(gobj->animationChannels + i) = {};
+        _head += sizeof(Gobj::AnimationChannel) * counts.animationChannels;
+        gobj->animationSamplers = (Gobj::AnimationSampler *)head();
+        for (int i = 0; i < counts.animationSamplers; ++i) *(gobj->animationSamplers + i) = {};
+        _head += sizeof(Gobj::AnimationSampler) * counts.animationSamplers;
+    }
+    if (counts.buffers) {
+        gobj->buffers = (Gobj::Buffer *)head();
+        for (int i = 0; i < counts.buffers; ++i) *(gobj->buffers + i) = {};
+        _head += sizeof(Gobj::Buffer) * counts.buffers;
+    }
+    if (counts.bufferViews) {
+        gobj->bufferViews = (Gobj::BufferView *)head();
+        for (int i = 0; i < counts.bufferViews; ++i) *(gobj->bufferViews + i) = {};
+        _head += sizeof(Gobj::BufferView) * counts.bufferViews;
+    }
+    if (counts.cameras) {
+        gobj->cameras = (Gobj::Camera *)head();
+        for (int i = 0; i < counts.cameras; ++i) *(gobj->cameras + i) = {};
+        _head += sizeof(Gobj::Camera) * counts.cameras;
+        // either Gobj::Camera::perspective or Gobj::Camera::orthographic points to Gobj::Camera::_data
+        // explointed fact that Gobj::CameraPerspective or Gobj::CameraOrthographic happen to both be 4 floats
+        assert(sizeof(Gobj::CameraPerspective) == sizeof(Gobj::CameraOrthographic));
+        assert(sizeof(Gobj::CameraPerspective) == sizeof(Gobj::Camera::_data));
+    }
+    if (counts.images) {
+        gobj->images = (Gobj::Image *)head();
+        _head += sizeof(Gobj::Image) * counts.images;
+    }
+    if (counts.materials) {
+        gobj->materials = (Gobj::Material *)head();
+        _head += sizeof(Gobj::Material) * counts.materials;
+    }
+    if (counts.meshes) {
+        gobj->meshes = (Gobj::Mesh *)head();
+        _head += sizeof(Gobj::Mesh) * counts.meshes;
+        _head += sizeof(Gobj::MeshPrimative) * counts.meshPrimatives;
+        _head += sizeof(Gobj::MeshAttribute) * counts.meshAttributes;
+    }
+    if (counts.nodes) {
+        gobj->nodes = (Gobj::Node *)head();
+        _head += sizeof(Gobj::Node) * counts.nodes;
+    }
+    if (counts.samplers) {
+        gobj->samplers = (Gobj::Sampler *)head();
+        _head += sizeof(Gobj::Sampler) * counts.samplers;
+    }
+    if (counts.scenes) {
+        gobj->scenes = (Gobj::Scene *)head();
+        _head += sizeof(Gobj::Scene) * counts.scenes;
+    }
+    if (counts.skins) {
+        gobj->skins = (Gobj::Skin *)head();
+        _head += sizeof(Gobj::Skin) * counts.skins;
+    }
+    if (counts.textures) {
+        gobj->textures = (Gobj::Texture *)head();
+        _head += sizeof(Gobj::Texture) * counts.textures;
+    }
+
+    buffers = head();
+    _head += counts.buffersLen;
+
+    assert(_head == dstSize);
+    printl("_head == dstSize == %zu", _head);
+}
+
+// push crumb onto bread crumb stack
+void GLTFLoader3::Loader::push(ObjType objType) {
+    assert(depth < MaxDepth);
+    crumbs[depth].objType = objType;
+    // copy and consume key
+    crumbs[depth].setKey(key);
+    key[0] = '\0';
+    ++depth;
+}
+
+void GLTFLoader3::Loader::pop() {
+    --depth;
+}
+
+void GLTFLoader3::Loader::captureKey(char const * key) {
+    snprintf(this->key, MaxKeyLen, "%s", key);
+}
+
+GLTFLoader3::Loader::Crumb & GLTFLoader3::Loader::crumbAt(int offset) {
+    assert(depth && 1-(int)depth <= offset && offset <= 0);
+    return crumbs[depth-1+offset];
+}
+
+size_t GLTFLoader3::Loader::handleData(byte_t * dst, char const * str, size_t strLength) {
+    // base64?
+    auto isDataStr = "data:application/octet-stream;base64,";
+    auto isDataLen = strlen(isDataStr);
+    if (strEqualForLength(str, isDataStr, isDataLen)) {
+        size_t b64StrLen = strLength - isDataLen;
+        modp_b64_decode((char *)dst, (char *)str + isDataLen, b64StrLen);
+        return modp_b64_decode_len(b64StrLen);
+    }
+
+    // uri to load?
+    // TODO: test this
+    FILE * fp = fopen(str, "r");
+    if (!fp) {
+        fprintf(stderr, "WARNING: Error %d opening buffer file: %s\n", ferror(fp), str);
+    }
+    long fileSize = getFileSize(fp);
+    if (fileSize == -1) {
+        fclose(fp);
+        return 0;
+    }
+    size_t readSize = fread(dst, 1, fileSize, fp);
+    // error
+    if (ferror(fp) || readSize != fileSize) {
+        fprintf(stderr, "Error reading file \"%s\" contents: read %zu, expecting %zu\n",
+            str, readSize, fileSize);
+        fclose(fp);
+        return 0;
+    }
+
+    return readSize;
+}
+
+bool GLTFLoader3::Loader::Null  ()           { return true; }
+bool GLTFLoader3::Loader::Int   (int i)      { return true; }
+bool GLTFLoader3::Loader::Int64 (int64_t  i) { return true; }
+bool GLTFLoader3::Loader::Uint64(uint64_t u) { return true; }
+bool GLTFLoader3::Loader::RawNumber(char const * str, size_t length, bool copy) { return true; }
+
+bool GLTFLoader3::Loader::Bool (bool b) {
+    if (C(-2,TYPE_ARR,"accessors")) {
+        if (CC("normalized")) accessor()->normalized = b;
+    }
+    return true;
+}
+
+bool GLTFLoader3::Loader::Uint(unsigned u) {
+    push(TYPE_INT);
+
+    if (depth == 2 && CC("scene")) gobj->scene = u;
+
+    else if (C(-2,TYPE_ARR,"accessors")) {
+        if      (CC("bufferView"))    accessor()->bufferView = gobj->bufferViews + u;
+        else if (CC("byteOffset"))    accessor()->byteOffset = u;
+        else if (CC("componentType")) accessor()->componentType = (Gobj::Accessor::ComponentType)u;
+        else if (CC("count"))         accessor()->count = u;
+    }
+
+    else if (C(-4,TYPE_ARR,"animations") && C(-2,TYPE_ARR,"channels")) {
+        if (CC("sampler")) animationChannel()->sampler = gobj->samplers + u;
+    }
+
+    else if (C(-4,TYPE_ARR,"animations") && C(-2,TYPE_ARR,"samplers")) {
+        if      (CC("input" )) animationSampler()->input  = gobj->accessors + u;
+        else if (CC("output")) animationSampler()->output = gobj->accessors + u;
+    }
+
+    else if (C(-5,TYPE_ARR,"animations") && C(-3,TYPE_ARR,"channels") && C(-1,TYPE_OBJ,"target")) {
+        if (CC("node")) animationChannel()->node = gobj->nodes + u;
+    }
+
+    else if (C(-2,TYPE_ARR,"buffers") && CC("byteLength")) buffer()->byteLength = u;
+
+    else if (C(-2,TYPE_ARR,"bufferViews")) {
+        if      (CC("buffer")) bufferView()->buffer = gobj->buffers + u;
+        else if (CC("byteOffset")) bufferView()->byteOffset = u;
+        else if (CC("byteLength")) bufferView()->byteLength = u;
+        else if (CC("byteLength")) bufferView()->byteLength = u;
+        else if (CC("byteStride")) bufferView()->byteStride = u;
+        else if (CC("target")) bufferView()->target = (Gobj::BufferView::Target)u;
+
+        // else if ()
+    }
+
+    pop();
+    return true;
+}
+
+bool GLTFLoader3::Loader::Double(double d) {
+    if (_floatPtr) {
+        *_floatPtr = (float)d;
+        // printl("writing %f to %p", d, _floatPtr);
+        ++_floatPtr;
+    }
+    return true;
+}
+
+bool GLTFLoader3::Loader::String(char const * str, size_t length, bool copy) {
+    push(TYPE_STR);
+
+    if (C(-1,TYPE_OBJ,"asset")) {
+        if      (CC("copyright" )) gobj->copyright  = strStack->writeStr(str, length);
+        else if (CC("generator" )) gobj->generator  = strStack->writeStr(str, length);
+        else if (CC("version"   )) gobj->version    = strStack->writeStr(str, length);
+        else if (CC("minVersion")) gobj->minVersion = strStack->writeStr(str, length);
+    }
+
+    else if (C(-2,TYPE_ARR,"accessors")) {
+        if (CC("type")) accessor()->type = accessorTypeFromStr(str);
+        if (CC("name")) accessor()->name = strStack->writeStr(str, length);
+    }
+
+    else if (C(-4,TYPE_ARR,"animations") && C(-2,TYPE_ARR,"samplers")) {
+        if (CC("interpolation")) animationSampler()->interpolation = interpolationFromStr(str);
+    }
+
+    else if (C(-5,TYPE_ARR,"animations") && C(-3,TYPE_ARR,"channels") && C(-1,TYPE_OBJ,"target")) {
+        if (CC("path")) animationChannel()->path = animationTargetFromStr(str);
+    }
+
+    else if (C(-2,TYPE_ARR,"buffers")) {
+        if (CC("uri")) {
+            size_t bytesWritten;
+            if ((bytesWritten = handleData(buffers, str, length))) {
+                buffer()->data = buffers;
+                buffer()->byteLength = bytesWritten;
+                buffers += bytesWritten;
+                printl("WE DID IT! %zu", bytesWritten);
+            }
+        }
+        else if (CC("name")) buffer()->name = strStack->writeStr(str, length);
+    }
+
+    else if (C(-2,TYPE_ARR,"bufferViews")) {
+        if (CC("name")) bufferView()->name = strStack->writeStr(str, length);
+    }
+
+
+    pop();
+    return true;
+}
+
+bool GLTFLoader3::Loader::Key(char const * str, size_t length, bool copy) {
+    captureKey(str);
+    return true;
+}
+
+bool GLTFLoader3::Loader::StartObject() {
+    push(TYPE_OBJ);
+
+    if (C(-3,TYPE_ARR,"animations") && C(-1,TYPE_ARR,"channels") && animation()->nChannels == 0)
+        animation()->channels = animationChannel();
+    if (C(-3,TYPE_ARR,"animations") && C(-1,TYPE_ARR,"samplers") && animation()->nSamplers == 0)
+        animation()->samplers = animationSampler();
+
+    return true;
+}
+
+bool GLTFLoader3::Loader::StartArray () {
+    push(TYPE_ARR);
+    if (C(-2,TYPE_ARR,"accessors")) {
+        if      (CC("min")) _floatPtr = &accessor()->min[0];
+        else if (CC("max")) _floatPtr = &accessor()->max[0];
+    }
+    return true;
+}
+
+bool GLTFLoader3::Loader::EndObject(size_t memberCount) {
+    pop();
+
+    if      (CC("accessors" )) ++gobj->counts.accessors;
+    else if (CC("animations")) ++gobj->counts.animations;
+    else if (C(-2,TYPE_ARR,"animations") && C(0,TYPE_ARR,"channels")) {
+        ++animation()->nChannels;
+        ++gobj->counts.animationChannels;
+    }
+    else if (C(-2,TYPE_ARR,"animations") && C(0,TYPE_ARR,"samplers")) {
+        ++animation()->nSamplers;
+        ++gobj->counts.animationSamplers;
+    }
+    else if (CC("buffers")) ++gobj->counts.buffers;
+    else if (CC("bufferViews")) ++gobj->counts.bufferViews;
+    else if (CC("cameras")) ++gobj->counts.cameras;
+
+    return true;
+}
+
+bool GLTFLoader3::Loader::EndArray (size_t elementCount) {
+
+    if (C(-2,TYPE_ARR,"accessors") && CC("min|max")) _floatPtr = nullptr;
+
+    pop();
+    return true;
+}
+
+void GLTFLoader3::Loader::printBreadcrumb() const {
+    if (depth < 1) return;
+    for (int i = 0; i < depth; ++i) {
+        print("%s(%s) > ", crumbs[i].objTypeStr(), crumbs[i].key);
+    }
+    printl();
+}
+
+Gobj::Accessor::Type GLTFLoader3::Loader::accessorTypeFromStr(char const * str) {
+    if (strEqu(str, "SCALAR")) return Gobj::Accessor::TYPE_SCALAR;
+    if (strEqu(str, "VEC2"  )) return Gobj::Accessor::TYPE_VEC2;
+    if (strEqu(str, "VEC3"  )) return Gobj::Accessor::TYPE_VEC3;
+    if (strEqu(str, "VEC4"  )) return Gobj::Accessor::TYPE_VEC4;
+    if (strEqu(str, "MAT2"  )) return Gobj::Accessor::TYPE_MAT2;
+    if (strEqu(str, "MAT3"  )) return Gobj::Accessor::TYPE_MAT3;
+    if (strEqu(str, "MAT4"  )) return Gobj::Accessor::TYPE_MAT4;
+    return Gobj::Accessor::TYPE_UNDEFINED;
+}
+
+Gobj::AnimationTarget GLTFLoader3::Loader::animationTargetFromStr(char const * str) {
+    if (strEqu(str, "weights"    )) return Gobj::ANIM_TAR_WEIGHTS;
+    if (strEqu(str, "translation")) return Gobj::ANIM_TAR_TRANSLATION;
+    if (strEqu(str, "rotation"   )) return Gobj::ANIM_TAR_ROTATION;
+    if (strEqu(str, "scale"      )) return Gobj::ANIM_TAR_SCALE;
+    return Gobj::ANIM_TAR_UNDEFINED;
+}
+
+Gobj::AnimationSampler::Interpolation GLTFLoader3::Loader::interpolationFromStr(char const * str) {
+    if (strEqu(str, "STEP"       )) return Gobj::AnimationSampler::INTERP_STEP;
+    if (strEqu(str, "CUBICSPLINE")) return Gobj::AnimationSampler::INTERP_CUBICSPLINE;
+    return Gobj::AnimationSampler::INTERP_LINEAR;
+}
+
+Gobj::Camera::Type GLTFLoader3::Loader::cameraTypeFromStr(char const * str) {
+    if (strEqu(str, "orthographic")) return Gobj::Camera::TYPE_ORTHO;
+    if (strEqu(str, "perspective" )) return Gobj::Camera::TYPE_PERSP;
+    return Gobj::Camera::TYPE_PERSP;
+}
+
+
+byte_t * GLTFLoader3::Loader::head() const { return _dst + _head; }
+
+Gobj::Accessor * GLTFLoader3::Loader::accessor() const {
+    return gobj->accessors + gobj->counts.accessors;
+}
+
+Gobj::Animation * GLTFLoader3::Loader::animation() const {
+    return gobj->animations + gobj->counts.animations;
+}
+
+Gobj::AnimationChannel * GLTFLoader3::Loader::animationChannel() const {
+    return gobj->animationChannels + gobj->counts.animationChannels;
+}
+
+Gobj::AnimationSampler * GLTFLoader3::Loader::animationSampler() const {
+    return gobj->animationSamplers + gobj->counts.animationSamplers;
+}
+
+Gobj::Buffer * GLTFLoader3::Loader::buffer() const {
+    return gobj->buffers + gobj->counts.buffers;
+}
+
+Gobj::BufferView * GLTFLoader3::Loader::bufferView() const {
+    return gobj->bufferViews + gobj->counts.bufferViews;
+}
+
+Gobj::Camera * GLTFLoader3::Loader::camera() const {
+    return gobj->cameras + gobj->counts.cameras;
+}
+
+void GLTFLoader3::Loader::checkCounts() const {
+    printl("Accessors  %2d == %2d", gobj->counts.accessors, counts.accessors);
+    assert(gobj->counts.accessors == counts.accessors);
+    printl("Animations %2d == %2d", gobj->counts.animations, counts.animations);
+    assert(gobj->counts.animations == counts.animations);
+    printl("AnimationChannels %2d == %2d", gobj->counts.animationChannels, counts.animationChannels);
+    assert(gobj->counts.animationChannels == counts.animationChannels);
+    printl("AnimationSamplers %2d == %2d", gobj->counts.animationSamplers, counts.animationSamplers);
+    assert(gobj->counts.animationSamplers == counts.animationSamplers);
+}
+
+
+
+
+
+// =============================================================================
+// =============================================================================
+// =============================================================================
+
+
+
+
 Gobj::Counts GLTFLoader3::calcDataSize(char const * jsonStr) {
     GLTFLoader3::SizeFinder scanner;
     rapidjson::Reader reader;
@@ -282,6 +733,10 @@ Gobj::Counts GLTFLoader3::calcDataSize(char const * jsonStr) {
     return scanner.counter();
 }
 
-bool GLTFLoader3::load(Gobj * g, char const * jsonStr) {
+bool GLTFLoader3::load(Gobj * g, size_t dstSize, Gobj::Counts const & counts, char const * jsonStr) {
+    Loader loader{(byte_t *)g, dstSize, counts};
+    rapidjson::Reader reader;
+    auto fs = rapidjson::StringStream(jsonStr);
+    reader.Parse(fs, loader);
     return true;
 }

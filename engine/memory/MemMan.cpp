@@ -525,30 +525,41 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     guard_t guard{_mainMutex};
 
     // load gltf into high memory
-    File * gltf = createFileHandle(gltfPath, true, true);
+    File * gltf = createFileHandle(gltfPath, true, false);
     if (gltf == nullptr) {
         fprintf(stderr, "Error creating File block\n");
         return nullptr;
     }
+    assert(strncmp((char const *)gltf->data(), "glTF", 4) == 0 && "glTF magic string not found.");
+    assert(strncmp((char const *)(gltf->data() + 16), "JSON", 4) == 0 && "glTF JSON chunk magic string not found.");
+    // TODO: read this better. https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#glb-file-format-specification
+    uint32_t gltfJSONSize = *(uint32_t *)(gltf->data() + 12);
+    char const * gltfJSON = (char const *)(gltf->data() + 20);
 
     // calculate the data size
     GLTFLoader3 loader;
-    Gobj::Counts counter = loader.calcDataSize((char const *)gltf->data());
+    Gobj::Counts counts = loader.calcDataSize(gltfJSON);
 
-    // create and load into
-    Gobj * g = createGobj(counter);
+    // create and load into Gobj
+    Gobj * g = createGobj(counts);
+    BlockInfo * gobjBlock = blockForPtr(g);
     if (g == nullptr) {
         fprintf(stderr, "Error creating Gobj block\n");
         return nullptr;
     }
-    bool success = loader.load(g, (char const *)gltf->data());
+    bool success = loader.load(
+        g,
+        gobjBlock->_dataSize,
+        counts,
+        gltfJSON
+    );
     if (!success) {
         fprintf(stderr, "Error loading GLTF data into Gobj\n");
         return nullptr;
     }
 
     // free gltf file
-    request({.ptr=gltf, .size=0});
+    // request({.ptr=gltf, .size=0});
 
     return g;
 }
@@ -698,8 +709,6 @@ MemMan::BlockInfo * MemMan::claimBack(BlockInfo * block, size_t size, size_t ali
     assert(block->_type == MEM_BLOCK_FREE && "Block not free.");
     assert(block->isValid() && "Block not valid.");
     #endif // DEBUG
-
-    debugBreak();
 
     // ensure sufficient size even if realignment happens
     if (block->calcAlignDataSize(align) < size) {
