@@ -92,7 +92,7 @@ bool MemMan::BlockInfo::isValid() const {
         // if free, padding should be 0
         (_type != MEM_BLOCK_FREE || (_type == MEM_BLOCK_FREE && _padding == 0)) &&
 
-        // data size a likely
+        // expected data size
         (_dataSize < 0xffffffff) &&
 
         #if DEBUG
@@ -446,18 +446,6 @@ void MemMan::release(BlockInfo * block) {
     findFirstFree(block);
 }
 
-// bool MemMan::destroy(void * ptr) {
-//     guard_t guard{_mainMutex};
-
-//     // CHECK IF ptr WAS WITHIN FSA
-//     if (_fsa && _fsa->destroy(ptr)) {
-//         return true;
-//     }
-
-//     BlockInfo * block = blockForPtr(ptr);
-//     return (block && release(block)) ? true : false;
-// }
-
 FrameStack * MemMan::createFrameStack(size_t size) {
     guard_t guard{_mainMutex};
 
@@ -587,7 +575,7 @@ MemMan::BlockInfo * MemMan::claim(BlockInfo * block, size_t size, size_t align, 
         BlockInfo bi = *block; // copy out
         memcpy(newBlockInfoPtr, &bi, BlockInfoSize); // copy to new ptr
 
-        // set padding bytes to 0
+        // set padding bytes to 0 (setting as 0xfe for debugging)
         #if DEBUG
         memset(base, 0xfe, padding);
         #endif // DEBUG
@@ -598,9 +586,15 @@ MemMan::BlockInfo * MemMan::claim(BlockInfo * block, size_t size, size_t align, 
         block->_dataSize = blockSize - padding - BlockInfoSize;
         block->_padding = padding;
         // next and prev pointers need to point to new memory location of BlockInfo
-        if (block->_next) block->_next->_prev = block;
-        if (block->_prev) block->_prev->_next = block;
-        if (isFirstFree) _firstFree = block;
+        if (block->_next) {
+            block->_next->_prev = block;
+        }
+        if (block->_prev) {
+            block->_prev->_next = block;
+        }
+        if (isFirstFree) {
+            _firstFree = block;
+        }
     }
 
 
@@ -659,7 +653,9 @@ MemMan::BlockInfo * MemMan::mergeWithNext(BlockInfo * block) {
 
     block->_dataSize += block->_next->blockSize();
     block->_next = block->_next->_next;
-    if (block->_next) block->_next->_prev = block;
+    if (block->_next) {
+        block->_next->_prev = block;
+    }
 
     return block;
 }
@@ -721,7 +717,9 @@ MemMan::BlockInfo * MemMan::shrink(BlockInfo * block, size_t smallerSize) {
     newBlock->_next = block->_next;
     newBlock->_prev = block;
     block->_next = newBlock;
-    if (block == _tail) _tail = newBlock;
+    if (block == _tail) {
+        _tail = newBlock;
+    }
 
     findFirstFree(newBlock);
 

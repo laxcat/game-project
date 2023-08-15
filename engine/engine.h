@@ -71,9 +71,6 @@ struct EngineSetup {
         .align = 64,
     };
 
-    // size_t memSysSize = 1024*1024*500;
-    // size_t frameStackSize = 1024*1024*10;
-
     bool transparentFramebuffer = false;
 
     bool forceOpenGL =

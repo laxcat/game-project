@@ -2,16 +2,16 @@
 #include "../engine/dev/print.h"
 
 
-void preInit()      { print("preInit\n"); }
-void postInit()     { print("postInit\n"); }
-void preEditor()    { print("preEditor\n"); }
-void postEditor()   { print("postEditor\n"); }
-void preDraw()      { print("preDraw\n"); }
-void postDraw()     { print("postDraw\n"); }
-void preResize()    { print("preResize\n"); }
-void postResize()   { print("postResize\n"); }
-void preShutdown()  { print("preShutdown\n"); }
-void postShutdown() { print("postShutdown\n"); }
+void preInit()      { printl("preInit"); }
+void postInit()     { printl("postInit"); }
+void preEditor()    { printl("preEditor"); }
+void postEditor()   { printl("postEditor"); }
+void preDraw()      { printl("preDraw"); }
+void postDraw()     { printl("postDraw"); }
+void preResize()    { printl("preResize"); }
+void postResize()   { printl("postResize"); }
+void preShutdown()  { printl("preShutdown"); }
+void postShutdown() { printl("postShutdown"); }
 
 
 int main(int argc, char ** argv) {
