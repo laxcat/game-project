@@ -36,6 +36,7 @@ public:
         return alloc<byte_t>(size);
     }
 
+    // Allocate and return string using standard string formatting
     char * formatStr(char const * fmt, ...) {
         va_list args;
         va_start(args, fmt);
@@ -44,6 +45,27 @@ public:
         return str;
     }
 
+    // Same as formatStr but does not write terminating null-byte.
+    // Example:
+    // char * str = formatPen(...);
+    // formatPen(...);
+    // formatPen(...);
+    // terminatePen(); // str now contains all 3 format calls
+    char * formatPen(char const * fmt, ...) {
+        va_list args;
+        va_start(args, fmt);
+        char * str = vformatPen(fmt, args);
+        va_end(args);
+        return str;
+    }
+
+    // Call after multiple formatPen() calls
+    void terminatePen() {
+        data()[_head] = '\0';
+        ++_head;
+    }
+
+    // do actual work for formatStr
     char * vformatStr(char const * fmt, va_list args) {
         char * str = (char *)dataHead();
         size_t maxChars = _size - _head;
@@ -59,6 +81,17 @@ public:
         return str;
     }
 
+    // do actual work for formatPen
+    char * vformatPen(char const * fmt, va_list args) {
+        size_t prevHead = _head;
+        char * str = vformatStr(fmt, args);
+        if (_head - prevHead > 0) {
+            --_head;
+        }
+        return str;
+    }
+
+    // write string of known length to buffer
     char * writeStr(char const * str, size_t length) {
         return formatStr("%.*s", length, str);
     }
