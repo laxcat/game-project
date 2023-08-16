@@ -129,7 +129,7 @@ public:
     struct Loader {
 
         static constexpr size_t MaxDepth = 8;
-        static constexpr size_t MaxKeyLen = 256;
+        static constexpr size_t MaxKeyLen = 32;
 
         enum ObjType {
             TYPE_UNKNOWN,
@@ -190,7 +190,6 @@ public:
         bool StartArray ();
         bool EndObject(size_t memberCount);
         bool EndArray (size_t elementCount);
-
 
         Gobj::Accessor::Type accessorTypeFromStr(char const * str);
         Gobj::AnimationTarget animationTargetFromStr(char const * str);

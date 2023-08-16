@@ -289,7 +289,7 @@ GLTFLoader3::Loader::Crumb::Crumb(ObjType objType, char const * key) {
 
 void GLTFLoader3::Loader::Crumb::setKey(char const * key) {
     if (key) {
-        snprintf(this->key, MaxKeyLen, "%s", key);
+        fixstrcpy<MaxKeyLen>(this->key, key);
     }
     else {
         this->key[0] = '\0';
@@ -330,7 +330,7 @@ GLTFLoader3::Loader::Loader(byte_t * dst, size_t dstSize, Gobj::Counts const & c
     _dstSize(dstSize),
     counts(counts)
 {
-    debugBreak();
+    // debugBreak();
     
     gobj = new (head()) Gobj{};
     _head += sizeof(Gobj);

@@ -28,4 +28,7 @@ void Gobj::editorCreate() {
 }
 
 void Gobj::editorEditBlock() {
+    if (CollapsingHeader("Info")) {
+        TextUnformatted(printToFrameStack());
+    }
 }
