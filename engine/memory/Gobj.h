@@ -407,7 +407,8 @@ public:
     // DEBUG
 public:
     #if DEBUG
-    void print(Gobj const * g);
+    void print() const;
+    char * printToFrameStack() const;
     #endif // DEBUG
 
     #if DEV_INTERFACE

@@ -2,6 +2,7 @@
 #include "FrameStack.h"
 #if DEBUG
 #include "../dev/print.h"
+#include "../MrManager.h"
 #endif // DEBUG
 
 byte_t const * Gobj::data () const { return (byte_t *)this + sizeof(Gobj); }
@@ -34,41 +35,50 @@ size_t Gobj::Counts::totalSize() const {
 }
 
 #if DEBUG
-void Gobj::print(Gobj const * g) {
-    // using namespace gltf;
+void Gobj::print() const {
+    ::print(printToFrameStack());
+}
 
-    printl("Gobj info block:");
-    printl("Accessor    %011p (%d)", g->accessors,          g->counts.accessors);
-    printl("Animation   %011p (%d)", g->animations,         g->counts.animations);
-    printl("AChannels   %011p (%d)", g->animationChannels,  g->counts.animationChannels);
-    printl("ASamplers   %011p (%d)", g->animationSamplers,  g->counts.animationSamplers);
-    printl("Buffer      %011p (%d)", g->buffers,            g->counts.buffers);
-    printl("BufferView  %011p (%d)", g->bufferViews,        g->counts.bufferViews);
-    printl("Camera      %011p (%d)", g->cameras,            g->counts.cameras);
-    printl("Image       %011p (%d)", g->images,             g->counts.images);
-    printl("Material    %011p (%d)", g->materials,          g->counts.materials);
-    printl("Mesh        %011p (%d)", g->meshes,             g->counts.meshes);
-    printl("Node        %011p (%d)", g->nodes,              g->counts.nodes);
-    printl("Sampler     %011p (%d)", g->samplers,           g->counts.samplers);
-    printl("Scene       %011p (%d)", g->scenes,             g->counts.scenes);
-    printl("Skin        %011p (%d)", g->skins,              g->counts.skins);
-    printl("Texture     %011p (%d)", g->textures,           g->counts.textures);
+char * Gobj::printToFrameStack() const {
+    assert(mm.frameStack && "Frame stack not initialized.");
+    FrameStack & fs = *mm.frameStack;
 
-    ::print("scene index %d (", g->scene);
-    if (g->scene == -1) {
-        ::print("0");
+    char * str = (char *)fs.dataHead();
+
+    fs.formatPen("Accessor    %011p (%d)\n", accessors,          counts.accessors);
+    fs.formatPen("Animation   %011p (%d)\n", animations,         counts.animations);
+    fs.formatPen("AChannels   %011p (%d)\n", animationChannels,  counts.animationChannels);
+    fs.formatPen("ASamplers   %011p (%d)\n", animationSamplers,  counts.animationSamplers);
+    fs.formatPen("Buffer      %011p (%d)\n", buffers,            counts.buffers);
+    fs.formatPen("BufferView  %011p (%d)\n", bufferViews,        counts.bufferViews);
+    fs.formatPen("Camera      %011p (%d)\n", cameras,            counts.cameras);
+    fs.formatPen("Image       %011p (%d)\n", images,             counts.images);
+    fs.formatPen("Material    %011p (%d)\n", materials,          counts.materials);
+    fs.formatPen("Mesh        %011p (%d)\n", meshes,             counts.meshes);
+    fs.formatPen("Node        %011p (%d)\n", nodes,              counts.nodes);
+    fs.formatPen("Sampler     %011p (%d)\n", samplers,           counts.samplers);
+    fs.formatPen("Scene       %011p (%d)\n", scenes,             counts.scenes);
+    fs.formatPen("Skin        %011p (%d)\n", skins,              counts.skins);
+    fs.formatPen("Texture     %011p (%d)\n", textures,           counts.textures);
+
+    fs.formatPen("scene index %d (", scene);
+    if (scene == -1) {
+        fs.formatPen("0");
     }
     else {
-        ::print("%p", g->scenes + g->scene);
+        fs.formatPen("%p", scenes + scene);
     }
-    printl(")");
+    fs.formatPen(")\n");
 
-    printl("copyright:  %s", g->copyright);
-    printl("generator:  %s", g->generator);
-    printl("version:    %s", g->version);
-    printl("minVersion: %s", g->minVersion);
+    fs.formatPen("copyright:  %s\n", copyright);
+    fs.formatPen("generator:  %s\n", generator);
+    fs.formatPen("version:    %s\n", version);
+    fs.formatPen("minVersion: %s\n", minVersion);
 
-    // test some specific things about CesiumMilkTruck.gltf
-    // printl("animation channel count: %d", g->animations[0].nChannels);
+    fs.terminatePen();
+
+    // printl("test[[[%s]]]", str);
+
+    return str;
 }
 #endif // DEBUG
