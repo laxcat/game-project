@@ -1,9 +1,11 @@
 #include "GLTFLoader3.h"
 #include <rapidjson/reader.h>
 #include <rapidjson/stream.h>
+#include <rapidjson/prettywriter.h>
 #include "../common/file_utils.h"
 #include "../common/modp_b64.h"
 #include "FrameStack.h"
+#include "../MrManager.h"
 
 
 GLTFLoader3::SizeFinder::Crumb::Crumb(
@@ -54,19 +56,19 @@ void GLTFLoader3::SizeFinder::ConditionGroup::push(
 }
 
 GLTFLoader3::SizeFinder::SizeFinder() {
-    objCountConds.push(0, Crumb::ARR, "accessors", [this](void * ud){ cntr.accessors = (size_t)ud; });
-    objCountConds.push(0, Crumb::ARR, "animations", [this](void * ud){ cntr.animations = (size_t)ud; });
-    objCountConds.push(0, Crumb::ARR, "buffers", [this](void * ud){ cntr.buffers = (size_t)ud; });
-    objCountConds.push(0, Crumb::ARR, "bufferViews", [this](void * ud){ cntr.bufferViews = (size_t)ud; });
-    objCountConds.push(0, Crumb::ARR, "cameras", [this](void * ud){ cntr.cameras = (size_t)ud; });
-    objCountConds.push(0, Crumb::ARR, "images", [this](void * ud){ cntr.images = (size_t)ud; });
-    objCountConds.push(0, Crumb::ARR, "materials", [this](void * ud){ cntr.materials = (size_t)ud; });
-    objCountConds.push(0, Crumb::ARR, "meshes", [this](void * ud){ cntr.meshes = (size_t)ud; });
-    objCountConds.push(0, Crumb::ARR, "nodes", [this](void * ud){ cntr.nodes = (size_t)ud; });
-    objCountConds.push(0, Crumb::ARR, "samplers", [this](void * ud){ cntr.samplers = (size_t)ud; });
-    objCountConds.push(0, Crumb::ARR, "scenes", [this](void * ud){ cntr.scenes = (size_t)ud; });
-    objCountConds.push(0, Crumb::ARR, "skins", [this](void * ud){ cntr.skins = (size_t)ud; });
-    objCountConds.push(0, Crumb::ARR, "textures", [this](void * ud){ cntr.textures = (size_t)ud; });
+    objCountConds.push(0, Crumb::ARR, "accessors",  [this](void * ud){ cntr.accessors =   (size_t)ud; });
+    objCountConds.push(0, Crumb::ARR, "animations", [this](void * ud){ cntr.animations =  (size_t)ud; });
+    objCountConds.push(0, Crumb::ARR, "buffers",    [this](void * ud){ cntr.buffers =     (size_t)ud; });
+    objCountConds.push(0, Crumb::ARR, "bufferViews",[this](void * ud){ cntr.bufferViews = (size_t)ud; });
+    objCountConds.push(0, Crumb::ARR, "cameras",    [this](void * ud){ cntr.cameras =     (size_t)ud; });
+    objCountConds.push(0, Crumb::ARR, "images",     [this](void * ud){ cntr.images =      (size_t)ud; });
+    objCountConds.push(0, Crumb::ARR, "materials",  [this](void * ud){ cntr.materials =   (size_t)ud; });
+    objCountConds.push(0, Crumb::ARR, "meshes",     [this](void * ud){ cntr.meshes =      (size_t)ud; });
+    objCountConds.push(0, Crumb::ARR, "nodes",      [this](void * ud){ cntr.nodes =       (size_t)ud; });
+    objCountConds.push(0, Crumb::ARR, "samplers",   [this](void * ud){ cntr.samplers =    (size_t)ud; });
+    objCountConds.push(0, Crumb::ARR, "scenes",     [this](void * ud){ cntr.scenes =      (size_t)ud; });
+    objCountConds.push(0, Crumb::ARR, "skins",      [this](void * ud){ cntr.skins =       (size_t)ud; });
+    objCountConds.push(0, Crumb::ARR, "textures",   [this](void * ud){ cntr.textures =    (size_t)ud; });
 
     // animation sub objects
     animChannelCountConds.allAction = [this](void * ud) { cntr.animationChannels += (size_t)ud; };
@@ -104,7 +106,7 @@ GLTFLoader3::SizeFinder::SizeFinder() {
     // find buffer sizes
     byteCountConds.allAction = [this](void * ud) { cntr.buffersLen += (size_t)ud; };
     byteCountConds.push(0, Crumb::INT, "byteLength");
-    byteCountConds.push(-2, Crumb::ARR, "buffers");\
+    byteCountConds.push(-2, Crumb::ARR, "buffers");
 
 
     // find image sizes
@@ -332,7 +334,7 @@ GLTFLoader3::Loader::Loader(byte_t * dst, size_t dstSize, Gobj::Counts const & c
 {
     // debugBreak();
     
-    gobj = new (head()) Gobj{};
+    gobj = new (head()) Gobj{counts};
     _head += sizeof(Gobj);
 
     strStack = new (head()) FrameStack{counts.allStrLen};
@@ -608,19 +610,19 @@ bool GLTFLoader3::Loader::StartArray () {
 bool GLTFLoader3::Loader::EndObject(size_t memberCount) {
     pop();
 
-    if      (CC("accessors" )) ++gobj->counts.accessors;
-    else if (CC("animations")) ++gobj->counts.animations;
-    else if (C(-2,TYPE_ARR,"animations") && C(0,TYPE_ARR,"channels")) {
+    // if      (CC("accessors" )) ++gobj->counts.accessors;
+    // else if (CC("animations")) ++gobj->counts.animations;
+    /*else*/ if (C(-2,TYPE_ARR,"animations") && C(0,TYPE_ARR,"channels")) {
         ++animation()->nChannels;
-        ++gobj->counts.animationChannels;
+        // ++gobj->counts.animationChannels;
     }
     else if (C(-2,TYPE_ARR,"animations") && C(0,TYPE_ARR,"samplers")) {
         ++animation()->nSamplers;
-        ++gobj->counts.animationSamplers;
+        // ++gobj->counts.animationSamplers;
     }
-    else if (CC("buffers")) ++gobj->counts.buffers;
-    else if (CC("bufferViews")) ++gobj->counts.bufferViews;
-    else if (CC("cameras")) ++gobj->counts.cameras;
+    // else if (CC("buffers")) ++gobj->counts.buffers;
+    // else if (CC("bufferViews")) ++gobj->counts.bufferViews;
+    // else if (CC("cameras")) ++gobj->counts.cameras;
 
     return true;
 }
@@ -628,6 +630,10 @@ bool GLTFLoader3::Loader::EndObject(size_t memberCount) {
 bool GLTFLoader3::Loader::EndArray (size_t elementCount) {
 
     if (C(-2,TYPE_ARR,"accessors") && CC("min|max")) _floatPtr = nullptr;
+    else if (C(-2,TYPE_ARR,"scenes") && CC("nodes")) {
+        printl("found node children!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! %zu", elementCount);
+        printBreadcrumb();
+    }
 
     pop();
     return true;
@@ -724,7 +730,6 @@ void GLTFLoader3::Loader::checkCounts() const {
 
 
 
-
 Gobj::Counts GLTFLoader3::calcDataSize(char const * jsonStr) {
     GLTFLoader3::SizeFinder scanner;
     rapidjson::Reader reader;
@@ -739,4 +744,16 @@ bool GLTFLoader3::load(Gobj * g, size_t dstSize, Gobj::Counts const & counts, ch
     auto fs = rapidjson::StringStream(jsonStr);
     reader.Parse(fs, loader);
     return true;
+}
+
+void GLTFLoader3::prettyStr(char const * jsonStr) {
+
+    rapidjson::StringBuffer sb;
+    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(sb);
+
+    rapidjson::Reader reader;
+    auto fs = rapidjson::StringStream(jsonStr);
+    reader.Parse(fs, writer);
+    printf("%s\n", sb.GetString());
+    // return mm.frameFormatStr("%s", );
 }

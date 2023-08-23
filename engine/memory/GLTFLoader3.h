@@ -220,5 +220,6 @@ public:
 
     Gobj::Counts calcDataSize(char const * jsonStr);
     bool load(Gobj * g, size_t dstSize, Gobj::Counts const & counts, char const * jsonStr);
+    void prettyStr(char const * jsonStr);
 
 };

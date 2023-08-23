@@ -12,8 +12,8 @@ Memory layout:
  Gobj   FrameStack  frame  Accessors...  Animations...   all sub-   raw buffer
                     stack                                parts
                     data                                 (Node,
-        ^                  ^             ^               Mesh, etc) ^
-        stringStack()      accessors     animations                 buffer
+        ^                  ^             ^               Mesh, etc)
+        stringStack()      accessors     animations
         data()
         |---- DataSize --------------------------------------------------------|
 
@@ -107,17 +107,16 @@ public:
     Scene            * scenes            = nullptr;
     Skin             * skins             = nullptr;
     Texture          * textures          = nullptr;
-    byte_t           * buffer            = nullptr;
 
     Counts counts;
 
     int16_t scene = -1;
 
     // asset
-    char const * copyright;
-    char const * generator;
-    char const * version;
-    char const * minVersion;
+    char const * copyright = nullptr;
+    char const * generator = nullptr;
+    char const * version = nullptr;
+    char const * minVersion = nullptr;
 
     // STATIC API
 
@@ -127,6 +126,7 @@ public:
 
     // API
 public:
+    Gobj(Counts const & counts);
     byte_t const * data () const;
     FrameStack const * stringStack () const;
 
@@ -380,7 +380,7 @@ public:
     };
 
     struct Scene {
-        int * nodes; // roots nodes (spec supports multiple roots)
+        Node ** nodes; // roots nodes (spec supports multiple roots)
         int nNodes;
         char const * name;
     };
@@ -413,6 +413,7 @@ public:
 
     #if DEV_INTERFACE
     static void editorCreate();
+    void drawNode(Node * n);
     void editorEditBlock();
     #endif // DEV_INTERFACE
 };

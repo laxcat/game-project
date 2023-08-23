@@ -5,6 +5,9 @@
 #include "../MrManager.h"
 #endif // DEBUG
 
+Gobj::Gobj(Gobj::Counts const & counts) :
+    counts(counts)
+{}
 byte_t const * Gobj::data () const { return (byte_t *)this + sizeof(Gobj); }
 FrameStack const * Gobj::stringStack () const { return (FrameStack *)data(); }
 

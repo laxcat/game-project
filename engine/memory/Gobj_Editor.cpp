@@ -27,8 +27,30 @@ void Gobj::editorCreate() {
     }
 }
 
+void Gobj::drawNode(Node * n) {
+        if (TreeNode("Node", "Node %zu (%s)", n - nodes, n->name)) {
+            for (uint16_t i = 0; i < n->nChildren; ++i) {
+                drawNode(n->children + i);
+            }
+            TreePop();
+        }
+}
+
 void Gobj::editorEditBlock() {
     if (CollapsingHeader("Info")) {
         TextUnformatted(printToFrameStack());
+    }
+    if (CollapsingHeader("Hierarchy")) {
+        for (uint16_t i = 0; i < counts.scenes; ++i) {
+            Scene const & s = scenes[i];
+            if (TreeNode("Scene", "Scene %d (%s)", i, s.name)) {
+                printl("scene nNode %d", s.nNodes);
+                for (uint16_t j = 0; j < s.nNodes; ++j) {
+                    printl("scene node %d: %d", i, s.nodes[i]);
+                    // drawNode(nodes + s.nodes[i]);
+                }
+                TreePop();
+            }
+        }
     }
 }

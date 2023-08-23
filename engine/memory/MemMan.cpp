@@ -13,6 +13,7 @@
 #include "FreeList.h"
 #include "CharKeys.h"
 #include "GLTFLoader3.h"
+#include "GLTFLoader4.h"
 
 #if DEBUG
 constexpr static bool ShowMemManBGFXDbg = false;
@@ -540,6 +541,13 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     GLTFLoader3 loader;
     Gobj::Counts counts = loader.calcDataSize(gltfJSON);
 
+    GLTFLoader4 loader4{gltfJSON};
+    printl("JSON DATA for %s\n%s", gltfPath, loader4.prettyJSON());
+    loader4.calculateSize();
+    Gobj temp{loader4.counts};
+    printl("GOBJ INFO FOR COUNTS");
+    temp.print();
+
     // create and load into Gobj
     Gobj * g = createGobj(counts);
     BlockInfo * gobjBlock = blockForPtr(g);
@@ -558,6 +566,9 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
         return nullptr;
     }
 
+    // loader.prettyStr(gltfJSON);
+    // printl("JSON DATA for %s:\n%.*s", gltfPath, gltfJSONSize, loader.prettyStr(gltfJSON));
+
     // free gltf file
     // request({.ptr=gltf, .size=0});
 
@@ -570,7 +581,7 @@ Gobj * MemMan::createGobj(Gobj::Counts const & counts) {
     BlockInfo * block = create(counts.totalSize());
     if (!block) return nullptr;
     block->_type = MEM_BLOCK_GOBJ;
-    return new (block->data()) Gobj{};
+    return new (block->data()) Gobj{counts};
 }
 
 void MemMan::createRequestResult() {
