@@ -12,17 +12,17 @@ GLTFLoader4::Counter::Counter(GLTFLoader4 * loader) :
     loader(loader)
 {}
 
-bool GLTFLoader4::Counter::Null() { printl("HOG DONKEY!1"); return true; }
-bool GLTFLoader4::Counter::Bool(bool b) { printl("HOG DONKEY!2"); return true; }
-bool GLTFLoader4::Counter::Int(int i) { printl("HOG DONKEY!3"); return true; }
-bool GLTFLoader4::Counter::Int64(int64_t i) { printl("HOG DONKEY!4"); return true; }
-bool GLTFLoader4::Counter::Uint64(uint64_t i) { printl("HOG DONKEY!5"); return true; }
+bool GLTFLoader4::Counter::Null() { return true; }
+bool GLTFLoader4::Counter::Bool(bool b) { return true; }
+bool GLTFLoader4::Counter::Int(int i) { return true; }
+bool GLTFLoader4::Counter::Int64(int64_t i) { return true; }
+bool GLTFLoader4::Counter::Uint64(uint64_t i) { return true; }
 bool GLTFLoader4::Counter::Double(double d) { return true; }
-bool GLTFLoader4::Counter::RawNumber(char const * str, uint32_t length, bool copy) { printl("HOG DONKEY!7"); return true; }
+bool GLTFLoader4::Counter::RawNumber(char const * str, uint32_t length, bool copy) { return true; }
 
 bool GLTFLoader4::Counter::Uint(unsigned i) {
     loader->push(TYPE_UINT);
-    loader->printBreadcrumbs();
+    // loader->printBreadcrumbs();
 
     if (loader->depth >= 3 &&
         loader->crumb(-2).matches(TYPE_ARR, "buffers") &&
@@ -37,7 +37,7 @@ bool GLTFLoader4::Counter::Uint(unsigned i) {
 
 bool GLTFLoader4::Counter::String(char const * str, uint32_t length, bool copy) {
     loader->push(TYPE_STR);
-    loader->printBreadcrumbs();
+    // loader->printBreadcrumbs();
 
     Crumb & thisCrumb = loader->crumb();
     // name strings
@@ -66,7 +66,7 @@ bool GLTFLoader4::Counter::String(char const * str, uint32_t length, bool copy) 
 
 bool GLTFLoader4::Counter::StartObject() {
     loader->push(TYPE_OBJ);
-    loader->printBreadcrumbs();
+    // loader->printBreadcrumbs();
     return true;
 }
 
@@ -82,14 +82,14 @@ bool GLTFLoader4::Counter::EndObject(uint32_t memberCount) {
 
 bool GLTFLoader4::Counter::StartArray() {
     loader->push(TYPE_ARR);
-    loader->printBreadcrumbs();
-    loader->arrIndices[loader->arrDepth] = 0;
-    ++loader->arrDepth;
+    loader->pushIndex();
+    // loader->printBreadcrumbs();
     return true;
 }
 
 bool GLTFLoader4::Counter::EndArray(uint32_t elementCount) {
-    Crumb & crumb = loader->crumbs[loader->depth-1];
+    Crumb & crumb = loader->crumb();
+    // count the main sub-objects
     if (loader->depth == 2) {
         if      (crumb.matches("accessors"  )) { loader->counts.accessors   = elementCount; }
         else if (crumb.matches("animations" )) { loader->counts.animations  = elementCount; }
@@ -105,8 +105,17 @@ bool GLTFLoader4::Counter::EndArray(uint32_t elementCount) {
         else if (crumb.matches("skins"      )) { loader->counts.skins       = elementCount; }
         else if (crumb.matches("textures"   )) { loader->counts.textures    = elementCount; }
     }
+    // scene nodes
+    else if (loader->depth == 4 && crumb.matches("nodes") && loader->crumb(-2).matches("scenes")) {
+        loader->counts.sceneNodes += elementCount;
+    }
+    // animation channels and samplers
+    else if (loader->depth == 4 && loader->crumb(-2).matches("animations")) {
+        if      (crumb.matches("channels")) { loader->counts.animationChannels += elementCount; }
+        else if (crumb.matches("samplers")) { loader->counts.animationSamplers += elementCount; }
+    }
     loader->pop();
-    --loader->arrDepth;
+    loader->popIndex();
     return true;
 }
 
@@ -114,6 +123,100 @@ bool GLTFLoader4::Counter::EndArray(uint32_t elementCount) {
 // SCANNER
 // -------------------------------------------------------------------------- //
 
+GLTFLoader4::Scanner::Scanner(GLTFLoader4 * loader, Gobj * gobj) :
+    loader(loader),
+    gobj(gobj)
+{}
+
+bool GLTFLoader4::Scanner::Null() { return true; }
+bool GLTFLoader4::Scanner::Int(int i) { return true; }
+bool GLTFLoader4::Scanner::Int64(int64_t i) { return true; }
+bool GLTFLoader4::Scanner::Uint64(uint64_t i) { return true; }
+bool GLTFLoader4::Scanner::Double(double d) { return true; }
+bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool copy) { return true; }
+
+bool GLTFLoader4::Scanner::Bool(bool b) {
+    if (loader->crumb(-1).matches(TYPE_ARR, "accessors")) {
+        uint16_t index = loader->crumb().index;
+        if     (strEqu(key), "normalized")     { gobj->accessors[index].normalized = b; }
+    }
+    return true;
+}
+
+bool GLTFLoader4::Scanner::Uint(unsigned i) {
+    if (loader->crumb(-1).matches(TYPE_ARR, "accessors")) {
+        uint16_t index = loader->crumb().index;
+        if      (strEqu(key), "bufferView")     { gobj->accessors[index].bufferView = gobj->bufferViews + i; }
+        else if (strEqu(key), "byteOffset")     { gobj->accessors[index].byteOffset = i; }
+        else if (strEqu(key), "componentType")  { gobj->accessors[index].componentType = (Accessor::ComponentType)i; }
+        else if (strEqu(key), "normalized")     { gobj->accessors[index].normalized = i; }
+        else if (strEqu(key), "count")          { gobj->accessors[index].count = i; }
+        else if (strEqu(key), "max")            { gobj->accessors[index].max = i; }
+        else if (strEqu(key), "min")            { gobj->accessors[index].min = i; }
+
+    }
+    return true;
+}
+
+bool GLTFLoader4::Scanner::String(char const * str, uint32_t length, bool copy) {
+    // handle name strings
+    if (strEqu(loader->key, "name")) {
+        char const * key = loader->crumb(-1).key;
+        uint16_t index = loader->crumb().index;
+        if      (strEqu(key, "accessors"))  { gobj->accessors[index].name   = gobj->strings->writeStr(str, length); }
+        else if (strEqu(key, "animations")) { gobj->animations[index].name  = gobj->strings->writeStr(str, length); }
+        else if (strEqu(key, "buffers"))    { gobj->buffers[index].name     = gobj->strings->writeStr(str, length); }
+        else if (strEqu(key, "bufferViews")){ gobj->bufferViews[index].name = gobj->strings->writeStr(str, length); }
+        else if (strEqu(key, "cameras"))    { gobj->cameras[index].name     = gobj->strings->writeStr(str, length); }
+        else if (strEqu(key, "images"))     { gobj->images[index].name      = gobj->strings->writeStr(str, length); }
+        else if (strEqu(key, "materials"))  { gobj->materials[index].name   = gobj->strings->writeStr(str, length); }
+        else if (strEqu(key, "meshes"))     { gobj->meshes[index].name      = gobj->strings->writeStr(str, length); }
+        else if (strEqu(key, "nodes"))      { gobj->nodes[index].name       = gobj->strings->writeStr(str, length); }
+        else if (strEqu(key, "samplers"))   { gobj->samplers[index].name    = gobj->strings->writeStr(str, length); }
+        else if (strEqu(key, "scenes"))     { gobj->scenes[index].name      = gobj->strings->writeStr(str, length); }
+        else if (strEqu(key, "skins"))      { gobj->skins[index].name       = gobj->strings->writeStr(str, length); }
+        else if (strEqu(key, "textures"))   { gobj->textures[index].name    = gobj->strings->writeStr(str, length); }
+    }
+    else if (loader->crumb().matches(TYPE_OBJ, "asset")) {
+        if      (strEqu(loader->key, "copyright"))  { gobj->copyright   = gobj->strings->writeStr(str, length); }
+        else if (strEqu(loader->key, "generator"))  { gobj->generator   = gobj->strings->writeStr(str, length); }
+        else if (strEqu(loader->key, "version"))    { gobj->version     = gobj->strings->writeStr(str, length); }
+        else if (strEqu(loader->key, "minVersion")) { gobj->minVersion  = gobj->strings->writeStr(str, length); }
+    }
+    else if (loader->crumb(-1).matches(TYPE_ARR, "accessors")) {
+        uint16_t index = loader->crumb().index;
+        if     (strEqu(key), "type") { gobj->accessors[index].type = loader->accessorTypeFromStr(str); }
+
+    }
+    return true;
+}
+
+bool GLTFLoader4::Scanner::StartObject() {
+    loader->push(TYPE_OBJ);
+    return true;
+}
+
+bool GLTFLoader4::Scanner::Key(char const * str, uint32_t length, bool copy) {
+    snprintf(loader->key, MaxKeyLen, "%.*s", length, str);
+    return true;
+}
+
+bool GLTFLoader4::Scanner::EndObject(uint32_t memberCount) {
+    loader->pop();
+    return true;
+}
+
+bool GLTFLoader4::Scanner::StartArray() {
+    loader->push(TYPE_ARR);
+    loader->pushIndex();
+    return true;
+}
+
+bool GLTFLoader4::Scanner::EndArray(uint32_t elementCount) {
+    loader->pop();
+    loader->popIndex();
+    return true;
+}
 
 // -------------------------------------------------------------------------- //
 // CRUMB
@@ -135,8 +238,10 @@ void GLTFLoader4::Crumb::setKey(char const * key) {
     }
 }
 
-// match key?
 bool GLTFLoader4::Crumb::matches(char const * key) const {
+    if (objType == TYPE_UNKNOWN) return false;
+    // TODO: unsure of how these key rules should work... simplify this
+    assert(key);
     // passed null key matches any (no check, always true)
     if (!key || key[0] == '\0') return true;
     // always false if Crumb has no key, except true when empty string is passed
@@ -145,7 +250,6 @@ bool GLTFLoader4::Crumb::matches(char const * key) const {
     return strWithin(this->key, key, '|');
 }
 
-// match obj type and (optionally) key?
 bool GLTFLoader4::Crumb::matches(ObjType objType, char const * key) const {
     if (objType != this->objType) return false;
     return matches(key);
@@ -176,17 +280,52 @@ GLTFLoader4::GLTFLoader4(char const * jsonStr) :
 }
 
 GLTFLoader4::Crumb & GLTFLoader4::crumb(int offset) {
-    assert(depth &&
-        offset <= 0 &&
-        depth > -offset &&
-        "Invalid offset."
-    );
+    // out of bounds, return invalid crumb
+    if (depth <= -offset || offset > 0) {
+        return invalidCrumb;
+    }
     return crumbs[depth-1+offset];
 }
 
-void GLTFLoader4::push(ObjType objType) {
-    assert(depth < MaxDepth);
+void GLTFLoader4::calculateSize() {
+    Counter counter{this};
+    rapidjson::Reader reader;
+    auto ss = rapidjson::StringStream(jsonStr);
+    reader.Parse(ss, counter);
+}
 
+bool GLTFLoader4::load(Gobj * gobj) {
+    Scanner scanner{this, gobj};
+    rapidjson::Reader reader;
+    auto ss = rapidjson::StringStream(jsonStr);
+    reader.Parse(ss, scanner);
+    return true;
+}
+
+char * GLTFLoader4::prettyJSON() const {
+    rapidjson::StringBuffer sb;
+    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(sb);
+
+    rapidjson::Reader reader;
+    auto ss = rapidjson::StringStream(jsonStr);
+    reader.Parse(ss, writer);
+    // printf("%s\n", sb.GetString());
+
+    return mm.frameFormatStr("%s", sb.GetString());
+}
+
+void GLTFLoader4::printBreadcrumbs() const {
+    if (depth < 1) return;
+    for (int i = 0; i < depth; ++i) {
+        print("%s(%s,%d) > ", crumbs[i].objTypeStr(), crumbs[i].key, crumbs[i].index);
+    }
+    printl();
+}
+
+void GLTFLoader4::push(ObjType objType) {
+    assert(depth < MaxDepth && "Can't push crumb.");
+
+    // if parent is an array, mark the index in newly pushed child and increntment next index.
     if (depth && crumbs[depth-1].objType == TYPE_ARR) {
         crumbs[depth].index = arrIndices[arrDepth-1];
         ++arrIndices[arrDepth-1];
@@ -203,31 +342,22 @@ void GLTFLoader4::pop() {
     --depth;
 }
 
-void GLTFLoader4::calculateSize() {
-    Counter counter{this};
-    rapidjson::Reader reader;
-    auto fs = rapidjson::StringStream(jsonStr);
-    reader.Parse(fs, counter);
+void GLTFLoader4::pushIndex() {
+    arrIndices[arrDepth] = 0;
+    ++arrDepth;
 }
 
-char * GLTFLoader4::prettyJSON() const {
-    rapidjson::StringBuffer sb;
-    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(sb);
-
-    rapidjson::Reader reader;
-    auto fs = rapidjson::StringStream(jsonStr);
-    reader.Parse(fs, writer);
-    // printf("%s\n", sb.GetString());
-
-    return mm.frameFormatStr("%s", sb.GetString());
-
-    return nullptr;
+void GLTFLoader4::popIndex() {
+    --arrDepth;
 }
 
-void GLTFLoader4::printBreadcrumbs() const {
-    if (depth < 1) return;
-    for (int i = 0; i < depth; ++i) {
-        print("%s(%s,%d) > ", crumbs[i].objTypeStr(), crumbs[i].key, crumbs[i].index);
-    }
-    printl();
+Gobj::Accessor::Type GLTFLoader4::accessorTypeFromStr(char const * str) {
+    if (strEqu(str, "SCALAR")) return Gobj::Accessor::TYPE_SCALAR;
+    if (strEqu(str, "VEC2"  )) return Gobj::Accessor::TYPE_VEC2;
+    if (strEqu(str, "VEC3"  )) return Gobj::Accessor::TYPE_VEC3;
+    if (strEqu(str, "VEC4"  )) return Gobj::Accessor::TYPE_VEC4;
+    if (strEqu(str, "MAT2"  )) return Gobj::Accessor::TYPE_MAT2;
+    if (strEqu(str, "MAT3"  )) return Gobj::Accessor::TYPE_MAT3;
+    if (strEqu(str, "MAT4"  )) return Gobj::Accessor::TYPE_MAT4;
+    return Gobj::Accessor::TYPE_UNDEFINED;
 }

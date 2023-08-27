@@ -538,39 +538,48 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     char const * gltfJSON = (char const *)(gltf->data() + 20);
 
     // calculate the data size
-    GLTFLoader3 loader;
-    Gobj::Counts counts = loader.calcDataSize(gltfJSON);
-
-    GLTFLoader4 loader4{gltfJSON};
-    printl("JSON DATA for %s\n%s", gltfPath, loader4.prettyJSON());
-    loader4.calculateSize();
-    Gobj temp{loader4.counts};
-    printl("GOBJ INFO FOR COUNTS");
-    temp.print();
+    // GLTFLoader3 loader;
+    // Gobj::Counts counts = loader.calcDataSize(gltfJSON);
 
     // create and load into Gobj
-    Gobj * g = createGobj(counts);
-    BlockInfo * gobjBlock = blockForPtr(g);
-    if (g == nullptr) {
-        fprintf(stderr, "Error creating Gobj block\n");
-        return nullptr;
-    }
-    bool success = loader.load(
-        g,
-        gobjBlock->_dataSize,
-        counts,
-        gltfJSON
-    );
-    if (!success) {
-        fprintf(stderr, "Error loading GLTF data into Gobj\n");
-        return nullptr;
-    }
+    // Gobj * g = createGobj(counts);
+    // BlockInfo * gobjBlock = blockForPtr(g);
+    // if (g == nullptr) {
+    //     fprintf(stderr, "Error creating Gobj block\n");
+    //     return nullptr;
+    // }
+    // bool success = loader.load(
+    //     g,
+    //     gobjBlock->_dataSize,
+    //     counts,
+    //     gltfJSON
+    // );
+    // if (!success) {
+    //     fprintf(stderr, "Error loading GLTF data into Gobj\n");
+    //     return nullptr;
+    // }
 
     // loader.prettyStr(gltfJSON);
     // printl("JSON DATA for %s:\n%.*s", gltfPath, gltfJSONSize, loader.prettyStr(gltfJSON));
 
     // free gltf file
     // request({.ptr=gltf, .size=0});
+
+
+    // LOADER 4
+    GLTFLoader4 loader4{gltfJSON};
+    printl("JSON DATA for %s\n%s", gltfPath, loader4.prettyJSON());
+    loader4.calculateSize();
+    printl("GOBJ INFO FOR COUNTS");
+    loader4.counts.print();
+    Gobj * g = createGobj(loader4.counts);
+
+    if (g == nullptr) {
+        fprintf(stderr, "Error creating Gobj block\n");
+        return nullptr;
+    }
+
+    bool success = loader4.load(g);
 
     return g;
 }

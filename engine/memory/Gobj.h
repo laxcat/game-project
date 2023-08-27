@@ -5,17 +5,108 @@
 #include "../common/types.h"
 
 /*
+Gobj (game object, "gobject")
+Main structure object for items/things/characters that exist in the game world.
+Mostly deals with visual data, but will probably hold physics/etc data as well.
+Designed to only exist in pre-allocated space (Use GLTFLoader4::calculateSize)
+to determine size beforehand.
 
-Memory layout:
+Visual data closely mirrors the GLTF spec.
+https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html
+Significant exceptions:
+    No extensions
+
+
+Brief memory layout:
 
 |-------|-----------|------|---------...-|---------...-|-...-------|-----------|
  Gobj   FrameStack  frame  Accessors...  Animations...   all sub-   raw buffer
                     stack                                parts
                     data                                 (Node,
         ^                  ^             ^               Mesh, etc)
-        stringStack()      accessors     animations
+        strings            accessors     animations
         data()
         |---- DataSize --------------------------------------------------------|
+
+
+Complete memory layout:
+
+----------------------------------------
+Gobj
+----------------------------------------
+FrameStack
+FrameStack string data
+----------------------------------------
+Accessor
+Accessor
+...
+----------------------------------------
+Animation
+Animation
+...
+----------------------------------------
+AnimationChannel
+AnimationChannel
+...
+----------------------------------------
+AnimationSampler
+AnimationSampler
+...
+----------------------------------------
+Buffer
+Buffer
+...
+----------------------------------------
+BufferView
+BufferView
+...
+----------------------------------------
+Camera
+Camera
+...
+----------------------------------------
+Image
+Image
+...
+----------------------------------------
+Material
+Material
+...
+----------------------------------------
+Mesh
+Mesh
+...
+----------------------------------------
+Node
+Node
+...
+----------------------------------------
+Sampler
+Sampler
+...
+----------------------------------------
+Scene
+Scene
+...
+----------------------------------------
+Node *                                  // Scene root nodes
+Node *
+...
+----------------------------------------
+Skin
+Skin
+...
+----------------------------------------
+Scene
+Scene
+...
+----------------------------------------
+Texture
+Texture
+...
+----------------------------------------
+buffer data
+----------------------------------------
 
 */
 
@@ -23,20 +114,6 @@ Memory layout:
 class FrameStack;
 
 class Gobj {
-    // Philosophy: basically mirror the GLTF spec for visual data
-    // https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html
-    //
-    // General rules:
-    // • if something is an integer reference to something else (a common pattern),
-    //   use a pointer to that other object
-    // • variable length arrays will need to have external data, see Counter
-    //   for calculation.
-    // • no support for extensions yet, so leave that out
-    // • no support for sparse accessors, so leave that out
-    // • expect 4GB limit for buffers (for now), so favor uint32_t for buffer sizes/offsets
-    // • single instance classes must exist should be packed into the parent if it makes sense.
-    //   for example the PBRMetalicRoughness class is packed directly into Material.
-
     // FORWARD
 public:
     // sub-parts
@@ -80,6 +157,7 @@ public:
         uint16_t nodes = 0;
         uint16_t samplers = 0;
         uint16_t scenes = 0;
+        uint16_t sceneNodes = 0;
         uint16_t skins = 0;
         uint16_t textures = 0;
 
@@ -87,11 +165,16 @@ public:
         uint32_t buffersLen = 0;
 
         size_t totalSize() const;
+        #if DEBUG
+        void print() const;
+        char * printToFrameStack() const;
+        #endif // DEBUG
     };
 
 
     // STORAGE
 public:
+    FrameStack       * strings           = nullptr;
     Accessor         * accessors         = nullptr;
     Animation        * animations        = nullptr;
     AnimationChannel * animationChannels = nullptr;
@@ -102,9 +185,12 @@ public:
     Image            * images            = nullptr;
     Material         * materials         = nullptr;
     Mesh             * meshes            = nullptr;
+    MeshAttribute    * meshAttributes    = nullptr;
+    MeshPrimative    * meshPrimatives    = nullptr;
     Node             * nodes             = nullptr;
     Sampler          * samplers          = nullptr;
     Scene            * scenes            = nullptr;
+    Node *           * sceneNodes        = nullptr;
     Skin             * skins             = nullptr;
     Texture          * textures          = nullptr;
 
@@ -264,18 +350,14 @@ public:
         float znear;
     };
 
-    // not sure about this structure... imaages, especially gltf images, will
-    // be read only 99.9% of the time, so we don't really need data references.
-    // should the bgfx texture handle be kept here?
     struct Image {
-        byte_t * data;
         enum MIMEType {
             TYPE_JPEG,
             TYPE_PNG,
         };
-        MIMEType mimeType;
-        BufferView * bufferView;
-        char const * name;
+        MIMEType mimeType = TYPE_PNG;
+        BufferView * bufferView = nullptr;
+        char const * name = nullptr;
     };
 
     struct Material {
@@ -289,46 +371,46 @@ public:
         float baseColorFactor[4] = {1.f};
         TextureInfo * baseColorTexture = nullptr;
         bool doubleSided = false;
-        float emissiveFactor[3];
+        float emissiveFactor[3] = {0.f};
         TextureInfo * emissiveTexture = nullptr;
         float metalicFactor = 1.f;
         TextureInfo * metallicRoughnessTexture = nullptr;
-        char const * name;
-        MatieralNormalTexture * normalTexture;
-        MatieralOcclusionTexture * occlusionTexture;
+        char const * name = nullptr;
+        MatieralNormalTexture * normalTexture = nullptr;
+        MatieralOcclusionTexture * occlusionTexture = nullptr;
         float roughnessFactor = 1.f;
     };
 
     struct MatieralNormalTexture {
-        Texture * index;
+        Texture * index = nullptr;
         Attr texCoord = ATTR_TEXCOORD0;
         float scale = 0.0f;
     };
 
     struct MatieralOcclusionTexture {
-        Texture * index;
+        Texture * index = nullptr;
         Attr texCoord = ATTR_TEXCOORD0;
         float strength = 1.0f;
     };
 
     struct Mesh {
-        MeshPrimative * primatives;
-        int nPrimatives;
-        float * weights;
-        int nWeights;
-        char const * name;
+        MeshPrimative * primatives = nullptr;
+        int nPrimatives = 0;
+        float * weights = nullptr;
+        int nWeights = 0;
+        char const * name = nullptr;
     };
 
     struct MeshAttribute {
-        Attr type;
-        Accessor * accessor;
+        Attr type = ATTR_POSITION;
+        Accessor * accessor = nullptr;
     };
 
     struct MeshPrimative {
-        MeshAttribute * attributes;
-        int nAttributes;
-        Accessor * indices;
-        Material * material;
+        MeshAttribute * attributes = nullptr;
+        int nAttributes = 0;
+        Accessor * indices = nullptr;
+        Material * material = nullptr;
         enum Mode {
             MODE_POINTS,
             MODE_LINES,
@@ -339,23 +421,23 @@ public:
             MODE_TRIANGLE_FAN,
         };
         Mode mode = MODE_TRIANGLES;
-        MeshAttribute * targets;
-        int nTargets;
+        MeshAttribute * targets = nullptr;
+        int nTargets = 0;
     };
 
     struct Node {
-        Camera * camera;
-        Node * children;
-        int nChildren;
-        Skin * skin;
-        float matrix[16];
-        Mesh * mesh;
-        float rotation[4];
-        float scale[3];
-        float translation[3];
-        int * weights;
+        Camera * camera = nullptr;
+        Node * children = nullptr;
+        int nChildren = 0;
+        Skin * skin = nullptr;
+        float matrix[16] = {0.f};
+        Mesh * mesh = nullptr;
+        float rotation[4] = {0.f};
+        float scale[3] = {0.f};
+        float translation[3] = {0.f};
+        int * weights = nullptr;
         // int nWeights; // must match mesh weights
-        char const * name;
+        char const * name = nullptr;
     };
 
     struct Sampler {
@@ -367,41 +449,41 @@ public:
             FILTER_NEAREST_MIPMAP_LINEAR    = 0x2702, // 9986
             FILTER_LINEAR_MIPMAP_LINEAR     = 0x2703, // 9987
         };
-        Filter magFilter;
-        Filter minFilter;
+        Filter magFilter = FILTER_LINEAR;
+        Filter minFilter = FILTER_LINEAR;
         enum Wrap {
             WRAP_CLAMP_TO_EDGE      = 0x812f, // 33071
             WRAP_MIRRORED_REPEAT    = 0x8370, // 33648
             WRAP_REPEAT             = 0x2901, // 10497
         };
-        Wrap wrapS;
-        Wrap wrapT;
-        char const * name;
+        Wrap wrapS = WRAP_CLAMP_TO_EDGE;
+        Wrap wrapT = WRAP_CLAMP_TO_EDGE;
+        char const * name = nullptr;
     };
 
     struct Scene {
-        Node ** nodes; // roots nodes (spec supports multiple roots)
-        int nNodes;
-        char const * name;
+        Node ** nodes = nullptr; // roots nodes (spec supports multiple roots)
+        int nNodes = 0;
+        char const * name = nullptr;
     };
 
     struct Skin {
-        Accessor * inverseBindMatrices;
-        Node * skeleton;
-        Node * joints;
-        int nJoints;
-        char const * name;
+        Accessor * inverseBindMatrices = nullptr;
+        Node * skeleton = nullptr;
+        Node * joints = nullptr;
+        int nJoints = 0;
+        char const * name = nullptr;
     };
 
     struct Texture {
-        Sampler * sampler;
-        Image * source;
-        char const * name;
+        Sampler * sampler = nullptr;
+        Image * source = nullptr;
+        char const * name = nullptr;
     };
 
     struct TextureInfo {
-        Texture * index;
-        Attr texCoord;
+        Texture * index = nullptr;
+        Attr texCoord = ATTR_TEXCOORD0;
     };
 
     // DEBUG
