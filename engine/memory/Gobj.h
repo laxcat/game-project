@@ -291,7 +291,7 @@ public:
     };
 
     struct AnimationChannel {
-        Sampler * sampler = nullptr;
+        AnimationSampler * sampler = nullptr;
         Node * node = nullptr;
         AnimationTarget path = ANIM_TAR_UNDEFINED;
     };

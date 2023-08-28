@@ -148,4 +148,6 @@ private:
     void popIndex();
 
     Gobj::Accessor::Type accessorTypeFromStr(char const * str);
+    Gobj::AnimationTarget animationTargetFromStr(char const * str);
+    Gobj::AnimationSampler::Interpolation interpolationFromStr(char const * str);
 };

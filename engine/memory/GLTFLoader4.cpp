@@ -192,6 +192,34 @@ bool GLTFLoader4::Scanner::Uint(unsigned i) {
         if      (l->crumb(-1).matches("min")) { g->accessors[accIndex].min[minMaxIndex] = (float)i; }
         else if (l->crumb(-1).matches("max")) { g->accessors[accIndex].max[minMaxIndex] = (float)i; }
     }
+    else if (
+        l->crumb(-4).matches(TYPE_ARR, "animations") &&
+        l->crumb(-2).matches(TYPE_ARR, "channels") &&
+        l->crumb().matches("sampler"))
+    {
+        uint16_t aniIndex = l->crumb(-3).index;
+        Gobj::AnimationChannel * ac = g->animations[aniIndex].channels + l->crumb(-1).index;
+        ac->sampler = g->animations[aniIndex].samplers + i;
+    }
+    else if (
+        l->crumb(-5).matches(TYPE_ARR, "animations") &&
+        l->crumb(-3).matches(TYPE_ARR, "channels") &&
+        l->crumb(-1).matches(TYPE_OBJ, "target") &&
+        l->crumb().matches("node"))
+    {
+        uint16_t aniIndex = l->crumb(-4).index;
+        Gobj::AnimationChannel * ac = g->animations[aniIndex].channels + l->crumb(-2).index;
+        ac->node = g->nodes + i;
+    }
+    else if (
+        l->crumb(-4).matches(TYPE_ARR, "animations") &&
+        l->crumb(-2).matches(TYPE_ARR, "samplers"))
+    {
+        uint16_t aniIndex = l->crumb(-3).index;
+        Gobj::AnimationSampler * as = g->animations[aniIndex].samplers + l->crumb(-1).index;
+        if      (l->crumb().matches("input"))  { as->input  = g->accessors + i; }
+        else if (l->crumb().matches("output")) { as->output = g->accessors + i; }
+    }
     l->pop();
     return true;
 }
@@ -241,6 +269,25 @@ bool GLTFLoader4::Scanner::String(char const * str, uint32_t length, bool copy) 
         uint16_t index = l->crumb(-1).index;
         if     (l->crumb().matches("type")) { g->accessors[index].type = l->accessorTypeFromStr(str); }
 
+    }
+    else if (
+        l->crumb(-5).matches(TYPE_ARR, "animations") &&
+        l->crumb(-3).matches(TYPE_ARR, "channels") &&
+        l->crumb(-1).matches(TYPE_OBJ, "target") &&
+        l->crumb().matches("path"))
+    {
+        uint16_t aniIndex = l->crumb(-4).index;
+        Gobj::AnimationChannel * ac = g->animations[aniIndex].channels + l->crumb(-2).index;
+        ac->path = l->animationTargetFromStr(str);
+    }
+    else if (
+        l->crumb(-4).matches(TYPE_ARR, "animations") &&
+        l->crumb(-2).matches(TYPE_ARR, "samplers") &&
+        l->crumb().matches("interpolation"))
+    {
+        uint16_t aniIndex = l->crumb(-3).index;
+        Gobj::AnimationSampler * as = g->animations[aniIndex].samplers + l->crumb(-1).index;
+        as->interpolation = l->interpolationFromStr(str);
     }
     l->pop();
     return true;
@@ -433,4 +480,18 @@ Gobj::Accessor::Type GLTFLoader4::accessorTypeFromStr(char const * str) {
     if (strEqu(str, "MAT3"  )) return Gobj::Accessor::TYPE_MAT3;
     if (strEqu(str, "MAT4"  )) return Gobj::Accessor::TYPE_MAT4;
     return Gobj::Accessor::TYPE_UNDEFINED;
+}
+
+Gobj::AnimationTarget GLTFLoader4::animationTargetFromStr(char const * str) {
+    if (strEqu(str, "weights"    )) return Gobj::ANIM_TAR_WEIGHTS;
+    if (strEqu(str, "translation")) return Gobj::ANIM_TAR_TRANSLATION;
+    if (strEqu(str, "rotation"   )) return Gobj::ANIM_TAR_ROTATION;
+    if (strEqu(str, "scale"      )) return Gobj::ANIM_TAR_SCALE;
+    return Gobj::ANIM_TAR_UNDEFINED;
+}
+
+Gobj::AnimationSampler::Interpolation GLTFLoader4::interpolationFromStr(char const * str) {
+    if (strEqu(str, "STEP"       )) return Gobj::AnimationSampler::INTERP_STEP;
+    if (strEqu(str, "CUBICSPLINE")) return Gobj::AnimationSampler::INTERP_CUBICSPLINE;
+    return Gobj::AnimationSampler::INTERP_LINEAR;
 }

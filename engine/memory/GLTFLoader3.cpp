@@ -499,7 +499,7 @@ bool GLTFLoader3::Loader::Uint(unsigned u) {
     }
 
     else if (C(-4,TYPE_ARR,"animations") && C(-2,TYPE_ARR,"channels")) {
-        if (CC("sampler")) animationChannel()->sampler = gobj->samplers + u;
+        if (CC("sampler")) animationChannel()->sampler = (Gobj::AnimationSampler *)gobj->samplers + u; // NOTE: silence fix. will not work.
     }
 
     else if (C(-4,TYPE_ARR,"animations") && C(-2,TYPE_ARR,"samplers")) {
