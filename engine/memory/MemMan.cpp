@@ -573,6 +573,8 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     printl("GOBJ INFO FOR COUNTS");
     loader4.counts.print();
     Gobj * g = createGobj(loader4.counts);
+    printl("LOADED GOBJ:");
+    g->print();
 
     if (g == nullptr) {
         fprintf(stderr, "Error creating Gobj block\n");
@@ -587,7 +589,7 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
 Gobj * MemMan::createGobj(Gobj::Counts const & counts) {
     guard_t guard{_mainMutex};
 
-    BlockInfo * block = create(counts.totalSize());
+    BlockInfo * block = create(counts.totalSize(), Gobj::Align);
     if (!block) return nullptr;
     block->_type = MEM_BLOCK_GOBJ;
     return new (block->data()) Gobj{counts};

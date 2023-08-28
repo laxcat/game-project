@@ -114,6 +114,9 @@ buffer data
 class FrameStack;
 
 class Gobj {
+    // STATIC CONSTANTS
+public:
+    static constexpr size_t Align = 16;
     // FORWARD
 public:
     // sub-parts

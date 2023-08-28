@@ -1,27 +1,32 @@
 #include "Gobj.h"
 #include "FrameStack.h"
+#include "mem_utils.h"
 #if DEBUG
 #include "../dev/print.h"
 #include "../MrManager.h"
 #endif // DEBUG
 
+#define ALIGN_SIZE(SIZE) alignSize(SIZE, Gobj::Align)
+#define ALIGN_PTR(PTR)  alignPtr(PTR, Gobj::Align)
+
 Gobj::Gobj(Gobj::Counts const & counts) :
     counts(counts)
 {
+    // don't align base head, we assume Gobj has been aligned externally (MemMan)
     byte_t * head = (byte_t *)this;
-    head += sizeof(Gobj);
+    head += ALIGN_SIZE(sizeof(Gobj));
 
     // has string data, create FrameStack to hold it
     if (counts.allStrLen) {
         strings = new (head) FrameStack{counts.allStrLen};
-        head += strings->totalSize();
+        head += ALIGN_SIZE(strings->totalSize());
     }
 
     if (counts.accessors) {
         accessors = (Accessor *)head;
         for (uint16_t i = 0; i < counts.accessors; ++i) {
             new (head) Accessor{};
-            head += sizeof(Accessor);
+            head += ALIGN_SIZE(sizeof(Accessor));
         }
     }
 
@@ -29,7 +34,7 @@ Gobj::Gobj(Gobj::Counts const & counts) :
         animations = (Animation *)head;
         for (uint16_t i = 0; i < counts.animations; ++i) {
             new (head) Animation{};
-            head += sizeof(Animation);
+            head += ALIGN_SIZE(sizeof(Animation));
         }
     }
 
@@ -37,7 +42,7 @@ Gobj::Gobj(Gobj::Counts const & counts) :
         animationChannels = (AnimationChannel *)head;
         for (uint16_t i = 0; i < counts.animationChannels; ++i) {
             new (head) AnimationChannel{};
-            head += sizeof(AnimationChannel);
+            head += ALIGN_SIZE(sizeof(AnimationChannel));
         }
     }
 
@@ -45,7 +50,7 @@ Gobj::Gobj(Gobj::Counts const & counts) :
         animationSamplers = (AnimationSampler *)head;
         for (uint16_t i = 0; i < counts.animationSamplers; ++i) {
             new (head) AnimationSampler{};
-            head += sizeof(AnimationSampler);
+            head += ALIGN_SIZE(sizeof(AnimationSampler));
         }
     }
 
@@ -53,7 +58,7 @@ Gobj::Gobj(Gobj::Counts const & counts) :
         buffers = (Buffer *)head;
         for (uint16_t i = 0; i < counts.buffers; ++i) {
             new (head) Buffer{};
-            head += sizeof(Buffer);
+            head += ALIGN_SIZE(sizeof(Buffer));
         }
     }
 
@@ -61,7 +66,7 @@ Gobj::Gobj(Gobj::Counts const & counts) :
         bufferViews = (BufferView *)head;
         for (uint16_t i = 0; i < counts.bufferViews; ++i) {
             new (head) BufferView{};
-            head += sizeof(BufferView);
+            head += ALIGN_SIZE(sizeof(BufferView));
         }
     }
 
@@ -69,7 +74,7 @@ Gobj::Gobj(Gobj::Counts const & counts) :
         cameras = (Camera *)head;
         for (uint16_t i = 0; i < counts.cameras; ++i) {
             new (head) Camera{};
-            head += sizeof(Camera);
+            head += ALIGN_SIZE(sizeof(Camera));
         }
     }
 
@@ -77,7 +82,7 @@ Gobj::Gobj(Gobj::Counts const & counts) :
         images = (Image *)head;
         for (uint16_t i = 0; i < counts.images; ++i) {
             new (head) Image{};
-            head += sizeof(Image);
+            head += ALIGN_SIZE(sizeof(Image));
         }
     }
 
@@ -85,7 +90,7 @@ Gobj::Gobj(Gobj::Counts const & counts) :
         materials = (Material *)head;
         for (uint16_t i = 0; i < counts.materials; ++i) {
             new (head) Material{};
-            head += sizeof(Material);
+            head += ALIGN_SIZE(sizeof(Material));
         }
     }
 
@@ -93,7 +98,7 @@ Gobj::Gobj(Gobj::Counts const & counts) :
         meshes = (Mesh *)head;
         for (uint16_t i = 0; i < counts.meshes; ++i) {
             new (head) Mesh{};
-            head += sizeof(Mesh);
+            head += ALIGN_SIZE(sizeof(Mesh));
         }
     }
 
@@ -101,7 +106,7 @@ Gobj::Gobj(Gobj::Counts const & counts) :
         meshAttributes = (MeshAttribute *)head;
         for (uint16_t i = 0; i < counts.meshAttributes; ++i) {
             new (head) MeshAttribute{};
-            head += sizeof(MeshAttribute);
+            head += ALIGN_SIZE(sizeof(MeshAttribute));
         }
     }
 
@@ -109,7 +114,7 @@ Gobj::Gobj(Gobj::Counts const & counts) :
         meshPrimatives = (MeshPrimative *)head;
         for (uint16_t i = 0; i < counts.meshPrimatives; ++i) {
             new (head) MeshPrimative{};
-            head += sizeof(MeshPrimative);
+            head += ALIGN_SIZE(sizeof(MeshPrimative));
         }
     }
 
@@ -117,7 +122,7 @@ Gobj::Gobj(Gobj::Counts const & counts) :
         nodes = (Node *)head;
         for (uint16_t i = 0; i < counts.nodes; ++i) {
             new (head) Node{};
-            head += sizeof(Node);
+            head += ALIGN_SIZE(sizeof(Node));
         }
     }
 
@@ -125,7 +130,7 @@ Gobj::Gobj(Gobj::Counts const & counts) :
         samplers = (Sampler *)head;
         for (uint16_t i = 0; i < counts.samplers; ++i) {
             new (head) Sampler{};
-            head += sizeof(Sampler);
+            head += ALIGN_SIZE(sizeof(Sampler));
         }
     }
 
@@ -133,7 +138,7 @@ Gobj::Gobj(Gobj::Counts const & counts) :
         scenes = (Scene *)head;
         for (uint16_t i = 0; i < counts.scenes; ++i) {
             new (head) Scene{};
-            head += sizeof(Scene);
+            head += ALIGN_SIZE(sizeof(Scene));
         }
     }
 
@@ -143,13 +148,15 @@ Gobj::Gobj(Gobj::Counts const & counts) :
             *(Node **)head = nullptr;
             head += sizeof(Node *);
         }
+        // aligns on group, not on each ptr
+        head = (byte_t *)ALIGN_PTR(head);
     }
 
     if (counts.skins) {
         skins = (Skin *)head;
         for (uint16_t i = 0; i < counts.skins; ++i) {
             new (head) Skin{};
-            head += sizeof(Skin);
+            head += ALIGN_SIZE(sizeof(Skin));
         }
     }
 
@@ -157,7 +164,7 @@ Gobj::Gobj(Gobj::Counts const & counts) :
         textures = (Texture *)head;
         for (uint16_t i = 0; i < counts.textures; ++i) {
             new (head) Texture{};
-            head += sizeof(Texture);
+            head += ALIGN_SIZE(sizeof(Texture));
         }
     }
 }
@@ -167,27 +174,27 @@ FrameStack const * Gobj::stringStack () const { return (FrameStack *)data(); }
 
 size_t Gobj::Counts::totalSize() const {
     return
-        sizeof(Gobj) +
-        sizeof(FrameStack) + allStrLen +
-        sizeof(Gobj::Accessor)          * accessors +
-        sizeof(Gobj::Animation)         * animations +
-        sizeof(Gobj::AnimationChannel)  * animationChannels +
-        sizeof(Gobj::AnimationSampler)  * animationSamplers +
-        sizeof(Gobj::Buffer)            * buffers +
-        sizeof(Gobj::BufferView)        * bufferViews +
-        sizeof(Gobj::Camera)            * cameras +
-        sizeof(Gobj::Image)             * images +
-        sizeof(Gobj::Material)          * materials +
-        sizeof(Gobj::Mesh)              * meshes +
-        sizeof(Gobj::MeshAttribute)     * meshAttributes +
-        sizeof(Gobj::MeshPrimative)     * meshPrimatives +
-        sizeof(Gobj::Node)              * nodes +
-        sizeof(Gobj::Sampler)           * samplers +
-        sizeof(Gobj::Scene)             * scenes +
-        sizeof(Gobj::Node *)            * sceneNodes +
-        sizeof(Gobj::Skin)              * skins +
-        sizeof(Gobj::Texture)           * textures +
-        buffersLen
+        ALIGN_SIZE(sizeof(Gobj)) +
+        ALIGN_SIZE(sizeof(FrameStack) + allStrLen) +
+        ALIGN_SIZE(sizeof(Gobj::Accessor))         * accessors +
+        ALIGN_SIZE(sizeof(Gobj::Animation))        * animations +
+        ALIGN_SIZE(sizeof(Gobj::AnimationChannel)) * animationChannels +
+        ALIGN_SIZE(sizeof(Gobj::AnimationSampler)) * animationSamplers +
+        ALIGN_SIZE(sizeof(Gobj::Buffer))           * buffers +
+        ALIGN_SIZE(sizeof(Gobj::BufferView))       * bufferViews +
+        ALIGN_SIZE(sizeof(Gobj::Camera))           * cameras +
+        ALIGN_SIZE(sizeof(Gobj::Image))            * images +
+        ALIGN_SIZE(sizeof(Gobj::Material))         * materials +
+        ALIGN_SIZE(sizeof(Gobj::Mesh) )            * meshes +
+        ALIGN_SIZE(sizeof(Gobj::MeshAttribute))    * meshAttributes +
+        ALIGN_SIZE(sizeof(Gobj::MeshPrimative))    * meshPrimatives +
+        ALIGN_SIZE(sizeof(Gobj::Node))             * nodes +
+        ALIGN_SIZE(sizeof(Gobj::Sampler))          * samplers +
+        ALIGN_SIZE(sizeof(Gobj::Scene))            * scenes +
+        ALIGN_SIZE(sizeof(Gobj::Node *)            * sceneNodes) + // aligns on group, not on each ptr
+        ALIGN_SIZE(sizeof(Gobj::Skin))             * skins +
+        ALIGN_SIZE(sizeof(Gobj::Texture))          * textures +
+        ALIGN_SIZE(buffersLen)
     ;
 }
 

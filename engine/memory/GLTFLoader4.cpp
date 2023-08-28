@@ -128,41 +128,95 @@ GLTFLoader4::Scanner::Scanner(GLTFLoader4 * loader, Gobj * gobj) :
     gobj(gobj)
 {}
 
-bool GLTFLoader4::Scanner::Null() { return true; }
-bool GLTFLoader4::Scanner::Int(int i) { return true; }
-bool GLTFLoader4::Scanner::Int64(int64_t i) { return true; }
-bool GLTFLoader4::Scanner::Uint64(uint64_t i) { return true; }
-bool GLTFLoader4::Scanner::Double(double d) { return true; }
+bool GLTFLoader4::Scanner::Null() {
+    loader->push(TYPE_NULL);
+    loader->printBreadcrumbs();
+    loader->pop();
+    return true;
+}
+bool GLTFLoader4::Scanner::Int(int i) {
+    loader->push(TYPE_INT);
+    loader->printBreadcrumbs();
+    if      (loader->crumb(-3).matches(TYPE_ARR, "accessors")) {
+        uint16_t accIndex = loader->crumb(-2).index;
+        uint16_t minMaxIndex = loader->crumb().index;
+        // printl("ACCESSOR[%d] %s[%d] = %d (int)", accIndex, loader->crumb(-1).key, minMaxIndex, i);
+        if      (loader->crumb(-1).matches("min")) { gobj->accessors[accIndex].min[minMaxIndex] = (float)i; }
+        else if (loader->crumb(-1).matches("max")) { gobj->accessors[accIndex].max[minMaxIndex] = (float)i; }
+    }
+    loader->pop();
+    return true;
+}
+bool GLTFLoader4::Scanner::Int64(int64_t i) {
+    loader->push(TYPE_INT);
+    loader->printBreadcrumbs();
+    loader->pop();
+    return true;
+}
+bool GLTFLoader4::Scanner::Uint64(uint64_t i) {
+    loader->push(TYPE_UINT);
+    loader->printBreadcrumbs();
+    loader->pop();
+    return true;
+}
+
 bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool copy) { return true; }
 
 bool GLTFLoader4::Scanner::Bool(bool b) {
-    if (loader->crumb(-1).matches(TYPE_ARR, "accessors")) {
-        uint16_t index = loader->crumb().index;
-        if     (strEqu(key), "normalized")     { gobj->accessors[index].normalized = b; }
+    loader->push(TYPE_BOOL);
+    loader->printBreadcrumbs();
+    if (loader->crumb(-2).matches(TYPE_ARR, "accessors")) {
+        uint16_t index = loader->crumb(-1).index;
+        if     (loader->crumb().matches("normalized"))     { gobj->accessors[index].normalized = b; }
     }
+    loader->pop();
     return true;
 }
 
 bool GLTFLoader4::Scanner::Uint(unsigned i) {
-    if (loader->crumb(-1).matches(TYPE_ARR, "accessors")) {
-        uint16_t index = loader->crumb().index;
-        if      (strEqu(key), "bufferView")     { gobj->accessors[index].bufferView = gobj->bufferViews + i; }
-        else if (strEqu(key), "byteOffset")     { gobj->accessors[index].byteOffset = i; }
-        else if (strEqu(key), "componentType")  { gobj->accessors[index].componentType = (Accessor::ComponentType)i; }
-        else if (strEqu(key), "normalized")     { gobj->accessors[index].normalized = i; }
-        else if (strEqu(key), "count")          { gobj->accessors[index].count = i; }
-        else if (strEqu(key), "max")            { gobj->accessors[index].max = i; }
-        else if (strEqu(key), "min")            { gobj->accessors[index].min = i; }
+    loader->push(TYPE_UINT);
+    loader->printBreadcrumbs();
+    if (loader->crumb(-2).matches(TYPE_ARR, "accessors")) {
+        uint16_t index = loader->crumb(-1).index;
+        if      (loader->crumb().matches("bufferView"))     { gobj->accessors[index].bufferView = gobj->bufferViews + i; }
+        else if (loader->crumb().matches("byteOffset"))     { gobj->accessors[index].byteOffset = i; }
+        else if (loader->crumb().matches("componentType"))  { gobj->accessors[index].componentType = (Gobj::Accessor::ComponentType)i; }
+        else if (loader->crumb().matches("normalized"))     { gobj->accessors[index].normalized = i; }
+        else if (loader->crumb().matches("count"))          { gobj->accessors[index].count = i; }
 
     }
+    else if (loader->crumb(-3).matches(TYPE_ARR, "accessors")) {
+        uint16_t accIndex = loader->crumb(-2).index;
+        uint16_t minMaxIndex = loader->crumb().index;
+        // printl("ACCESSOR[%d] %s[%d] = %d (uint)", accIndex, loader->crumb(-1).key, minMaxIndex, i);
+        if      (loader->crumb(-1).matches("min")) { gobj->accessors[accIndex].min[minMaxIndex] = (float)i; }
+        else if (loader->crumb(-1).matches("max")) { gobj->accessors[accIndex].max[minMaxIndex] = (float)i; }
+    }
+    loader->pop();
+    return true;
+}
+
+bool GLTFLoader4::Scanner::Double(double d) {
+    loader->push(TYPE_FLOAT);
+    loader->printBreadcrumbs();
+    if      (loader->crumb(-3).matches(TYPE_ARR, "accessors")) {
+        uint16_t accIndex = loader->crumb(-2).index;
+        uint16_t minMaxIndex = loader->crumb().index;
+        // printl("ACCESSOR[%d] %s[%d] = %f (float)", accIndex, loader->crumb(-1).key, minMaxIndex, d);
+        if      (loader->crumb(-1).matches("min")) { gobj->accessors[accIndex].min[minMaxIndex] = (float)d; }
+        else if (loader->crumb(-1).matches("max")) { gobj->accessors[accIndex].max[minMaxIndex] = (float)d; }
+    }
+    loader->pop();
     return true;
 }
 
 bool GLTFLoader4::Scanner::String(char const * str, uint32_t length, bool copy) {
+    loader->push(TYPE_STR);
+    loader->printBreadcrumbs();
     // handle name strings
-    if (strEqu(loader->key, "name")) {
-        char const * key = loader->crumb(-1).key;
-        uint16_t index = loader->crumb().index;
+    if (loader->crumb().matches("name")) {
+        char const * key = loader->crumb(-2).key;
+        uint16_t index = loader->crumb(-1).index;
         if      (strEqu(key, "accessors"))  { gobj->accessors[index].name   = gobj->strings->writeStr(str, length); }
         else if (strEqu(key, "animations")) { gobj->animations[index].name  = gobj->strings->writeStr(str, length); }
         else if (strEqu(key, "buffers"))    { gobj->buffers[index].name     = gobj->strings->writeStr(str, length); }
@@ -177,22 +231,24 @@ bool GLTFLoader4::Scanner::String(char const * str, uint32_t length, bool copy) 
         else if (strEqu(key, "skins"))      { gobj->skins[index].name       = gobj->strings->writeStr(str, length); }
         else if (strEqu(key, "textures"))   { gobj->textures[index].name    = gobj->strings->writeStr(str, length); }
     }
-    else if (loader->crumb().matches(TYPE_OBJ, "asset")) {
-        if      (strEqu(loader->key, "copyright"))  { gobj->copyright   = gobj->strings->writeStr(str, length); }
-        else if (strEqu(loader->key, "generator"))  { gobj->generator   = gobj->strings->writeStr(str, length); }
-        else if (strEqu(loader->key, "version"))    { gobj->version     = gobj->strings->writeStr(str, length); }
-        else if (strEqu(loader->key, "minVersion")) { gobj->minVersion  = gobj->strings->writeStr(str, length); }
+    else if (loader->crumb(-1).matches(TYPE_OBJ, "asset")) {
+        if      (loader->crumb().matches("copyright"))  { gobj->copyright   = gobj->strings->writeStr(str, length); }
+        else if (loader->crumb().matches("generator"))  { gobj->generator   = gobj->strings->writeStr(str, length); }
+        else if (loader->crumb().matches("version"))    { gobj->version     = gobj->strings->writeStr(str, length); }
+        else if (loader->crumb().matches("minVersion")) { gobj->minVersion  = gobj->strings->writeStr(str, length); }
     }
-    else if (loader->crumb(-1).matches(TYPE_ARR, "accessors")) {
-        uint16_t index = loader->crumb().index;
-        if     (strEqu(key), "type") { gobj->accessors[index].type = loader->accessorTypeFromStr(str); }
+    else if (loader->crumb(-2).matches(TYPE_ARR, "accessors")) {
+        uint16_t index = loader->crumb(-1).index;
+        if     (loader->crumb().matches("type")) { gobj->accessors[index].type = loader->accessorTypeFromStr(str); }
 
     }
+    loader->pop();
     return true;
 }
 
 bool GLTFLoader4::Scanner::StartObject() {
     loader->push(TYPE_OBJ);
+    loader->printBreadcrumbs();
     return true;
 }
 
@@ -209,6 +265,7 @@ bool GLTFLoader4::Scanner::EndObject(uint32_t memberCount) {
 bool GLTFLoader4::Scanner::StartArray() {
     loader->push(TYPE_ARR);
     loader->pushIndex();
+    loader->printBreadcrumbs();
     return true;
 }
 
