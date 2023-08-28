@@ -9,7 +9,7 @@
 // -------------------------------------------------------------------------- //
 
 GLTFLoader4::Counter::Counter(GLTFLoader4 * loader) :
-    loader(loader)
+    l(loader)
 {}
 
 bool GLTFLoader4::Counter::Null() { return true; }
@@ -21,101 +21,101 @@ bool GLTFLoader4::Counter::Double(double d) { return true; }
 bool GLTFLoader4::Counter::RawNumber(char const * str, uint32_t length, bool copy) { return true; }
 
 bool GLTFLoader4::Counter::Uint(unsigned i) {
-    loader->push(TYPE_UINT);
-    // loader->printBreadcrumbs();
+    l->push(TYPE_UINT);
+    // l->printBreadcrumbs();
 
-    if (loader->depth >= 3 &&
-        loader->crumb(-2).matches(TYPE_ARR, "buffers") &&
-        loader->crumb().matches("byteLength")
+    if (l->depth >= 3 &&
+        l->crumb(-2).matches(TYPE_ARR, "buffers") &&
+        l->crumb().matches("byteLength")
     ) {
-        loader->counts.buffersLen += i;
+        l->counts.buffersLen += i;
     }
 
-    loader->pop();
+    l->pop();
     return true;
 }
 
 bool GLTFLoader4::Counter::String(char const * str, uint32_t length, bool copy) {
-    loader->push(TYPE_STR);
-    // loader->printBreadcrumbs();
+    l->push(TYPE_STR);
+    // l->printBreadcrumbs();
 
-    Crumb & thisCrumb = loader->crumb();
+    Crumb & thisCrumb = l->crumb();
     // name strings
-    if (loader->depth >= 3 &&
-        loader->crumb(-2).matches(TYPE_ARR,
+    if (l->depth >= 3 &&
+        l->crumb(-2).matches(TYPE_ARR,
             "accessors|animations|buffers|bufferViews|cameras|images|materials|"
             "meshes|nodes|samplers|scenes|skins|textures") &&
         thisCrumb.matches("name")
     ) {
-        loader->counts.allStrLen += length + 1;
+        l->counts.allStrLen += length + 1;
     }
 
     // asset strings
     else if (
-        loader->depth >= 2 &&
-        loader->crumb(-1).matches(TYPE_OBJ, "asset") &&
+        l->depth >= 2 &&
+        l->crumb(-1).matches(TYPE_OBJ, "asset") &&
         thisCrumb.matches("copyright|generator|version|minVersion")
     ) {
-        loader->counts.allStrLen += length + 1;
+        l->counts.allStrLen += length + 1;
     }
 
-    loader->pop();
+    l->pop();
     return true;
 }
 
 
 bool GLTFLoader4::Counter::StartObject() {
-    loader->push(TYPE_OBJ);
-    // loader->printBreadcrumbs();
+    l->push(TYPE_OBJ);
+    // l->printBreadcrumbs();
     return true;
 }
 
 bool GLTFLoader4::Counter::Key(char const * str, uint32_t length, bool copy) {
-    snprintf(loader->key, MaxKeyLen, "%.*s", length, str);
+    snprintf(l->key, MaxKeyLen, "%.*s", length, str);
     return true;
 }
 
 bool GLTFLoader4::Counter::EndObject(uint32_t memberCount) {
-    loader->pop();
+    l->pop();
     return true;
 }
 
 bool GLTFLoader4::Counter::StartArray() {
-    loader->push(TYPE_ARR);
-    loader->pushIndex();
-    // loader->printBreadcrumbs();
+    l->push(TYPE_ARR);
+    l->pushIndex();
+    // l->printBreadcrumbs();
     return true;
 }
 
 bool GLTFLoader4::Counter::EndArray(uint32_t elementCount) {
-    Crumb & crumb = loader->crumb();
+    Crumb & crumb = l->crumb();
     // count the main sub-objects
-    if (loader->depth == 2) {
-        if      (crumb.matches("accessors"  )) { loader->counts.accessors   = elementCount; }
-        else if (crumb.matches("animations" )) { loader->counts.animations  = elementCount; }
-        else if (crumb.matches("buffers"    )) { loader->counts.buffers     = elementCount; }
-        else if (crumb.matches("bufferViews")) { loader->counts.bufferViews = elementCount; }
-        else if (crumb.matches("cameras"    )) { loader->counts.cameras     = elementCount; }
-        else if (crumb.matches("images"     )) { loader->counts.images      = elementCount; }
-        else if (crumb.matches("materials"  )) { loader->counts.materials   = elementCount; }
-        else if (crumb.matches("meshes"     )) { loader->counts.meshes      = elementCount; }
-        else if (crumb.matches("nodes"      )) { loader->counts.nodes       = elementCount; }
-        else if (crumb.matches("samplers"   )) { loader->counts.samplers    = elementCount; }
-        else if (crumb.matches("scenes"     )) { loader->counts.scenes      = elementCount; }
-        else if (crumb.matches("skins"      )) { loader->counts.skins       = elementCount; }
-        else if (crumb.matches("textures"   )) { loader->counts.textures    = elementCount; }
+    if (l->depth == 2) {
+        if      (crumb.matches("accessors"  )) { l->counts.accessors   = elementCount; }
+        else if (crumb.matches("animations" )) { l->counts.animations  = elementCount; }
+        else if (crumb.matches("buffers"    )) { l->counts.buffers     = elementCount; }
+        else if (crumb.matches("bufferViews")) { l->counts.bufferViews = elementCount; }
+        else if (crumb.matches("cameras"    )) { l->counts.cameras     = elementCount; }
+        else if (crumb.matches("images"     )) { l->counts.images      = elementCount; }
+        else if (crumb.matches("materials"  )) { l->counts.materials   = elementCount; }
+        else if (crumb.matches("meshes"     )) { l->counts.meshes      = elementCount; }
+        else if (crumb.matches("nodes"      )) { l->counts.nodes       = elementCount; }
+        else if (crumb.matches("samplers"   )) { l->counts.samplers    = elementCount; }
+        else if (crumb.matches("scenes"     )) { l->counts.scenes      = elementCount; }
+        else if (crumb.matches("skins"      )) { l->counts.skins       = elementCount; }
+        else if (crumb.matches("textures"   )) { l->counts.textures    = elementCount; }
     }
     // scene nodes
-    else if (loader->depth == 4 && crumb.matches("nodes") && loader->crumb(-2).matches("scenes")) {
-        loader->counts.sceneNodes += elementCount;
+    else if (l->depth == 4 && crumb.matches("nodes") && l->crumb(-2).matches("scenes")) {
+        l->counts.sceneNodes += elementCount;
     }
     // animation channels and samplers
-    else if (loader->depth == 4 && loader->crumb(-2).matches("animations")) {
-        if      (crumb.matches("channels")) { loader->counts.animationChannels += elementCount; }
-        else if (crumb.matches("samplers")) { loader->counts.animationSamplers += elementCount; }
+    else if (l->depth == 4 && l->crumb(-2).matches("animations")) {
+        if      (crumb.matches("channels")) { l->counts.animationChannels += elementCount; }
+        else if (crumb.matches("samplers")) { l->counts.animationSamplers += elementCount; }
     }
-    loader->pop();
-    loader->popIndex();
+    l->pop();
+    l->popIndex();
     return true;
 }
 
@@ -124,154 +124,154 @@ bool GLTFLoader4::Counter::EndArray(uint32_t elementCount) {
 // -------------------------------------------------------------------------- //
 
 GLTFLoader4::Scanner::Scanner(GLTFLoader4 * loader, Gobj * gobj) :
-    loader(loader),
-    gobj(gobj)
+    l(loader),
+    g(gobj)
 {}
 
 bool GLTFLoader4::Scanner::Null() {
-    loader->push(TYPE_NULL);
-    loader->printBreadcrumbs();
-    loader->pop();
+    l->push(TYPE_NULL);
+    l->printBreadcrumbs();
+    l->pop();
     return true;
 }
 bool GLTFLoader4::Scanner::Int(int i) {
-    loader->push(TYPE_INT);
-    loader->printBreadcrumbs();
-    if      (loader->crumb(-3).matches(TYPE_ARR, "accessors")) {
-        uint16_t accIndex = loader->crumb(-2).index;
-        uint16_t minMaxIndex = loader->crumb().index;
-        // printl("ACCESSOR[%d] %s[%d] = %d (int)", accIndex, loader->crumb(-1).key, minMaxIndex, i);
-        if      (loader->crumb(-1).matches("min")) { gobj->accessors[accIndex].min[minMaxIndex] = (float)i; }
-        else if (loader->crumb(-1).matches("max")) { gobj->accessors[accIndex].max[minMaxIndex] = (float)i; }
+    l->push(TYPE_INT);
+    l->printBreadcrumbs();
+    if      (l->crumb(-3).matches(TYPE_ARR, "accessors")) {
+        uint16_t accIndex = l->crumb(-2).index;
+        uint16_t minMaxIndex = l->crumb().index;
+        // printl("ACCESSOR[%d] %s[%d] = %d (int)", accIndex, l->crumb(-1).key, minMaxIndex, i);
+        if      (l->crumb(-1).matches("min")) { g->accessors[accIndex].min[minMaxIndex] = (float)i; }
+        else if (l->crumb(-1).matches("max")) { g->accessors[accIndex].max[minMaxIndex] = (float)i; }
     }
-    loader->pop();
+    l->pop();
     return true;
 }
 bool GLTFLoader4::Scanner::Int64(int64_t i) {
-    loader->push(TYPE_INT);
-    loader->printBreadcrumbs();
-    loader->pop();
+    l->push(TYPE_INT);
+    l->printBreadcrumbs();
+    l->pop();
     return true;
 }
 bool GLTFLoader4::Scanner::Uint64(uint64_t i) {
-    loader->push(TYPE_UINT);
-    loader->printBreadcrumbs();
-    loader->pop();
+    l->push(TYPE_UINT);
+    l->printBreadcrumbs();
+    l->pop();
     return true;
 }
 
 bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool copy) { return true; }
 
 bool GLTFLoader4::Scanner::Bool(bool b) {
-    loader->push(TYPE_BOOL);
-    loader->printBreadcrumbs();
-    if (loader->crumb(-2).matches(TYPE_ARR, "accessors")) {
-        uint16_t index = loader->crumb(-1).index;
-        if     (loader->crumb().matches("normalized"))     { gobj->accessors[index].normalized = b; }
+    l->push(TYPE_BOOL);
+    l->printBreadcrumbs();
+    if (l->crumb(-2).matches(TYPE_ARR, "accessors")) {
+        uint16_t index = l->crumb(-1).index;
+        if     (l->crumb().matches("normalized"))     { g->accessors[index].normalized = b; }
     }
-    loader->pop();
+    l->pop();
     return true;
 }
 
 bool GLTFLoader4::Scanner::Uint(unsigned i) {
-    loader->push(TYPE_UINT);
-    loader->printBreadcrumbs();
-    if (loader->crumb(-2).matches(TYPE_ARR, "accessors")) {
-        uint16_t index = loader->crumb(-1).index;
-        if      (loader->crumb().matches("bufferView"))     { gobj->accessors[index].bufferView = gobj->bufferViews + i; }
-        else if (loader->crumb().matches("byteOffset"))     { gobj->accessors[index].byteOffset = i; }
-        else if (loader->crumb().matches("componentType"))  { gobj->accessors[index].componentType = (Gobj::Accessor::ComponentType)i; }
-        else if (loader->crumb().matches("normalized"))     { gobj->accessors[index].normalized = i; }
-        else if (loader->crumb().matches("count"))          { gobj->accessors[index].count = i; }
+    l->push(TYPE_UINT);
+    l->printBreadcrumbs();
+    if (l->crumb(-2).matches(TYPE_ARR, "accessors")) {
+        uint16_t index = l->crumb(-1).index;
+        if      (l->crumb().matches("bufferView"))     { g->accessors[index].bufferView = g->bufferViews + i; }
+        else if (l->crumb().matches("byteOffset"))     { g->accessors[index].byteOffset = i; }
+        else if (l->crumb().matches("componentType"))  { g->accessors[index].componentType = (Gobj::Accessor::ComponentType)i; }
+        else if (l->crumb().matches("normalized"))     { g->accessors[index].normalized = i; }
+        else if (l->crumb().matches("count"))          { g->accessors[index].count = i; }
 
     }
-    else if (loader->crumb(-3).matches(TYPE_ARR, "accessors")) {
-        uint16_t accIndex = loader->crumb(-2).index;
-        uint16_t minMaxIndex = loader->crumb().index;
-        // printl("ACCESSOR[%d] %s[%d] = %d (uint)", accIndex, loader->crumb(-1).key, minMaxIndex, i);
-        if      (loader->crumb(-1).matches("min")) { gobj->accessors[accIndex].min[minMaxIndex] = (float)i; }
-        else if (loader->crumb(-1).matches("max")) { gobj->accessors[accIndex].max[minMaxIndex] = (float)i; }
+    else if (l->crumb(-3).matches(TYPE_ARR, "accessors")) {
+        uint16_t accIndex = l->crumb(-2).index;
+        uint16_t minMaxIndex = l->crumb().index;
+        // printl("ACCESSOR[%d] %s[%d] = %d (uint)", accIndex, l->crumb(-1).key, minMaxIndex, i);
+        if      (l->crumb(-1).matches("min")) { g->accessors[accIndex].min[minMaxIndex] = (float)i; }
+        else if (l->crumb(-1).matches("max")) { g->accessors[accIndex].max[minMaxIndex] = (float)i; }
     }
-    loader->pop();
+    l->pop();
     return true;
 }
 
 bool GLTFLoader4::Scanner::Double(double d) {
-    loader->push(TYPE_FLOAT);
-    loader->printBreadcrumbs();
-    if      (loader->crumb(-3).matches(TYPE_ARR, "accessors")) {
-        uint16_t accIndex = loader->crumb(-2).index;
-        uint16_t minMaxIndex = loader->crumb().index;
-        // printl("ACCESSOR[%d] %s[%d] = %f (float)", accIndex, loader->crumb(-1).key, minMaxIndex, d);
-        if      (loader->crumb(-1).matches("min")) { gobj->accessors[accIndex].min[minMaxIndex] = (float)d; }
-        else if (loader->crumb(-1).matches("max")) { gobj->accessors[accIndex].max[minMaxIndex] = (float)d; }
+    l->push(TYPE_FLOAT);
+    l->printBreadcrumbs();
+    if      (l->crumb(-3).matches(TYPE_ARR, "accessors")) {
+        uint16_t accIndex = l->crumb(-2).index;
+        uint16_t minMaxIndex = l->crumb().index;
+        // printl("ACCESSOR[%d] %s[%d] = %f (float)", accIndex, l->crumb(-1).key, minMaxIndex, d);
+        if      (l->crumb(-1).matches("min")) { g->accessors[accIndex].min[minMaxIndex] = (float)d; }
+        else if (l->crumb(-1).matches("max")) { g->accessors[accIndex].max[minMaxIndex] = (float)d; }
     }
-    loader->pop();
+    l->pop();
     return true;
 }
 
 bool GLTFLoader4::Scanner::String(char const * str, uint32_t length, bool copy) {
-    loader->push(TYPE_STR);
-    loader->printBreadcrumbs();
+    l->push(TYPE_STR);
+    l->printBreadcrumbs();
     // handle name strings
-    if (loader->crumb().matches("name")) {
-        char const * key = loader->crumb(-2).key;
-        uint16_t index = loader->crumb(-1).index;
-        if      (strEqu(key, "accessors"))  { gobj->accessors[index].name   = gobj->strings->writeStr(str, length); }
-        else if (strEqu(key, "animations")) { gobj->animations[index].name  = gobj->strings->writeStr(str, length); }
-        else if (strEqu(key, "buffers"))    { gobj->buffers[index].name     = gobj->strings->writeStr(str, length); }
-        else if (strEqu(key, "bufferViews")){ gobj->bufferViews[index].name = gobj->strings->writeStr(str, length); }
-        else if (strEqu(key, "cameras"))    { gobj->cameras[index].name     = gobj->strings->writeStr(str, length); }
-        else if (strEqu(key, "images"))     { gobj->images[index].name      = gobj->strings->writeStr(str, length); }
-        else if (strEqu(key, "materials"))  { gobj->materials[index].name   = gobj->strings->writeStr(str, length); }
-        else if (strEqu(key, "meshes"))     { gobj->meshes[index].name      = gobj->strings->writeStr(str, length); }
-        else if (strEqu(key, "nodes"))      { gobj->nodes[index].name       = gobj->strings->writeStr(str, length); }
-        else if (strEqu(key, "samplers"))   { gobj->samplers[index].name    = gobj->strings->writeStr(str, length); }
-        else if (strEqu(key, "scenes"))     { gobj->scenes[index].name      = gobj->strings->writeStr(str, length); }
-        else if (strEqu(key, "skins"))      { gobj->skins[index].name       = gobj->strings->writeStr(str, length); }
-        else if (strEqu(key, "textures"))   { gobj->textures[index].name    = gobj->strings->writeStr(str, length); }
+    if (l->crumb().matches("name")) {
+        char const * key = l->crumb(-2).key;
+        uint16_t index = l->crumb(-1).index;
+        if      (strEqu(key, "accessors"))  { g->accessors[index].name   = g->strings->writeStr(str, length); }
+        else if (strEqu(key, "animations")) { g->animations[index].name  = g->strings->writeStr(str, length); }
+        else if (strEqu(key, "buffers"))    { g->buffers[index].name     = g->strings->writeStr(str, length); }
+        else if (strEqu(key, "bufferViews")){ g->bufferViews[index].name = g->strings->writeStr(str, length); }
+        else if (strEqu(key, "cameras"))    { g->cameras[index].name     = g->strings->writeStr(str, length); }
+        else if (strEqu(key, "images"))     { g->images[index].name      = g->strings->writeStr(str, length); }
+        else if (strEqu(key, "materials"))  { g->materials[index].name   = g->strings->writeStr(str, length); }
+        else if (strEqu(key, "meshes"))     { g->meshes[index].name      = g->strings->writeStr(str, length); }
+        else if (strEqu(key, "nodes"))      { g->nodes[index].name       = g->strings->writeStr(str, length); }
+        else if (strEqu(key, "samplers"))   { g->samplers[index].name    = g->strings->writeStr(str, length); }
+        else if (strEqu(key, "scenes"))     { g->scenes[index].name      = g->strings->writeStr(str, length); }
+        else if (strEqu(key, "skins"))      { g->skins[index].name       = g->strings->writeStr(str, length); }
+        else if (strEqu(key, "textures"))   { g->textures[index].name    = g->strings->writeStr(str, length); }
     }
-    else if (loader->crumb(-1).matches(TYPE_OBJ, "asset")) {
-        if      (loader->crumb().matches("copyright"))  { gobj->copyright   = gobj->strings->writeStr(str, length); }
-        else if (loader->crumb().matches("generator"))  { gobj->generator   = gobj->strings->writeStr(str, length); }
-        else if (loader->crumb().matches("version"))    { gobj->version     = gobj->strings->writeStr(str, length); }
-        else if (loader->crumb().matches("minVersion")) { gobj->minVersion  = gobj->strings->writeStr(str, length); }
+    else if (l->crumb(-1).matches(TYPE_OBJ, "asset")) {
+        if      (l->crumb().matches("copyright"))  { g->copyright   = g->strings->writeStr(str, length); }
+        else if (l->crumb().matches("generator"))  { g->generator   = g->strings->writeStr(str, length); }
+        else if (l->crumb().matches("version"))    { g->version     = g->strings->writeStr(str, length); }
+        else if (l->crumb().matches("minVersion")) { g->minVersion  = g->strings->writeStr(str, length); }
     }
-    else if (loader->crumb(-2).matches(TYPE_ARR, "accessors")) {
-        uint16_t index = loader->crumb(-1).index;
-        if     (loader->crumb().matches("type")) { gobj->accessors[index].type = loader->accessorTypeFromStr(str); }
+    else if (l->crumb(-2).matches(TYPE_ARR, "accessors")) {
+        uint16_t index = l->crumb(-1).index;
+        if     (l->crumb().matches("type")) { g->accessors[index].type = l->accessorTypeFromStr(str); }
 
     }
-    loader->pop();
+    l->pop();
     return true;
 }
 
 bool GLTFLoader4::Scanner::StartObject() {
-    loader->push(TYPE_OBJ);
-    loader->printBreadcrumbs();
+    l->push(TYPE_OBJ);
+    l->printBreadcrumbs();
     return true;
 }
 
 bool GLTFLoader4::Scanner::Key(char const * str, uint32_t length, bool copy) {
-    snprintf(loader->key, MaxKeyLen, "%.*s", length, str);
+    snprintf(l->key, MaxKeyLen, "%.*s", length, str);
     return true;
 }
 
 bool GLTFLoader4::Scanner::EndObject(uint32_t memberCount) {
-    loader->pop();
+    l->pop();
     return true;
 }
 
 bool GLTFLoader4::Scanner::StartArray() {
-    loader->push(TYPE_ARR);
-    loader->pushIndex();
-    loader->printBreadcrumbs();
+    l->push(TYPE_ARR);
+    l->pushIndex();
+    l->printBreadcrumbs();
     return true;
 }
 
 bool GLTFLoader4::Scanner::EndArray(uint32_t elementCount) {
-    loader->pop();
-    loader->popIndex();
+    l->pop();
+    l->popIndex();
     return true;
 }
 

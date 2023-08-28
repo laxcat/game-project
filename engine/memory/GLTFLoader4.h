@@ -49,7 +49,7 @@ public:
         bool StartArray();
         bool EndArray(uint32_t elementCount);
     public:
-        GLTFLoader4 * loader;
+        GLTFLoader4 * l;
     };
 
     // rapidjson handler
@@ -71,8 +71,8 @@ public:
         bool StartArray();
         bool EndArray(uint32_t elementCount);
     public:
-        GLTFLoader4 * loader;
-        Gobj * gobj;
+        GLTFLoader4 * l;
+        Gobj * g;
     };
 
     enum ObjType {
