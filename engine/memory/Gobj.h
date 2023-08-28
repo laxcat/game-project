@@ -284,9 +284,9 @@ public:
 
     struct Animation {
         AnimationChannel * channels = nullptr;
-        int nChannels = 0;
+        uint32_t nChannels = 0;
         AnimationSampler * samplers = nullptr;
-        int nSamplers = 0;
+        uint32_t nSamplers = 0;
         char const * name = nullptr;
     };
 

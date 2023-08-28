@@ -73,6 +73,9 @@ public:
     public:
         GLTFLoader4 * l;
         Gobj * g;
+    private:
+        uint16_t nextAnimationChannel = 0;
+        uint16_t nextAnimationSampler = 0;
     };
 
     enum ObjType {

@@ -249,6 +249,11 @@ bool GLTFLoader4::Scanner::String(char const * str, uint32_t length, bool copy) 
 bool GLTFLoader4::Scanner::StartObject() {
     l->push(TYPE_OBJ);
     l->printBreadcrumbs();
+    if (l->crumb(-1).matches(TYPE_ARR, "animations")) {
+        uint16_t index = l->crumb().index;
+        g->animations[index].channels = g->animationChannels + nextAnimationChannel;
+        g->animations[index].samplers = g->animationSamplers + nextAnimationSampler;
+    }
     return true;
 }
 
@@ -270,6 +275,17 @@ bool GLTFLoader4::Scanner::StartArray() {
 }
 
 bool GLTFLoader4::Scanner::EndArray(uint32_t elementCount) {
+    if (l->crumb(-2).matches(TYPE_ARR, "animations")) {
+        uint16_t aniIndex = l->crumb(-1).index;
+        if (l->crumb().matches("channels")) {
+            g->animations[aniIndex].nChannels = elementCount;
+            nextAnimationChannel += elementCount;
+        }
+        else if (l->crumb().matches("samplers")) {
+            g->animations[aniIndex].nSamplers = elementCount;
+            nextAnimationSampler += elementCount;
+        }
+    }
     l->pop();
     l->popIndex();
     return true;
