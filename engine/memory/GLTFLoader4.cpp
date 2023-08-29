@@ -42,8 +42,7 @@ bool GLTFLoader4::Counter::String(char const * str, uint32_t length, bool copy) 
 
     Crumb & thisCrumb = l->crumb();
     // name strings
-    if (l->depth >= 3 &&
-        l->crumb(-2).matches(TYPE_ARR,
+    if (l->crumb(-2).matches(TYPE_ARR,
             "accessors|animations|buffers|bufferViews|cameras|images|materials|"
             "meshes|nodes|samplers|scenes|skins|textures") &&
         thisCrumb.matches("name")
@@ -53,7 +52,6 @@ bool GLTFLoader4::Counter::String(char const * str, uint32_t length, bool copy) 
 
     // asset strings
     else if (
-        l->depth >= 2 &&
         l->crumb(-1).matches(TYPE_OBJ, "asset") &&
         thisCrumb.matches("copyright|generator|version|minVersion")
     ) {

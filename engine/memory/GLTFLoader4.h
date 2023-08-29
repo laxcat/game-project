@@ -16,6 +16,7 @@ Implemented:
 NOT implemented yet:
     • opening/reading .gltf files
     • accessor.sparce
+    • buffer uri (or any external file loading)
     • any extensions
     • any extras
     • loading anything not specifically mentioned in "Implemented" list
@@ -110,7 +111,8 @@ public:
         bool hasKey() const;
     };
 
-// API
+// PUBLIC INTERFACE
+public:
     GLTFLoader4(byte_t const * gltfData);
     // returns crumb from stack. offset==0 is top of stack.
     // offset<0 returns into stack, offset>0 is invalid.
@@ -129,7 +131,6 @@ public:
 
     char * prettyJSON() const;
     void printBreadcrumbs() const;
-
 
 // STORAGE
 public:
