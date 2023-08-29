@@ -76,6 +76,7 @@ public:
     private:
         uint16_t nextAnimationChannel = 0;
         uint16_t nextAnimationSampler = 0;
+        byte_t * nextBufferPtr = nullptr;
     };
 
     enum ObjType {

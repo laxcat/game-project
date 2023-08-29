@@ -196,6 +196,7 @@ public:
     Node *           * sceneNodes        = nullptr;
     Skin             * skins             = nullptr;
     Texture          * textures          = nullptr;
+    byte_t           * buffer            = nullptr;
 
     Counts counts;
 

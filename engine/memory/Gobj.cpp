@@ -167,6 +167,10 @@ Gobj::Gobj(Gobj::Counts const & counts) :
             head += ALIGN_SIZE(sizeof(Texture));
         }
     }
+
+    if (counts.buffers) {
+        buffer = head;
+    }
 }
 
 byte_t const * Gobj::data () const { return (byte_t *)this + sizeof(Gobj); }
@@ -227,6 +231,7 @@ char * Gobj::printToFrameStack() const {
     fs.formatPen("Scene Nodes             (%d)\n",              counts.sceneNodes);
     fs.formatPen("Skin        %011p (%d)\n", skins,             counts.skins);
     fs.formatPen("Texture     %011p (%d)\n", textures,          counts.textures);
+    fs.formatPen("buffer      %011p\n",      buffer);
 
     fs.formatPen("scene index %d (", scene);
     if (scene == -1) {

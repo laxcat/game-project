@@ -126,7 +126,9 @@ bool GLTFLoader4::Counter::EndArray(uint32_t elementCount) {
 GLTFLoader4::Scanner::Scanner(GLTFLoader4 * loader, Gobj * gobj) :
     l(loader),
     g(gobj)
-{}
+{
+    nextBufferPtr = g->buffer;
+}
 
 bool GLTFLoader4::Scanner::Null() {
     l->push(TYPE_NULL);
@@ -219,6 +221,15 @@ bool GLTFLoader4::Scanner::Uint(unsigned i) {
         Gobj::AnimationSampler * as = g->animations[aniIndex].samplers + l->crumb(-1).index;
         if      (l->crumb().matches("input"))  { as->input  = g->accessors + i; }
         else if (l->crumb().matches("output")) { as->output = g->accessors + i; }
+    }
+    else if (
+        l->crumb(-2).matches(TYPE_ARR, "buffers") &&
+        l->crumb().matches("byteLength"))
+    {
+        uint16_t bufIndex = l->crumb(-1).index;
+        g->buffers[bufIndex].byteLength = i;
+        g->buffers[bufIndex].data = nextBufferPtr;
+        nextBufferPtr += i;
     }
     l->pop();
     return true;
@@ -419,6 +430,7 @@ bool GLTFLoader4::load(Gobj * gobj) {
     rapidjson::Reader reader;
     auto ss = rapidjson::StringStream(jsonStr);
     reader.Parse(ss, scanner);
+
     return true;
 }
 
