@@ -531,15 +531,21 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
         fprintf(stderr, "Error creating File block\n");
         return nullptr;
     }
-    assert(strncmp((char const *)gltf->data(), "glTF", 4) == 0 && "glTF magic string not found.");
-    assert(strncmp((char const *)(gltf->data() + 16), "JSON", 4) == 0 && "glTF JSON chunk magic string not found.");
+    if(!strEqu((char const *)gltf->data(), "glTF", 4)) {
+        fprintf(stderr, "GLB marker not found.");
+        return nullptr;
+    }
+    assert(strEqu((char const *)(gltf->data() + 16), "JSON", 4) && "glTF JSON chunk magic string not found.");
     // TODO: read this better. https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#glb-file-format-specification
-    uint32_t gltfJSONSize = *(uint32_t *)(gltf->data() + 12);
-    char const * gltfJSON = (char const *)(gltf->data() + 20);
+    uint32_t jsonChunkSize = *(uint32_t *)(gltf->data() + 12);
+    char const * glbJSON = (char const *)(gltf->data() + 20);
+    byte_t * glbBin = (byte_t *)alignPtr((void *)(glbJSON + jsonChunkSize), 4);
+    uint32_t binChunkSize = *(uint32_t *)glbBin;
+    assert(strEqu((char const *)(glbBin + 4), "BIN\0", 4) && "BIN chunk magic string not found.");
 
     // calculate the data size
     // GLTFLoader3 loader;
-    // Gobj::Counts counts = loader.calcDataSize(gltfJSON);
+    // Gobj::Counts counts = loader.calcDataSize(glbJSON);
 
     // create and load into Gobj
     // Gobj * g = createGobj(counts);
@@ -552,22 +558,19 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     //     g,
     //     gobjBlock->_dataSize,
     //     counts,
-    //     gltfJSON
+    //     glbJSON
     // );
     // if (!success) {
     //     fprintf(stderr, "Error loading GLTF data into Gobj\n");
     //     return nullptr;
     // }
 
-    // loader.prettyStr(gltfJSON);
-    // printl("JSON DATA for %s:\n%.*s", gltfPath, gltfJSONSize, loader.prettyStr(gltfJSON));
-
-    // free gltf file
-    // request({.ptr=gltf, .size=0});
+    // loader.prettyStr(glbJSON);
+    // printl("JSON DATA for %s:\n%.*s", gltfPath, jsonChunkSize, loader.prettyStr(glbJSON));
 
 
     // LOADER 4
-    GLTFLoader4 loader4{gltfJSON};
+    GLTFLoader4 loader4{glbJSON};
     printl("JSON DATA for %s\n%s", gltfPath, loader4.prettyJSON());
     loader4.calculateSize();
     printl("GOBJ INFO FOR COUNTS");
@@ -582,6 +585,14 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     }
 
     bool success = loader4.load(g);
+    memcpy(g->buffer, glbBin + 8, binChunkSize);
+    BlockInfo * block = blockForPtr(g);
+    // printl("g->buffer %p + %zu = %p", g->buffer, binChunkSize, g->buffer + binChunkSize);
+    // printl("block->data() %p + %zu = %p", block->data(), block->dataSize(), block->data() + block->dataSize());
+    assert(g->buffer + alignSize(binChunkSize, Gobj::Align) == block->data() + block->dataSize() && "Gobj block unexpected size.");
+
+    // free gltf file
+    // request({.ptr=gltf, .size=0});
 
     return g;
 }
