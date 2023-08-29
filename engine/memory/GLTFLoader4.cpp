@@ -25,8 +25,7 @@ bool GLTFLoader4::Counter::Uint(unsigned i) {
     l->push(TYPE_UINT);
     // l->printBreadcrumbs();
 
-    if (l->depth >= 3 &&
-        l->crumb(-2).matches(TYPE_ARR, "buffers") &&
+    if (l->crumb(-2).matches(TYPE_ARR, "buffers") &&
         l->crumb().matches("byteLength")
     ) {
         l->counts.buffersLen += i;
