@@ -40,6 +40,11 @@ void Gobj::editorEditBlock() {
     if (CollapsingHeader("Info")) {
         TextUnformatted(printToFrameStack());
     }
+    #if DEBUG
+    if (CollapsingHeader("JSON")) {
+        TextUnformatted(jsonStr);
+    }
+    #endif // DEBUG
     if (CollapsingHeader("Hierarchy")) {
         for (uint16_t i = 0; i < counts.scenes; ++i) {
             Scene const & s = scenes[i];

@@ -208,6 +208,10 @@ public:
     char const * version = nullptr;
     char const * minVersion = nullptr;
 
+    #if DEBUG
+    char const * jsonStr = nullptr;
+    #endif // DEBUG
+
     // STATIC API
 
     constexpr size_t DataSize(Counts const & counts) {

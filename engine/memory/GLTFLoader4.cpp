@@ -11,7 +11,12 @@
 
 GLTFLoader4::Counter::Counter(GLTFLoader4 * loader) :
     l(loader)
-{}
+{
+    #if DEBUG
+    // add length of pretty JSON string to total string length
+    l->prettyJSON(&l->counts.allStrLen);
+    #endif // DEBUG
+}
 
 bool GLTFLoader4::Counter::Null() { return true; }
 bool GLTFLoader4::Counter::Bool(bool b) { return true; }
@@ -126,6 +131,13 @@ GLTFLoader4::Scanner::Scanner(GLTFLoader4 * loader, Gobj * gobj) :
     g(gobj)
 {
     nextBufferPtr = g->buffer;
+
+    #if DEBUG
+    // write pretty JSON into string buffer
+    uint32_t length;
+    char const * str = l->prettyJSON(&length);
+    g->jsonStr = g->strings->writeStr(str, length);
+    #endif // DEBUG
 }
 
 bool GLTFLoader4::Scanner::Null() {
@@ -458,7 +470,7 @@ bool GLTFLoader4::load(Gobj * gobj) {
     return true;
 }
 
-char * GLTFLoader4::prettyJSON() const {
+char const * GLTFLoader4::prettyJSON(uint32_t * prettyJSONSize) const {
     assert(gltfData && "GLTF data invalid.");
 
     rapidjson::StringBuffer sb;
@@ -469,6 +481,9 @@ char * GLTFLoader4::prettyJSON() const {
     reader.Parse(ss, writer);
     // printf("%s\n", sb.GetString());
 
+    if (prettyJSONSize) {
+        *prettyJSONSize = sb.GetSize() + 1;
+    }
     return mm.frameFormatStr("%s", sb.GetString());
 }
 

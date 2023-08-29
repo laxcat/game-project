@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
+#include "../common/debug_defines.h"
 #include "Gobj.h"
 
 /*
@@ -129,7 +130,7 @@ public:
     byte_t const * binData() const;
     bool validData() const;
 
-    char * prettyJSON() const;
+    char const * prettyJSON(uint32_t * prettyJSONSize = nullptr) const;
     void printBreadcrumbs() const;
 
 // STORAGE
