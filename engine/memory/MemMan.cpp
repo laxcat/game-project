@@ -531,18 +531,56 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
         fprintf(stderr, "Error creating File block\n");
         return nullptr;
     }
-    if(!strEqu((char const *)gltf->data(), "glTF", 4)) {
-        fprintf(stderr, "GLB marker not found.");
+
+    // LOADER 4
+    GLTFLoader4 loader4{gltf->data()};
+    if (loader4.validData() == false) {
+        fprintf(stderr, "Error creating Gobj block\n");
         return nullptr;
     }
-    assert(strEqu((char const *)(gltf->data() + 16), "JSON", 4) && "glTF JSON chunk magic string not found.");
-    // TODO: read this better. https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#glb-file-format-specification
-    uint32_t jsonChunkSize = *(uint32_t *)(gltf->data() + 12);
-    char const * glbJSON = (char const *)(gltf->data() + 20);
-    byte_t * glbBinChunk = (byte_t *)alignPtr((void *)(glbJSON + jsonChunkSize), 4);
-    uint32_t glbBinSize = *(uint32_t *)glbBinChunk;
-    assert(strEqu((char const *)(glbBinChunk + 4), "BIN\0", 4) && "BIN chunk magic string not found.");
-    byte_t * glbBin = glbBinChunk + 8;
+
+    // calc size
+    loader4.calculateSize();
+
+    // create block
+    BlockInfo * block = create(loader4.counts.totalSize(), Gobj::Align);
+    if (block == nullptr) {
+        fprintf(stderr, "Error creating Gobj block\n");
+        return nullptr;
+    }
+    block->_type = MEM_BLOCK_GOBJ;
+    Gobj * gobj = new (block->data()) Gobj{loader4.counts};
+
+    // load into gobj
+    bool success = loader4.load(gobj);
+
+    // early return if load failed
+    if (!success) {
+        fprintf(stderr, "Error loading GLTF data into game object.\n");
+        return nullptr;
+    }
+
+    // check for exepected size
+    #if DEBUG
+    assert(
+        gobj->buffer + alignSize(loader4.binDataSize(), Gobj::Align) ==
+        block->data() + block->dataSize() &&
+        "Gobj block unexpected size."
+    );
+    #endif // DEBUG
+
+    // free gltf file
+    // request({.ptr=gltf, .size=0});
+
+    // debug output
+    printl("LOADED GOBJ:");
+    gobj->print();
+
+    return gobj;
+
+
+
+    // OLD LOADER 3
 
     // calculate the data size
     // GLTFLoader3 loader;
@@ -567,42 +605,8 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     // }
 
     // loader.prettyStr(glbJSON);
-    // printl("JSON DATA for %s:\n%.*s", gltfPath, jsonChunkSize, loader.prettyStr(glbJSON));
-
-    // LOADER 4
-    GLTFLoader4 loader4{glbJSON};
-    printl("JSON DATA for %s\n%s", gltfPath, loader4.prettyJSON());
-    loader4.calculateSize();
-    // printl("GOBJ INFO FOR COUNTS");
-    // loader4.counts.print();
-
-    BlockInfo * block = create(loader4.counts.totalSize(), Gobj::Align);
-    if (block == nullptr) {
-        fprintf(stderr, "Error creating Gobj block\n");
-        return nullptr;
-    }
-    block->_type = MEM_BLOCK_GOBJ;
-    Gobj * gobj = new (block->data()) Gobj{loader4.counts};
-
-    printl("LOADED GOBJ:");
-    gobj->print();
-
-    bool success = loader4.load(gobj, glbBin, glbBinSize);
-
-    // printl("gobj->buffer %p + %zu = %p", gobj->buffer, glbBinSize, gobj->buffer + glbBinSize);
-    // printl("block->data() %p + %zu = %p", block->data(), block->dataSize(), block->data() + block->dataSize());
-    assert(
-        gobj->buffer + alignSize(glbBinSize, Gobj::Align) ==
-        block->data() + block->dataSize() &&
-        "Gobj block unexpected size."
-    );
-
-    // free gltf file
-    // request({.ptr=gltf, .size=0});
-
-    return gobj;
+    // printl("JSON DATA for %s:\n%.*s", gltfPath, jsonStrSize, loader.prettyStr(glbJSON));
 }
-
 
 void MemMan::createRequestResult() {
     guard_t guard{_mainMutex};

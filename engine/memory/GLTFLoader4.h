@@ -111,13 +111,21 @@ public:
     };
 
 // API
-    GLTFLoader4(char const * jsonStr);
+    GLTFLoader4(byte_t const * gltfData);
     // returns crumb from stack. offset==0 is top of stack.
     // offset<0 returns into stack, offset>0 is invalid.
     Crumb & crumb(int offset = 0);
 
     void calculateSize();
-    bool load(Gobj * gobj, byte_t * bin = nullptr, size_t binSize = 0);
+    bool load(Gobj * gobj);
+
+    // data access
+    uint32_t jsonStrSize() const;
+    char const * jsonStr() const;
+    byte_t const * binChunkStart() const;
+    uint32_t binDataSize() const;
+    byte_t const * binData() const;
+    bool validData() const;
 
     char * prettyJSON() const;
     void printBreadcrumbs() const;
@@ -126,7 +134,7 @@ public:
 // STORAGE
 public:
     // jsonStr is not retained. might not be null terminated.
-    char const * jsonStr;
+    byte_t const * gltfData;
     // crumb stack
     Crumb crumbs[MaxDepth];
     uint32_t depth = 0;

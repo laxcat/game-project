@@ -1,6 +1,7 @@
 #include "GLTFLoader4.h"
 #include <rapidjson/reader.h>
 #include <rapidjson/prettywriter.h>
+#include "mem_utils.h"
 #include "../common/string_utils.h"
 #include "../MrManager.h"
 
@@ -405,9 +406,24 @@ bool GLTFLoader4::Crumb::hasKey() const { return (key[0] != '\0'); }
 // LOADER
 // -------------------------------------------------------------------------- //
 
-GLTFLoader4::GLTFLoader4(char const * jsonStr) :
-    jsonStr(jsonStr)
+GLTFLoader4::GLTFLoader4(byte_t const * gltfData) :
+    gltfData(gltfData)
 {
+    if (!strEqu((char const *)gltfData, "glTF", 4)) {
+        fprintf(stderr, "GLB marker not found.");
+        gltfData = nullptr;
+        return;
+    }
+    if (!strEqu((char const *)(gltfData + 16), "JSON", 4)) {
+        fprintf(stderr, "glTF JSON chunk magic string not found.");
+        gltfData = nullptr;
+        return;
+    }
+    if (!strEqu((char const *)(binChunkStart() + 4), "BIN\0", 4)) {
+        fprintf(stderr, "BIN chunk magic string not found.");
+        gltfData = nullptr;
+        return;
+    }
 }
 
 GLTFLoader4::Crumb & GLTFLoader4::crumb(int offset) {
@@ -419,29 +435,31 @@ GLTFLoader4::Crumb & GLTFLoader4::crumb(int offset) {
 }
 
 void GLTFLoader4::calculateSize() {
+    assert(gltfData && "GLTF data invalid.");
     Counter counter{this};
     rapidjson::Reader reader;
-    auto ss = rapidjson::StringStream(jsonStr);
+    auto ss = rapidjson::StringStream(jsonStr());
     reader.Parse(ss, counter);
 }
 
-bool GLTFLoader4::load(Gobj * gobj, byte_t * bin, size_t binSize) {
+bool GLTFLoader4::load(Gobj * gobj) {
+    assert(gltfData && "GLTF data invalid.");
     Scanner scanner{this, gobj};
     rapidjson::Reader reader;
-    auto ss = rapidjson::StringStream(jsonStr);
+    auto ss = rapidjson::StringStream(jsonStr());
     reader.Parse(ss, scanner);
-    if (bin && binSize) {
-        memcpy(gobj->buffer, bin, binSize);
-    }
+    memcpy(gobj->buffer, binData(), binDataSize());
     return true;
 }
 
 char * GLTFLoader4::prettyJSON() const {
+    assert(gltfData && "GLTF data invalid.");
+
     rapidjson::StringBuffer sb;
     rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(sb);
 
     rapidjson::Reader reader;
-    auto ss = rapidjson::StringStream(jsonStr);
+    auto ss = rapidjson::StringStream(jsonStr());
     reader.Parse(ss, writer);
     // printf("%s\n", sb.GetString());
 
@@ -454,6 +472,32 @@ void GLTFLoader4::printBreadcrumbs() const {
         print("%s(%s,%d) > ", crumbs[i].objTypeStr(), crumbs[i].key, crumbs[i].index);
     }
     printl();
+}
+
+uint32_t GLTFLoader4::jsonStrSize() const {
+    return *(uint32_t *)(gltfData + 12);
+}
+
+char const * GLTFLoader4::jsonStr() const {
+    return (char const *)(gltfData + 20);
+}
+
+byte_t const * GLTFLoader4::binChunkStart() const {
+    // aligned because GLTF spec will add space characters at end of json
+    // string in order to align to 4-byte boundary
+    return (byte_t const *)alignPtr((void *)(jsonStr() + jsonStrSize()), 4);
+}
+
+uint32_t GLTFLoader4::binDataSize() const {
+    return *(uint32_t *)binChunkStart();
+}
+
+byte_t const * GLTFLoader4::binData() const {
+    return binChunkStart() + 8;
+}
+
+bool GLTFLoader4::validData() const {
+    return gltfData;
 }
 
 void GLTFLoader4::push(ObjType objType) {
