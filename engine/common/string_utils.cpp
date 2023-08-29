@@ -8,7 +8,10 @@ void setName(char * dest, char const * name, int size) {
     snprintf(dest, size, "%s", name);
 }
 
-bool strEqu(char const * strA, char const * strB) {
+bool strEqu(char const * strA, char const * strB, size_t size) {
+    if (size) {
+        return (strncmp(strA, strB, size) == 0);
+    }
     return (strcmp(strA, strB) == 0);
 }
 

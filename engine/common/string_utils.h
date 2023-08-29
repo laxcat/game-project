@@ -4,7 +4,7 @@
 
 void setName(char * dest, char const * name, int size = 32);
 
-bool strEqu(char const * strA, char const * strB);
+bool strEqu(char const * strA, char const * strB, size_t size = 0);
 
 bool strEqualForLength(char const * strA, char const * strB, size_t length);
 
