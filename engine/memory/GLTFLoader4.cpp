@@ -425,12 +425,14 @@ void GLTFLoader4::calculateSize() {
     reader.Parse(ss, counter);
 }
 
-bool GLTFLoader4::load(Gobj * gobj) {
+bool GLTFLoader4::load(Gobj * gobj, byte_t * bin, size_t binSize) {
     Scanner scanner{this, gobj};
     rapidjson::Reader reader;
     auto ss = rapidjson::StringStream(jsonStr);
     reader.Parse(ss, scanner);
-
+    if (bin && binSize) {
+        memcpy(gobj->buffer, bin, binSize);
+    }
     return true;
 }
 

@@ -117,7 +117,7 @@ public:
     Crumb & crumb(int offset = 0);
 
     void calculateSize();
-    bool load(Gobj * gobj);
+    bool load(Gobj * gobj, byte_t * bin = nullptr, size_t binSize = 0);
 
     char * prettyJSON() const;
     void printBreadcrumbs() const;

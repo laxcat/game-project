@@ -539,9 +539,10 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     // TODO: read this better. https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#glb-file-format-specification
     uint32_t jsonChunkSize = *(uint32_t *)(gltf->data() + 12);
     char const * glbJSON = (char const *)(gltf->data() + 20);
-    byte_t * glbBin = (byte_t *)alignPtr((void *)(glbJSON + jsonChunkSize), 4);
-    uint32_t binChunkSize = *(uint32_t *)glbBin;
-    assert(strEqu((char const *)(glbBin + 4), "BIN\0", 4) && "BIN chunk magic string not found.");
+    byte_t * glbBinChunk = (byte_t *)alignPtr((void *)(glbJSON + jsonChunkSize), 4);
+    uint32_t glbBinSize = *(uint32_t *)glbBinChunk;
+    assert(strEqu((char const *)(glbBinChunk + 4), "BIN\0", 4) && "BIN chunk magic string not found.");
+    byte_t * glbBin = glbBinChunk + 8;
 
     // calculate the data size
     // GLTFLoader3 loader;
@@ -568,43 +569,40 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     // loader.prettyStr(glbJSON);
     // printl("JSON DATA for %s:\n%.*s", gltfPath, jsonChunkSize, loader.prettyStr(glbJSON));
 
-
     // LOADER 4
     GLTFLoader4 loader4{glbJSON};
     printl("JSON DATA for %s\n%s", gltfPath, loader4.prettyJSON());
     loader4.calculateSize();
-    printl("GOBJ INFO FOR COUNTS");
-    loader4.counts.print();
-    Gobj * g = createGobj(loader4.counts);
-    printl("LOADED GOBJ:");
-    g->print();
+    // printl("GOBJ INFO FOR COUNTS");
+    // loader4.counts.print();
 
-    if (g == nullptr) {
+    BlockInfo * block = create(loader4.counts.totalSize(), Gobj::Align);
+    if (block == nullptr) {
         fprintf(stderr, "Error creating Gobj block\n");
         return nullptr;
     }
+    block->_type = MEM_BLOCK_GOBJ;
+    Gobj * gobj = new (block->data()) Gobj{loader4.counts};
 
-    bool success = loader4.load(g);
-    memcpy(g->buffer, glbBin + 8, binChunkSize);
-    BlockInfo * block = blockForPtr(g);
-    // printl("g->buffer %p + %zu = %p", g->buffer, binChunkSize, g->buffer + binChunkSize);
+    printl("LOADED GOBJ:");
+    gobj->print();
+
+    bool success = loader4.load(gobj, glbBin, glbBinSize);
+
+    // printl("gobj->buffer %p + %zu = %p", gobj->buffer, glbBinSize, gobj->buffer + glbBinSize);
     // printl("block->data() %p + %zu = %p", block->data(), block->dataSize(), block->data() + block->dataSize());
-    assert(g->buffer + alignSize(binChunkSize, Gobj::Align) == block->data() + block->dataSize() && "Gobj block unexpected size.");
+    assert(
+        gobj->buffer + alignSize(glbBinSize, Gobj::Align) ==
+        block->data() + block->dataSize() &&
+        "Gobj block unexpected size."
+    );
 
     // free gltf file
     // request({.ptr=gltf, .size=0});
 
-    return g;
+    return gobj;
 }
 
-Gobj * MemMan::createGobj(Gobj::Counts const & counts) {
-    guard_t guard{_mainMutex};
-
-    BlockInfo * block = create(counts.totalSize(), Gobj::Align);
-    if (!block) return nullptr;
-    block->_type = MEM_BLOCK_GOBJ;
-    return new (block->data()) Gobj{counts};
-}
 
 void MemMan::createRequestResult() {
     guard_t guard{_mainMutex};
