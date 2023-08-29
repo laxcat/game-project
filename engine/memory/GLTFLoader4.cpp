@@ -230,6 +230,15 @@ bool GLTFLoader4::Scanner::Uint(unsigned i) {
         g->buffers[bufIndex].data = nextBufferPtr;
         nextBufferPtr += i;
     }
+    else if (l->crumb(-2).matches(TYPE_ARR, "bufferViews")) {
+        uint16_t bvIndex = l->crumb(-1).index;
+        Gobj::BufferView * bv = g->bufferViews + bvIndex;
+        if      (l->crumb().matches("buffer"))     { bv->buffer = g->buffers + i; }
+        else if (l->crumb().matches("byteLength")) { bv->byteLength = i; }
+        else if (l->crumb().matches("byteOffset")) { bv->byteOffset = i; }
+        else if (l->crumb().matches("byteStride")) { bv->byteStride = i; }
+        else if (l->crumb().matches("target"))     { bv->target = (Gobj::BufferView::Target)i; }
+    }
     l->pop();
     return true;
 }
