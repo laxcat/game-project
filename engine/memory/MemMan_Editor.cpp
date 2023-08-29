@@ -184,12 +184,12 @@ void MemMan::editor() {
         }
 
         // calc block name
-        char const * blockName = mm.frameFormatStr("%03d (%p): %s Block [%s][%s]",
+        char const * blockName = mm.frameFormatStr("%03d (%p): %s [pad:%zu, data:%zu]",
             blockIndex,
             basePtr,
             memBlockTypeStr(b->type()),
-            mm.frameByteSizeStr(b->paddingSize()),
-            mm.frameByteSizeStr(b->dataSize())
+            b->paddingSize(),
+            b->dataSize()
         );
 
         if (b->type() == MEM_BLOCK_FREE) {
@@ -224,6 +224,10 @@ void MemMan::editor() {
                     removeAlloc(testAllocIndex);
                 }
             }
+
+            // show total block size
+            SameLine();
+            Text("total block size: %zu (%s)", b->blockSize(), mm.frameByteSizeStr(b->blockSize()));
 
             Indent();
 
