@@ -137,6 +137,9 @@ public:
 public:
     // jsonStr is not retained. might not be null terminated.
     byte_t const * gltfData;
+    bool isGLB = false;
+    // carries all info necessary to determine byte-size of Gobj
+    Gobj::Counts counts;
     // crumb stack
     Crumb crumbs[MaxDepth];
     uint32_t depth = 0;
@@ -145,9 +148,7 @@ public:
     char key[MaxKeyLen] = {'\0'};
     // index stack for keeping track of index of array items
     uint32_t arrIndices[MaxDepth];
-    uint32_t arrDepth;
-    // carries all info necessary to determine byte-size of Gobj
-    Gobj::Counts counts;
+    uint32_t arrDepth = 0;
 
 // INTERNALS
 private:
@@ -161,4 +162,5 @@ private:
     Gobj::Accessor::Type accessorTypeFromStr(char const * str);
     Gobj::AnimationTarget animationTargetFromStr(char const * str);
     Gobj::AnimationSampler::Interpolation interpolationFromStr(char const * str);
+    size_t handleData(byte_t * dst, char const * str, size_t strLength);
 };

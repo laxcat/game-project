@@ -35,7 +35,7 @@ int MrManager::init(EngineSetup const & setup) {
     // test();
     Renderable * r = rendSys.createFromGLTF("../../../gltf_assets/CesiumMilkTruck.glb", "truck");
 
-    memMan.createGobj("../../../gltf_assets/CesiumMilkTruck.glb");
+    memMan.createGobj("../../../gltf_assets/CesiumMilkTruck/CesiumMilkTruck.gltf");
 
     return 0;
 }

@@ -2,6 +2,8 @@
 #include <rapidjson/reader.h>
 #include <rapidjson/prettywriter.h>
 #include "mem_utils.h"
+#include "../common/file_utils.h"
+#include "../common/modp_b64.h"
 #include "../common/string_utils.h"
 #include "../MrManager.h"
 
@@ -319,6 +321,23 @@ bool GLTFLoader4::Scanner::String(char const * str, uint32_t length, bool copy) 
         Gobj::AnimationSampler * as = g->animations[aniIndex].samplers + l->crumb(-1).index;
         as->interpolation = l->interpolationFromStr(str);
     }
+    else if (
+        l->crumb(-2).matches(TYPE_ARR, "buffers") &&
+        l->crumb().matches("uri"))
+    {
+            if (l->isGLB) {
+                fprintf(stderr, "Unexpected buffer.uri in GLB.");
+                return false;
+            }
+            size_t bytesWritten = l->handleData(nextBufferPtr, str, length);
+            if (bytesWritten == 0) {
+                return false;
+            }
+            Gobj::Buffer * buf = g->buffers + l->crumb(-1).index;
+            buf->data = nextBufferPtr;
+            buf->byteLength = bytesWritten;
+            nextBufferPtr += bytesWritten;
+    }
     l->pop();
     return true;
 }
@@ -427,20 +446,22 @@ bool GLTFLoader4::Crumb::hasKey() const { return (key[0] != '\0'); }
 GLTFLoader4::GLTFLoader4(byte_t const * gltfData) :
     gltfData(gltfData)
 {
-    if (!strEqu((char const *)gltfData, "glTF", 4)) {
-        fprintf(stderr, "GLB marker not found.");
-        gltfData = nullptr;
-        return;
+    if (strEqu((char const *)gltfData, "glTF", 4)) {
+        isGLB = true;
+
+        if (!strEqu((char const *)(gltfData + 16), "JSON", 4)) {
+            fprintf(stderr, "glTF JSON chunk magic string not found.");
+            gltfData = nullptr;
+            return;
+        }
+        if (!strEqu((char const *)(binChunkStart() + 4), "BIN\0", 4)) {
+            fprintf(stderr, "BIN chunk magic string not found.");
+            gltfData = nullptr;
+            return;
+        }
     }
-    if (!strEqu((char const *)(gltfData + 16), "JSON", 4)) {
-        fprintf(stderr, "glTF JSON chunk magic string not found.");
+    else {
         gltfData = nullptr;
-        return;
-    }
-    if (!strEqu((char const *)(binChunkStart() + 4), "BIN\0", 4)) {
-        fprintf(stderr, "BIN chunk magic string not found.");
-        gltfData = nullptr;
-        return;
     }
 }
 
@@ -465,9 +486,11 @@ bool GLTFLoader4::load(Gobj * gobj) {
     Scanner scanner{this, gobj};
     rapidjson::Reader reader;
     auto ss = rapidjson::StringStream(jsonStr());
-    reader.Parse(ss, scanner);
-    memcpy(gobj->buffer, binData(), binDataSize());
-    return true;
+    bool success = reader.Parse(ss, scanner);
+    if (isGLB && success) {
+        memcpy(gobj->buffer, binData(), binDataSize());
+    }
+    return success;
 }
 
 char const * GLTFLoader4::prettyJSON(uint32_t * prettyJSONSize) const {
@@ -479,7 +502,6 @@ char const * GLTFLoader4::prettyJSON(uint32_t * prettyJSONSize) const {
     rapidjson::Reader reader;
     auto ss = rapidjson::StringStream(jsonStr());
     reader.Parse(ss, writer);
-    // printf("%s\n", sb.GetString());
 
     if (prettyJSONSize) {
         *prettyJSONSize = sb.GetSize() + 1;
@@ -496,14 +518,18 @@ void GLTFLoader4::printBreadcrumbs() const {
 }
 
 uint32_t GLTFLoader4::jsonStrSize() const {
+    assert(isGLB && "jsonStrSize() not available when isGLB==false.");
     return *(uint32_t *)(gltfData + 12);
 }
 
 char const * GLTFLoader4::jsonStr() const {
-    return (char const *)(gltfData + 20);
+    // returns gltfData if GLTF,
+    // returns gltfData+20 if GLB
+    return (char const *)(gltfData + (isGLB * 20));
 }
 
 byte_t const * GLTFLoader4::binChunkStart() const {
+    assert(isGLB && "No binary chuck to access.");
     // aligned because GLTF spec will add space characters at end of json
     // string in order to align to 4-byte boundary
     return (byte_t const *)alignPtr((void *)(jsonStr() + jsonStrSize()), 4);
@@ -573,4 +599,38 @@ Gobj::AnimationSampler::Interpolation GLTFLoader4::interpolationFromStr(char con
     if (strEqu(str, "STEP"       )) return Gobj::AnimationSampler::INTERP_STEP;
     if (strEqu(str, "CUBICSPLINE")) return Gobj::AnimationSampler::INTERP_CUBICSPLINE;
     return Gobj::AnimationSampler::INTERP_LINEAR;
+}
+
+size_t GLTFLoader4::handleData(byte_t * dst, char const * str, size_t strLength) {
+    // base64?
+    static char const * isDataStr = "data:application/octet-stream;base64,";
+    size_t isDataLen = strlen(isDataStr);
+    if (strEqu(str, isDataStr, isDataLen)) {
+        size_t b64StrLen = strLength - isDataLen;
+        modp_b64_decode((char *)dst, (char *)str + isDataLen, b64StrLen);
+        return modp_b64_decode_len(b64StrLen);
+    }
+
+    // uri to load?
+    // TODO: test this
+    FILE * fp = fopen(str, "r");
+    if (!fp) {
+        fprintf(stderr, "WARNING: Error opening buffer file: %s\n", str);
+        return 0;
+    }
+    long fileSize = getFileSize(fp);
+    if (fileSize == -1) {
+        fclose(fp);
+        return 0;
+    }
+    size_t readSize = fread(dst, 1, fileSize, fp);
+    // error
+    if (ferror(fp) || readSize != fileSize) {
+        fprintf(stderr, "Error reading file \"%s\" contents: read %zu, expecting %zu\n",
+            str, readSize, fileSize);
+        fclose(fp);
+        return 0;
+    }
+
+    return readSize;
 }

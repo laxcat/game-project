@@ -6,6 +6,7 @@ void setName(char * dest, char const * name, int size = 32);
 
 bool strEqu(char const * strA, char const * strB, size_t size = 0);
 
+// TODO: remove this, use strEqu with optional size
 bool strEqualForLength(char const * strA, char const * strB, size_t length);
 
 // finds if str exactly matches a sub string in a comma seperated strGroup

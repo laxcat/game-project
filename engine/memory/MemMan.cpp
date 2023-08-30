@@ -557,6 +557,7 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     // early return if load failed
     if (!success) {
         fprintf(stderr, "Error loading GLTF data into game object.\n");
+        release(block);
         return nullptr;
     }
 

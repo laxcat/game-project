@@ -15,6 +15,7 @@ bool strEqu(char const * strA, char const * strB, size_t size) {
     return (strcmp(strA, strB) == 0);
 }
 
+// TODO: remove this, use strEqu with optional size
 bool strEqualForLength(char const * strA, char const * strB, size_t length) {
     for (size_t i = 0; i < length; ++i) {
         // one (but not both) is null or chars don't match
