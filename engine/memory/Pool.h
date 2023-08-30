@@ -37,7 +37,6 @@ public:
         for (size_t i = 0; i < _size; ++i) {
             dataItems()[i] = {};
         }
-        print();
     }
 
     T * claim(size_t * foundIndex = nullptr) {

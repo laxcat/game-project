@@ -103,6 +103,7 @@ bool CharKeys::isFull() const {
     return pool()->isFull();
 }
 
+#if DEBUG
 void CharKeys::printToBuf(char * out, size_t size) const {
     char * pen = out;
     int written;
@@ -149,7 +150,7 @@ void CharKeys::printToBuf(char * out, size_t size) const {
     }
     snprintf(pen, size, "|");
 }
-
+#endif // DEBUG
 
 CharKeys::Node * CharKeys::nodeForKey(char const * key) {
     return search(key);

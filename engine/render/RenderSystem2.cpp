@@ -397,6 +397,8 @@ bool RenderSystem::isRenderableLoading(Renderable const * r, Renderable::LoadSta
     return (foundLoadState == Renderable::LoadState::Loading);
 }
 
+#if DEBUG || DEV_INTERFACE
+
 void RenderSystem::showStatus() {
     printc(ShowRenderDbg, "RENDERABLE COUNT: %zu\n", pool->nNodes());
 }
@@ -405,12 +407,14 @@ void RenderSystem::showMoreStatus(char const * prefix) {
     if (strcmp(prefix, "")) {
         printc(ShowRenderDbg, "%s ", prefix);
     }
-    if constexpr (ShowRenderDbg) {
+    if constexpr (ShowRenderDbg && DEBUG) {
         char * buf = mm.frameStr(1024);
         pool->printToBuf(buf, 1024);
         printc(ShowRenderDbg, "RENDERABLEPOOL: \n%s\n", buf);
     }
 }
+
+#endif // DEBUG || DEV_INTERFACE
 
 size_t RenderSystem::renderableCount() const {
     return pool->nNodes();

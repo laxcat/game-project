@@ -585,8 +585,10 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     release(pathBlock);
 
     // debug output
+    #if DEBUG
     printl("LOADED GOBJ:");
     gobj->print();
+    #endif // DEBUG
 
     return gobj;
 

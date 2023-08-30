@@ -1,10 +1,11 @@
 #include "Gobj.h"
+#include <new>
 #include "FrameStack.h"
 #include "mem_utils.h"
-#if DEBUG
+#if DEBUG || DEV_INTERFACE
 #include "../dev/print.h"
 #include "../MrManager.h"
-#endif // DEBUG
+#endif // DEBUG || DEV_INTERFACE
 
 #define ALIGN_SIZE(SIZE) alignSize(SIZE, Gobj::Align)
 #define ALIGN_PTR(PTR)  alignPtr(PTR, Gobj::Align)
@@ -202,7 +203,8 @@ size_t Gobj::Counts::totalSize() const {
     ;
 }
 
-#if DEBUG
+#if DEBUG || DEV_INTERFACE
+
 void Gobj::print() const {
     ::print(printToFrameStack());
 }
@@ -290,4 +292,5 @@ char * Gobj::Counts::printToFrameStack() const {
     return str;
 }
 
-#endif // DEBUG
+#endif // DEBUG || DEV_INTERFACE
+

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+cmake ..                                \
+-DCMAKE_BUILD_TYPE=Debug                \
+-DBX_SILENCE_DEBUG_OUTPUT=1             \

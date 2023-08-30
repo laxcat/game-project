@@ -168,10 +168,10 @@ public:
         uint32_t buffersLen = 0;
 
         size_t totalSize() const;
-        #if DEBUG
+        #if DEBUG || DEV_INTERFACE
         void print() const;
         char * printToFrameStack() const;
-        #endif // DEBUG
+        #endif // DEBUG || DEV_INTERFACE
     };
 
 
@@ -496,10 +496,10 @@ public:
 
     // DEBUG
 public:
-    #if DEBUG
+    #if DEBUG || DEV_INTERFACE
     void print() const;
     char * printToFrameStack() const;
-    #endif // DEBUG
+    #endif // DEBUG || DEV_INTERFACE
 
     #if DEV_INTERFACE
     static void editorCreate();

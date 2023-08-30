@@ -1,5 +1,6 @@
 #pragma once
 #include <stddef.h>
+#include "../common/debug_defines.h"
 
 class Renderable;
 
@@ -39,7 +40,10 @@ public:
     void guiFog();
     void guiColors();
     void guiMem();
+
+    #if DEBUG
     void guiDebugger();
+    #endif // DEBUG
 
     // separate movable windows
     void guiWinMem();

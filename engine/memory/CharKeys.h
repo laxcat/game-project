@@ -90,9 +90,9 @@ public:
     Iterator begin() const;
     Iterator end() const;
 
-    #if DEBUG
+    #if DEBUG || DEV_INTERFACE
     void printToBuf(char * out, size_t size) const;
-    #endif // DEBUG
+    #endif // DEBUG || DEV_INTERFACE
 
     // STORAGE
 private:

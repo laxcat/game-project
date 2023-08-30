@@ -11,6 +11,7 @@
 #include "RenderSettings.h"
 #include "Samplers.h"
 #include "Texture.h"
+#include "../common/debug_defines.h"
 #include "../memory/MemMan.h"
 #include "../memory/Gobj.h"
 
@@ -47,8 +48,11 @@ public:
     bool keyExists(char const * key);
     bool isKeySafeToDrawOrLoad(char const * key);
     bool isRenderableLoading(Renderable const * r, Renderable::LoadState & foundLoadState);
+
+    #if DEBUG || DEV_INTERFACE
     void showStatus();
     void showMoreStatus(char const * prefix = "");
+    #endif // DEBUG || DEV_INTERFACE
 
     size_t renderableCount() const;
 

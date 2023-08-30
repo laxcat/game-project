@@ -30,11 +30,11 @@ class FrameStack;
 class FreeList;
 
 class MemMan {
-    // FRIENDS
+// FRIENDS
 public:
     friend class BXAllocator;
 
-    // TYPES
+// TYPES
 public:
     using guard_t = std::lock_guard<std::recursive_mutex>;
 
@@ -111,7 +111,7 @@ public:
         BlockInfo * block = nullptr;
     };
 
-    // API
+// API
 public:
     // LIFECYCLE
     void init(EngineSetup const & setup, FrameStack ** frameStack = nullptr);
@@ -150,8 +150,8 @@ public:
     template<typename T>
     Pool<T> * createPool(size_t max);
 
-    // DEV INTERFACE ONLY
-    #if DEV_INTERFACE
+// DEV INTERFACE ONLY
+#if DEV_INTERFACE
 public:
     struct TestAlloc {
         constexpr static size_t DescSize = 64;
@@ -169,16 +169,16 @@ public:
     TestAlloc testAllocs[MaxTestAllocs] = {};
     uint16_t nTestAllocs = 0;
 
-    #endif // DEV_INTERFACE
+#endif // DEV_INTERFACE
 
-    // PRIVATE SPECIAL BLOCK OBJ CREATION
+// PRIVATE SPECIAL BLOCK OBJ CREATION
 private:
     // create request block on init
     void createRequestResult();
     // create fsa block on init
     FSA * createFSA(MemManFSASetup const & setup);
 
-    // STORAGE
+// STORAGE
 private:
     byte_t * _data = nullptr;
     size_t _size = 0;
@@ -195,7 +195,7 @@ private:
     size_t _blockCount = 0; // updated during end frame, for display purposes only
     mutable std::recursive_mutex _mainMutex;
 
-    // INTERNALS
+// INTERNALS
 private:
     // execute request as found in request block; combined alloc/realloc/free
     void request();
@@ -241,6 +241,8 @@ public:
     #endif // DEBUG
 };
 
+// ALLOCATORS
+
 class BXAllocator : public bx::AllocatorI {
 public:
     MemMan * memMan = nullptr;
@@ -248,6 +250,7 @@ public:
 };
 
 // INLINE DECLARATIONS
+
 template<typename T>
 Array<T> * MemMan::createArray(size_t max) {
     guard_t guard{_mainMutex};

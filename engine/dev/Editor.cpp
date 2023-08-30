@@ -41,7 +41,9 @@ void Editor::tick() {
     guiFog();
     guiColors();
     guiMem();
+    #if DEBUG
     guiDebugger();
+    #endif // DEBUG
     if (mm.setup.appendInsideEditor) mm.setup.appendInsideEditor();
 
     End();
@@ -394,6 +396,7 @@ void Editor::guiMem() {
     mm.memMan.editor();
 }
 
+#if DEBUG
 void Editor::guiDebugger() {
     if (CollapsingHeader("Debugger")) {
         if (Button("Break")) {
@@ -402,7 +405,7 @@ void Editor::guiDebugger() {
         Dummy(ImVec2(0.0f, 20.0f));
     }
 }
-
+#endif // DEBUG
 
 
 void Editor::guiWinMem() {
