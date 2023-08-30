@@ -11,6 +11,7 @@ inline long getFileSize(FILE * fp) {
     if (fileSize == -1) {
         fprintf(stderr, "Error reading seek position: %d\n", ferror(fp));
     }
+    fseek(fp, 0L, SEEK_SET);
     return fileSize;
 }
 inline long getFileSize(char const * path) {
@@ -22,4 +23,15 @@ inline long getFileSize(char const * path) {
     long ret = getFileSize(fp);
     fclose(fp);
     return ret;
+}
+
+// buf should have at least strlen(file) bytes available
+inline void getPath(char const * file, char * buf) {
+    int i = 0;
+    int lastSlash = 0;
+    while (file[i]) {
+        if (file[i] == '/') lastSlash = i;
+        ++i;
+    }
+    snprintf(buf, lastSlash + 2, "%.*s", lastSlash + 1, file);
 }

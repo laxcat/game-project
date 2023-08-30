@@ -114,7 +114,7 @@ public:
 
 // PUBLIC INTERFACE
 public:
-    GLTFLoader4(byte_t const * gltfData);
+    GLTFLoader4(byte_t const * gltfData, char const * loadingDir = nullptr);
     // returns crumb from stack. offset==0 is top of stack.
     // offset<0 returns into stack, offset>0 is invalid.
     Crumb & crumb(int offset = 0);
@@ -140,6 +140,8 @@ public:
     bool isGLB = false;
     // carries all info necessary to determine byte-size of Gobj
     Gobj::Counts counts;
+    // loading dir
+    char const * loadingDir = nullptr;
     // crumb stack
     Crumb crumbs[MaxDepth];
     uint32_t depth = 0;

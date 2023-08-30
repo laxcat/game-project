@@ -443,8 +443,9 @@ bool GLTFLoader4::Crumb::hasKey() const { return (key[0] != '\0'); }
 // LOADER
 // -------------------------------------------------------------------------- //
 
-GLTFLoader4::GLTFLoader4(byte_t const * gltfData) :
-    gltfData(gltfData)
+GLTFLoader4::GLTFLoader4(byte_t const * gltfData, char const * loadingDir) :
+    gltfData(gltfData),
+    loadingDir(loadingDir)
 {
     if (strEqu((char const *)gltfData, "glTF", 4)) {
         isGLB = true;
@@ -613,9 +614,10 @@ size_t GLTFLoader4::handleData(byte_t * dst, char const * str, size_t strLength)
 
     // uri to load?
     // TODO: test this
-    FILE * fp = fopen(str, "r");
+    char * fullPath = mm.frameFormatStr("%s%s", loadingDir, str);
+    FILE * fp = fopen(fullPath, "r");
     if (!fp) {
-        fprintf(stderr, "WARNING: Error opening buffer file: %s\n", str);
+        fprintf(stderr, "WARNING: Error opening buffer file: %s\n", fullPath);
         return 0;
     }
     long fileSize = getFileSize(fp);
@@ -627,7 +629,7 @@ size_t GLTFLoader4::handleData(byte_t * dst, char const * str, size_t strLength)
     // error
     if (ferror(fp) || readSize != fileSize) {
         fprintf(stderr, "Error reading file \"%s\" contents: read %zu, expecting %zu\n",
-            str, readSize, fileSize);
+            fullPath, readSize, fileSize);
         fclose(fp);
         return 0;
     }
