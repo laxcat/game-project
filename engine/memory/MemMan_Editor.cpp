@@ -94,25 +94,6 @@ void MemMan::editor() {
 
         // INPUT PARAMETERS FOR EACH BLOCK TYPE
         switch (selectedType) {
-        case MEM_BLOCK_CLAIMED: {
-            static int sizeAlign[] = {1024, 0};
-            SameLine();
-            PushItemWidth(120);
-            InputInt2("Size/align##ClaimedBlock", sizeAlign);
-            PopItemWidth();
-            SameLine();
-            if (Button("Create")) {
-                mm.editor.clearMemEditWindow();
-                BlockInfo * block = createBlock({
-                    .size = (size_t)sizeAlign[0],
-                    .align = (size_t)sizeAlign[1]
-                });
-                if (block) {
-                    addTestAlloc(block->data(), "Generic block (%zu bytes)", block->dataSize());
-                }
-            }
-            break;
-        }
         case MEM_BLOCK_ARRAY: {
             Array_editorCreate();
             break;
@@ -135,6 +116,25 @@ void MemMan::editor() {
         }
         case MEM_BLOCK_POOL: {
             Pool_editorCreate();
+            break;
+        }
+        case MEM_BLOCK_GENERIC: {
+            static int sizeAlign[] = {1024, 0};
+            SameLine();
+            PushItemWidth(120);
+            InputInt2("Size/align##GenericBlock", sizeAlign);
+            PopItemWidth();
+            SameLine();
+            if (Button("Create")) {
+                mm.editor.clearMemEditWindow();
+                BlockInfo * block = createBlock({
+                    .size = (size_t)sizeAlign[0],
+                    .align = (size_t)sizeAlign[1]
+                });
+                if (block) {
+                    addTestAlloc(block->data(), "Generic block (%zu bytes)", block->dataSize());
+                }
+            }
             break;
         }
         default: {}
@@ -200,6 +200,9 @@ void MemMan::editor() {
         }
         else if (b->type() == MEM_BLOCK_CLAIMED) {
             style->Colors[ImGuiCol_Text] = ImVec4(0.9f, 0.5f, 0.5f, 1.00f);
+        }
+        else if (b->type() == MEM_BLOCK_GENERIC) {
+            style->Colors[ImGuiCol_Text] = ImVec4(0.5f, 1.0f, 0.5f, 1.00f);
         }
 
         if (CollapsingHeader(blockName)) {

@@ -167,7 +167,9 @@ void MemMan::init(EngineSetup const & setup, FrameStack ** frameStack) {
             *frameStack = fs;
         }
     }
-
+    if (setup.memManAutoReleaseBufferSize) {
+        _autoReleaseBuffer = createAutoReleaseBuffer(setup.memManAutoReleaseBufferSize);
+    }
 }
 
 void MemMan::startFrame(size_t frame) {
@@ -182,6 +184,7 @@ void MemMan::endFrame() {
     if (!_data) return;
     #endif // DEBUG
 
+    autoReleaseEndFrame();
     mergeAllAdjacentFreeBlocks();
     // updateFirstFree();
 
@@ -255,6 +258,7 @@ void MemMan::request() {
             ) {
                 _result->size = _request->size;
                 _result->block = _fsaBlock;
+                addAutoRelease();
                 return;
             }
 
@@ -262,14 +266,12 @@ void MemMan::request() {
             else {
                 _result->block = createBlock();
                 if (_result->block) {
-                    if (_request->type) {
-                        _result->block->_type = _request->type;
-                    }
                     _result->size = _result->block->_dataSize;
                     assert(_result->size >= _request->size &&
                         "Resulting block _dataSize not big enough.");
                     _result->align = _request->align;
                     _result->ptr = _result->block->data();
+                    addAutoRelease();
                 }
                 return;
             }
@@ -310,6 +312,7 @@ void MemMan::request() {
                     _result->ptr = ptr;
                     _result->size = _request->size;
                     _result->block = _fsaBlock;
+                    updateAutoRelease();
                     return;
                 }
                 // block to fsa
@@ -321,6 +324,7 @@ void MemMan::request() {
                     _result->ptr = ptr;
                     _result->size = _request->size;
                     _result->block = _fsaBlock;
+                    updateAutoRelease();
                     return;
                 }
             }
@@ -334,14 +338,11 @@ void MemMan::request() {
 
                     assert(_result->block && "Could not reallocate memory.");
 
-                    if (_request->type) {
-                        _result->block->_type = _request->type;
-                    }
-
                     memcpy(_result->block->data(), _request->ptr, fsaCurrentSize);
                     _result->size = _result->block->_dataSize;
                     _result->align = _request->align;
                     _result->ptr = _result->block->data();
+                    updateAutoRelease();
                     return;
                 }
                 // block to block
@@ -350,12 +351,10 @@ void MemMan::request() {
 
                     assert(_result->block && "Could not reallocate memory.");
 
-                    if (_request->type) {
-                        _result->block->_type = _request->type;
-                    }
                     _result->size = _result->block->_dataSize;
                     _result->align = _request->align;
                     _result->ptr = _result->block->data();
+                    updateAutoRelease();
                     return;
                 }
             }
@@ -365,15 +364,17 @@ void MemMan::request() {
     else if (_request->ptr) {
         if (_fsa->destroy(_request->ptr)) {
             // ptr was in fsa
-            #if DEBUG
-            validateAllBlocks();
-            #endif // DEBUG
+            removeAutoRelease();
         }
         else {
             BlockInfo * block = blockForPtr(_request->ptr);
             assert(block && "Could not free ptr, not in expected range.");
             releaseBlock(block);
+            removeAutoRelease();
         }
+        #if DEBUG
+        validateAllBlocks();
+        #endif // DEBUG
     }
     // do nothing (size=0,ptr=0)
 }
@@ -408,6 +409,14 @@ MemMan::BlockInfo * MemMan::createBlock() {
             "No block found to meet request of size %zu, align %zu\n",
             _request->size, _request->align);
     }
+    // TODO: anything that is done in both claimBlock fns should move here
+    else {
+        found->_type = _request->type;
+    }
+
+    #if DEBUG
+    validateAllBlocks();
+    #endif // DEBUG
 
     return found;
 }
@@ -415,13 +424,14 @@ MemMan::BlockInfo * MemMan::createBlock() {
 MemMan::BlockInfo * MemMan::createBlock(MemMan::Request const & request) {
     guard_t guard{_mainMutex};
     assert(_request && "Request object not set.");
-
     *_request = request;
-    _result->size = _request->size;
-    _result->align = _request->align;
     _result->block = createBlock();
-    _result->ptr = _result->block->data();
-
+    if (_result->block) {
+        _result->ptr = _result->block->data();
+        _result->size = _result->block->dataSize();
+        _result->align = _request->align;
+        addAutoRelease();
+    }
     return _result->block;
 }
 
@@ -468,9 +478,11 @@ void MemMan::releaseBlock(BlockInfo * block) {
 FrameStack * MemMan::createFrameStack(size_t size) {
     guard_t guard{_mainMutex};
 
-    BlockInfo * block = createBlock({.size = sizeof(FrameStack) + size});
+    BlockInfo * block = createBlock({
+        .size = sizeof(FrameStack) + size,
+        .type = MEM_BLOCK_FRAMESTACK
+    });
     if (!block) return nullptr;
-    block->_type = MEM_BLOCK_FRAMESTACK;
     return new (block->data()) FrameStack{size};
 }
 
@@ -494,9 +506,12 @@ File * MemMan::createFileHandle(char const * path, bool loadNow, bool high) {
     // after file contents so contents can be printed as string in place.
     size_t size = (size_t)fileSize + 1;
 
-    BlockInfo * block = createBlock({.size = size + sizeof(File), .high = high});
+    BlockInfo * block = createBlock({
+        .size = size + sizeof(File),
+        .type = MEM_BLOCK_FILE,
+        .high = high
+    });
     if (!block) return nullptr;
-    block->_type = MEM_BLOCK_FILE;
     File * f = new (block->data()) File{size, path};
 
     // load now if request. send fp to avoid opening twice
@@ -518,18 +533,22 @@ File * MemMan::createFileHandle(char const * path, bool loadNow, bool high) {
 FreeList * MemMan::createFreeList(size_t max) {
     guard_t guard{_mainMutex};
 
-    BlockInfo * block = createBlock({.size = sizeof(FreeList) + FreeList::DataSize(max)});
+    BlockInfo * block = createBlock({
+        .size = sizeof(FreeList) + FreeList::DataSize(max),
+        .type = MEM_BLOCK_FREELIST,
+    });
     if (!block) return nullptr;
-    block->_type = MEM_BLOCK_FREELIST;
     return new (block->data()) FreeList{max};
 }
 
 CharKeys * MemMan::createCharKeys(size_t max) {
     guard_t guard{_mainMutex};
 
-    BlockInfo * block = createBlock({.size = sizeof(CharKeys) + CharKeys::DataSize(max)});
+    BlockInfo * block = createBlock({
+        .size = sizeof(CharKeys) + CharKeys::DataSize(max),
+        .type = MEM_BLOCK_CHARKEYS,
+    });
     if (!block) return nullptr;
-    block->_type = MEM_BLOCK_CHARKEYS;
     return new (block->data()) CharKeys{max};
 }
 
@@ -544,7 +563,7 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     }
 
     // base path of gltf
-    BlockInfo * pathBlock = createBlock({.size = strlen(gltfPath)});
+    BlockInfo * pathBlock = createBlock({.size=strlen(gltfPath), .lifetime=0});
     char * basePath = (char *)pathBlock->data();
     getPath(gltfPath, basePath);
 
@@ -552,7 +571,6 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     GLTFLoader4 loader4{gltf->data(), basePath};
     if (loader4.validData() == false) {
         fprintf(stderr, "Error creating Gobj block\n");
-        releaseBlock(pathBlock);
         return nullptr;
     }
 
@@ -560,13 +578,15 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     loader4.calculateSize();
 
     // create block
-    BlockInfo * block = createBlock({.size = loader4.counts.totalSize(), .align = Gobj::Align});
+    BlockInfo * block = createBlock({
+        .size = loader4.counts.totalSize(),
+        .align = Gobj::Align,
+        .type = MEM_BLOCK_GOBJ,
+    });
     if (block == nullptr) {
         fprintf(stderr, "Error creating Gobj block\n");
-        releaseBlock(pathBlock);
         return nullptr;
     }
-    block->_type = MEM_BLOCK_GOBJ;
     Gobj * gobj = new (block->data()) Gobj{loader4.counts};
 
     // load into gobj
@@ -576,7 +596,6 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     if (!success) {
         fprintf(stderr, "Error loading GLTF data into game object.\n");
         releaseBlock(block);
-        releaseBlock(pathBlock);
         return nullptr;
     }
 
@@ -593,7 +612,6 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
 
     // free gltf file
     // request({.ptr=gltf, .size=0});
-    releaseBlock(pathBlock);
 
     // debug output
     #if DEBUG
@@ -602,47 +620,20 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     #endif // DEBUG
 
     return gobj;
-
-
-
-    // OLD LOADER 3
-
-    // calculate the data size
-    // GLTFLoader3 loader;
-    // Gobj::Counts counts = loader.calcDataSize(glbJSON);
-
-    // create and load into Gobj
-    // Gobj * g = createGobj(counts);
-    // BlockInfo * gobjBlock = blockForPtr(g);
-    // if (g == nullptr) {
-    //     fprintf(stderr, "Error creating Gobj block\n");
-    //     return nullptr;
-    // }
-    // bool success = loader.load(
-    //     g,
-    //     gobjBlock->_dataSize,
-    //     counts,
-    //     glbJSON
-    // );
-    // if (!success) {
-    //     fprintf(stderr, "Error loading GLTF data into Gobj\n");
-    //     return nullptr;
-    // }
-
-    // loader.prettyStr(glbJSON);
-    // printl("JSON DATA for %s:\n%.*s", gltfPath, jsonStrSize, loader.prettyStr(glbJSON));
 }
 
 void MemMan::createRequestResult() {
     guard_t guard{_mainMutex};
 
     // createBlock() depends on _request being set, so we set it temporarily
-    Request tempRequest{.size = sizeof(Request) + sizeof(Result)};
+    Request tempRequest{
+        .size = sizeof(Request) + sizeof(Result),
+        .type = MEM_BLOCK_REQUEST
+    };
     _request = &tempRequest;
 
     BlockInfo * block = createBlock();
     if (!block) return;
-    block->_type = MEM_BLOCK_REQUEST;
     _request = new (block->data()) Request{};
     _result = new (block->data()+sizeof(Request)) Result{};
 }
@@ -658,7 +649,11 @@ FSA * MemMan::createFSA(MemManFSASetup const & setup) {
     // makes size calculatable beforehand. otherwise differnce between FSA-base
     // and FSA-data might be unpredictable, resulting in
     size_t blockDataSize = alignSize(sizeof(FSA), setup.align) + dataSize;
-    BlockInfo * block = createBlock({.size = blockDataSize, .align = setup.align});
+    BlockInfo * block = createBlock({
+        .size = blockDataSize,
+        .align = setup.align,
+        .type = MEM_BLOCK_FSA,
+    });
     if (!block) return nullptr;
 
     // printl("FSA dataSize %zu", dataSize);
@@ -667,11 +662,79 @@ FSA * MemMan::createFSA(MemManFSASetup const & setup) {
     // printl("FSA blockDataSize %zu", blockDataSize);
     // printl("aligned sizeof(FSA) %p", alignPtr(block->data() + sizeof(FSA), setup.align));
 
-    block->_type = MEM_BLOCK_FSA;
     FSA * fsa = new (block->data()) FSA{setup};
 
     // printl("FSA data (minus) base %zu", fsa->data() - block->data());
     return fsa;
+}
+
+Array<MemMan::AutoRelease> * MemMan::createAutoReleaseBuffer(size_t size) {
+    guard_t guard{_mainMutex};
+
+    if (size == 0) return nullptr;
+
+    BlockInfo * block = createBlock({
+        .size = sizeof(Array<AutoRelease>) + Array<AutoRelease>::DataSize(size),
+        .align = 8,
+        .type = MEM_BLOCK_ARRAY,
+    });
+    if (!block) return nullptr;
+
+    Array<AutoRelease> * buf = new (block->data()) Array<AutoRelease>{size};
+
+    return buf;
+}
+
+void MemMan::autoReleaseEndFrame() {
+    for (int i = 0; i < _autoReleaseBuffer->size(); ++i) {
+        AutoRelease & alloc = _autoReleaseBuffer->data()[i];
+        // release allocation when lifetime is 0
+        if (alloc.lifetime == 0) {
+            // setting lifetime = -1 here will tell request() to skip all
+            // auto-release consideration. we're handling that manually below.
+            request({.ptr = alloc.ptr, .size = 0, .lifetime = -1});
+            _autoReleaseBuffer->remove(i);
+            --i;
+            continue;
+        }
+        --alloc.lifetime;
+    }
+}
+
+void MemMan::addAutoRelease() {
+    if (_request->lifetime < 0) {
+        return;
+    }
+    _autoReleaseBuffer->append({
+        .ptr = _result->ptr,
+        .lifetime = _request->lifetime
+    });
+}
+
+void MemMan::updateAutoRelease() {
+    if (_request->lifetime < 0) {
+        return;
+    }
+    for (int i = 0; i < _autoReleaseBuffer->size(); ++i) {
+        auto & alloc = _autoReleaseBuffer->data()[i];
+        if (alloc.ptr == _request->ptr) {
+            alloc.ptr = _result->ptr;
+            return;
+        }
+    }
+}
+
+void MemMan::removeAutoRelease() {
+    if (_request->lifetime < 0) {
+        return;
+    }
+    for (int i = 0; i < _autoReleaseBuffer->size(); ++i) {
+        auto & alloc = _autoReleaseBuffer->data()[i];
+        if (alloc.ptr == _request->ptr) {
+            _autoReleaseBuffer->remove(i);
+            return;
+        }
+    }
 }
 
 MemMan::BlockInfo * MemMan::claimBlock(BlockInfo * block) {
@@ -742,10 +805,6 @@ MemMan::BlockInfo * MemMan::claimBlock(BlockInfo * block) {
         findFirstFreeBlock(block);
     }
 
-    #if DEBUG
-    validateAllBlocks();
-    #endif // DEBUG
-
     return block;
 }
 
@@ -803,10 +862,6 @@ MemMan::BlockInfo * MemMan::claimBlockBack(BlockInfo * block) {
     // set data bytes to 0
     #if DEBUG
     memset(block->data(), 0, block->_dataSize);
-    #endif // DEBUG
-
-    #if DEBUG
-    validateAllBlocks();
     #endif // DEBUG
 
     return newBlock;
@@ -940,7 +995,11 @@ MemMan::BlockInfo * MemMan::growBlock(BlockInfo * block, size_t biggerSize, size
 
     // next not free or not big enough
     // move the block to new location
-    BlockInfo * newBlock = createBlock({.size = biggerSize, .align = align});
+    BlockInfo * newBlock = createBlock({
+        .size = biggerSize,
+        .align = align,
+        .type = block->_type
+    });
     copy(newBlock->data(), block->data());
     releaseBlock(block);
     assert(newBlock && "Not enough room to move block during grow.");

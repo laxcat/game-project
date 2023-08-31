@@ -63,7 +63,6 @@ struct Event {
 
 enum MemBlockType {
     // special types
-    MEM_BLOCK_NONE = 0, // not set or unknown
     MEM_BLOCK_FREE,     // empty space to be claimed
     MEM_BLOCK_REQUEST,  // Special block for allocation request/result parameters; configured at init
     MEM_BLOCK_FSA,      // Special Fixed Sized Allocator block; configured at init
@@ -82,7 +81,7 @@ enum MemBlockType {
     // requested by BGFX. (no special treatment atm)
     MEM_BLOCK_BGFX,
 
-    // externally requested of any type
+    // unspecified request of any type
     MEM_BLOCK_GENERIC
 };
 

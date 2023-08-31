@@ -56,8 +56,16 @@ struct EngineSetup {
 
     WindowLimits windowLimits;
 
+    // size in bytes of total memory
     size_t memManSize = 1024*1024*500;
+
+    // size in bytes for frame-stack
     size_t memManFrameStackSize = 1024*1024*10;
+
+    // number of concurrent auto-released allocations
+    size_t memManAutoReleaseBufferSize = 16;
+
+    // fixed-size allocator setup
     MemManFSASetup memManFSA{
         .n2byteSubBlocks = 32,
         .n4byteSubBlocks = 8,

@@ -78,7 +78,6 @@ target_sources(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/FreeList_Editor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/FSA.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/FSA_Editor.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/memory/GLTFLoader3.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/GLTFLoader4.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/Gobj.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/Gobj_Editor.cpp

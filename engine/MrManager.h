@@ -39,7 +39,7 @@ public:
     EventQueue eventQueue;
 
     MemMan memMan;
-    FrameStack * frameStack = nullptr;
+    FrameStack * frameStack = nullptr; // TODO: consider moving this into MemMan
     RenderSystem rendSys;
 
     bool mouseIsDown = false;

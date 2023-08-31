@@ -102,16 +102,28 @@ public:
         size_t size = 0;
         size_t align = 0;
         void * ptr = nullptr;
-        MemBlockType type = MEM_BLOCK_NONE;
+        MemBlockType type = MEM_BLOCK_GENERIC;
+
+        // number of frames allocation should last. -1 == forever (until manual release)
+        // common usage: set to 0 for auto-release at end of current frame
+        int lifetime = -1;
+
         // request from tail of block
         bool high = false;
     };
+
     class Result {
     public:
         size_t size = 0;
         size_t align = 0;
         void * ptr = nullptr;
         BlockInfo * block = nullptr;
+    };
+
+    class AutoRelease {
+    public:
+        void * ptr;
+        int lifetime = 1;
     };
 
 // API
@@ -180,6 +192,8 @@ private:
     void createRequestResult();
     // create fsa block on init
     FSA * createFSA(MemManFSASetup const & setup);
+    // create auto-release buffer on init
+    Array<MemMan::AutoRelease> * createAutoReleaseBuffer(size_t size);
 
 // STORAGE
 private:
@@ -192,6 +206,7 @@ private:
     Result * _result = nullptr;
     FSA * _fsa = nullptr;
     BlockInfo * _fsaBlock = nullptr;
+    Array<AutoRelease> * _autoReleaseBuffer = nullptr;
     #if DEBUG
     size_t _frame = 0;
     #endif // DEBUG
@@ -231,6 +246,14 @@ private:
     BlockInfo * blockForPtr(void * ptr);
     // is ptr within MemMan's data?
     bool containsPtr(void * ptr) const;
+    // handle lifetime of current AutoRelease allocations at end of every frame
+    void autoReleaseEndFrame();
+    // conditionally add auto-release
+    void addAutoRelease();
+    // conditionally update auto-release ptr
+    void updateAutoRelease();
+    // conditionally remove auto-release
+    void removeAutoRelease();
 
     // // traverse nodes backwards to find first free
     // NOTE: WE SHOULDN'T NEED THIS IF HANDLED PROPERLY IN RELEASE
