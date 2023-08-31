@@ -85,11 +85,15 @@ bool MemMan::BlockInfo::contains(void * ptr, size_t size) const {
     return (data <= bptr && bptr + size <= data + _dataSize);
 }
 
-#if DEBUG
 bool MemMan::BlockInfo::isValid() const {
     return (
+        #if DEBUG
         // magic string valid
         (memcmp(&BlockMagicString, _debug_magic, 4) == 0) &&
+        #endif // DEBUG
+
+        // _type valid
+        ((int)_type >= 0 && (int)_type <= MEM_BLOCK_GENERIC) &&
 
         // if free, padding should be 0
         (_type != MEM_BLOCK_FREE || (_type == MEM_BLOCK_FREE && _padding == 0)) &&
@@ -110,7 +114,6 @@ bool MemMan::BlockInfo::isValid() const {
         true
     );
 }
-#endif // DEBUG
 
 #if DEBUG
 void MemMan::BlockInfo::print(size_t index) const {
@@ -179,11 +182,11 @@ void MemMan::endFrame() {
     if (!_data) return;
     #endif // DEBUG
 
-    mergeAllAdjacentFree();
+    mergeAllAdjacentFreeBlocks();
     // updateFirstFree();
 
     #if DEBUG
-    validateAll();
+    validateAllBlocks();
     #endif // DEBUG
 }
 
@@ -257,12 +260,7 @@ void MemMan::request() {
 
             // block
             else {
-                _result->block = create(
-                    _request->size,
-                    _request->align,
-                    _request->copyFrom,
-                    _request->high
-                );
+                _result->block = createBlock();
                 if (_result->block) {
                     if (_request->type) {
                         _result->block->_type = _request->type;
@@ -332,12 +330,7 @@ void MemMan::request() {
 
                 // fsa to block
                 if (ptrInFSA) {
-                    _result->block = create(
-                        _request->size,
-                        _request->align,
-                        nullptr,
-                        _request->high
-                    );
+                    _result->block = createBlock();
 
                     assert(_result->block && "Could not reallocate memory.");
 
@@ -353,7 +346,7 @@ void MemMan::request() {
                 }
                 // block to block
                 else {
-                    _result->block = resize(block, _request->size, _request->align);
+                    _result->block = resizeBlock(block);
 
                     assert(_result->block && "Could not reallocate memory.");
 
@@ -373,48 +366,66 @@ void MemMan::request() {
         if (_fsa->destroy(_request->ptr)) {
             // ptr was in fsa
             #if DEBUG
-            validateAll();
+            validateAllBlocks();
             #endif // DEBUG
         }
         else {
             BlockInfo * block = blockForPtr(_request->ptr);
             assert(block && "Could not free ptr, not in expected range.");
-            release(block);
+            releaseBlock(block);
         }
     }
     // do nothing (size=0,ptr=0)
 }
 
-MemMan::BlockInfo * MemMan::create(size_t size, size_t align, BlockInfo * copyFrom, bool high) {
+MemMan::BlockInfo * MemMan::createBlock() {
     guard_t guard{_mainMutex};
+    assert(_request && "Request object not set.");
 
     BlockInfo * found = nullptr;
 
-    if (high) {
+    if (_request->high) {
+        // start from tail
         for (BlockInfo * bi = _tail; bi; bi = bi->_prev) {
-            if (bi->_type == MEM_BLOCK_FREE && bi->_dataSize >= size) {
-                found = claimBack(bi, size, align, copyFrom);
+            if (bi->_type == MEM_BLOCK_FREE && bi->_dataSize >= _request->size) {
+                found = claimBlockBack(bi);
                 if (found) break;
             }
         }
     }
     else {
+        // start from head
         for (BlockInfo * bi = _firstFree; bi; bi = bi->_next) {
-            if (bi->_type == MEM_BLOCK_FREE && bi->_dataSize >= size) {
-                found = claim(bi, size, align, copyFrom);
+            if (bi->_type == MEM_BLOCK_FREE && bi->_dataSize >= _request->size) {
+                found = claimBlock(bi);
                 if (found) break;
             }
         }
     }
 
     if (found == nullptr) {
-        fprintf(stderr, "No block found to meet request of size %zu, align %zu\n", size, align);
+        fprintf(stderr,
+            "No block found to meet request of size %zu, align %zu\n",
+            _request->size, _request->align);
     }
 
     return found;
 }
 
-void MemMan::release(BlockInfo * block) {
+MemMan::BlockInfo * MemMan::createBlock(MemMan::Request const & request) {
+    guard_t guard{_mainMutex};
+    assert(_request && "Request object not set.");
+
+    *_request = request;
+    _result->size = _request->size;
+    _result->align = _request->align;
+    _result->block = createBlock();
+    _result->ptr = _result->block->data();
+
+    return _result->block;
+}
+
+void MemMan::releaseBlock(BlockInfo * block) {
     guard_t guard{_mainMutex};
 
     #if DEBUG
@@ -451,13 +462,13 @@ void MemMan::release(BlockInfo * block) {
 
     // check to see if this newly released block changes _firstFree
     // (it may or may not, findFirstFree will check)
-    findFirstFree(block);
+    findFirstFreeBlock(block);
 }
 
 FrameStack * MemMan::createFrameStack(size_t size) {
     guard_t guard{_mainMutex};
 
-    BlockInfo * block = create(sizeof(FrameStack) + size);
+    BlockInfo * block = createBlock({.size = sizeof(FrameStack) + size});
     if (!block) return nullptr;
     block->_type = MEM_BLOCK_FRAMESTACK;
     return new (block->data()) FrameStack{size};
@@ -483,7 +494,7 @@ File * MemMan::createFileHandle(char const * path, bool loadNow, bool high) {
     // after file contents so contents can be printed as string in place.
     size_t size = (size_t)fileSize + 1;
 
-    BlockInfo * block = create(size + sizeof(File), 0, nullptr, high);
+    BlockInfo * block = createBlock({.size = size + sizeof(File), .high = high});
     if (!block) return nullptr;
     block->_type = MEM_BLOCK_FILE;
     File * f = new (block->data()) File{size, path};
@@ -507,7 +518,7 @@ File * MemMan::createFileHandle(char const * path, bool loadNow, bool high) {
 FreeList * MemMan::createFreeList(size_t max) {
     guard_t guard{_mainMutex};
 
-    BlockInfo * block = create(sizeof(FreeList) + FreeList::DataSize(max));
+    BlockInfo * block = createBlock({.size = sizeof(FreeList) + FreeList::DataSize(max)});
     if (!block) return nullptr;
     block->_type = MEM_BLOCK_FREELIST;
     return new (block->data()) FreeList{max};
@@ -516,7 +527,7 @@ FreeList * MemMan::createFreeList(size_t max) {
 CharKeys * MemMan::createCharKeys(size_t max) {
     guard_t guard{_mainMutex};
 
-    BlockInfo * block = create(sizeof(CharKeys) + CharKeys::DataSize(max));
+    BlockInfo * block = createBlock({.size = sizeof(CharKeys) + CharKeys::DataSize(max)});
     if (!block) return nullptr;
     block->_type = MEM_BLOCK_CHARKEYS;
     return new (block->data()) CharKeys{max};
@@ -533,7 +544,7 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     }
 
     // base path of gltf
-    BlockInfo * pathBlock = create(strlen(gltfPath));
+    BlockInfo * pathBlock = createBlock({.size = strlen(gltfPath)});
     char * basePath = (char *)pathBlock->data();
     getPath(gltfPath, basePath);
 
@@ -541,7 +552,7 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     GLTFLoader4 loader4{gltf->data(), basePath};
     if (loader4.validData() == false) {
         fprintf(stderr, "Error creating Gobj block\n");
-        release(pathBlock);
+        releaseBlock(pathBlock);
         return nullptr;
     }
 
@@ -549,10 +560,10 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     loader4.calculateSize();
 
     // create block
-    BlockInfo * block = create(loader4.counts.totalSize(), Gobj::Align);
+    BlockInfo * block = createBlock({.size = loader4.counts.totalSize(), .align = Gobj::Align});
     if (block == nullptr) {
         fprintf(stderr, "Error creating Gobj block\n");
-        release(pathBlock);
+        releaseBlock(pathBlock);
         return nullptr;
     }
     block->_type = MEM_BLOCK_GOBJ;
@@ -564,8 +575,8 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     // early return if load failed
     if (!success) {
         fprintf(stderr, "Error loading GLTF data into game object.\n");
-        release(block);
-        release(pathBlock);
+        releaseBlock(block);
+        releaseBlock(pathBlock);
         return nullptr;
     }
 
@@ -582,7 +593,7 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
 
     // free gltf file
     // request({.ptr=gltf, .size=0});
-    release(pathBlock);
+    releaseBlock(pathBlock);
 
     // debug output
     #if DEBUG
@@ -625,9 +636,12 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
 void MemMan::createRequestResult() {
     guard_t guard{_mainMutex};
 
-    BlockInfo * block = create(sizeof(Request) + sizeof(Result));
-    if (!block) return;
+    // createBlock() depends on _request being set, so we set it temporarily
+    Request tempRequest{.size = sizeof(Request) + sizeof(Result)};
+    _request = &tempRequest;
 
+    BlockInfo * block = createBlock();
+    if (!block) return;
     block->_type = MEM_BLOCK_REQUEST;
     _request = new (block->data()) Request{};
     _result = new (block->data()+sizeof(Request)) Result{};
@@ -644,7 +658,7 @@ FSA * MemMan::createFSA(MemManFSASetup const & setup) {
     // makes size calculatable beforehand. otherwise differnce between FSA-base
     // and FSA-data might be unpredictable, resulting in
     size_t blockDataSize = alignSize(sizeof(FSA), setup.align) + dataSize;
-    BlockInfo * block = create(blockDataSize, setup.align);
+    BlockInfo * block = createBlock({.size = blockDataSize, .align = setup.align});
     if (!block) return nullptr;
 
     // printl("FSA dataSize %zu", dataSize);
@@ -660,7 +674,7 @@ FSA * MemMan::createFSA(MemManFSASetup const & setup) {
     return fsa;
 }
 
-MemMan::BlockInfo * MemMan::claim(BlockInfo * block, size_t size, size_t align, BlockInfo * copyFrom) {
+MemMan::BlockInfo * MemMan::claimBlock(BlockInfo * block) {
     guard_t guard{_mainMutex};
 
     #if DEBUG
@@ -668,14 +682,14 @@ MemMan::BlockInfo * MemMan::claim(BlockInfo * block, size_t size, size_t align, 
     #endif // DEBUG
 
     // ensure sufficient size even if realignment happens
-    if (block->calcAlignDataSize(align) < size) return nullptr;
+    if (block->calcAlignDataSize(_request->align) < _request->size) return nullptr;
 
     // re-align if necessary
-    if (align > 0 && block->_padding != block->calcAlignPaddingSize(align)) {
+    if (_request->align > 0 && block->_padding != block->calcAlignPaddingSize(_request->align)) {
         // get some block info
         size_t blockSize = block->blockSize();
         byte_t * base = block->basePtr();
-        size_t padding = block->calcAlignPaddingSize(align);
+        size_t padding = block->calcAlignPaddingSize(_request->align);
         byte_t * newBlockInfoPtr = base + padding;
 
         // write BlockInfo to new location
@@ -715,43 +729,27 @@ MemMan::BlockInfo * MemMan::claim(BlockInfo * block, size_t size, size_t align, 
 
     // create free block, leaving this block at requested size
     // (might fail but that's ok)
-    shrink(block, size);
+    shrinkBlock(block, _request->size);
     block->_type = MEM_BLOCK_CLAIMED;
 
-    // if we are copying data from another block, copy then release other block,
-    // then find first free starting with our newly released copyFrom block
-    if (copyFrom && copyFrom->_dataSize <= size) {
-        assert(block->_dataSize >= copyFrom->_dataSize && "Newly claimed block not big enough for copyFrom block data.");
+    #if DEBUG
+    // zero out data in newly claimed block
+    memset(block->data(), 0, block->_dataSize);
+    #endif // DEBUG
 
-        block->_type = copyFrom->_type;
-        memcpy(block->data(), copyFrom->data(), copyFrom->_dataSize);
-        release(copyFrom);
-
-        #if DEBUG
-        validateAll();
-        #endif // DEBUG
-
-    }
-    // no copyFrom block. zero out data in newly claimed block.
     // if our newly claimed block happend to be _firstFree, initiate a search for new firstFree
-    else {
-        // set data bytes to 0
-        #if DEBUG
-        memset(block->data(), 0, block->_dataSize);
-        #endif // DEBUG
-        if (block == _firstFree) {
-            findFirstFree(block);
-        }
-
-        #if DEBUG
-        validateAll();
-        #endif // DEBUG
+    if (block == _firstFree) {
+        findFirstFreeBlock(block);
     }
+
+    #if DEBUG
+    validateAllBlocks();
+    #endif // DEBUG
 
     return block;
 }
 
-MemMan::BlockInfo * MemMan::claimBack(BlockInfo * block, size_t size, size_t align, BlockInfo * copyFrom) {
+MemMan::BlockInfo * MemMan::claimBlockBack(BlockInfo * block) {
     guard_t guard{_mainMutex};
 
     #if DEBUG
@@ -760,7 +758,7 @@ MemMan::BlockInfo * MemMan::claimBack(BlockInfo * block, size_t size, size_t ali
     #endif // DEBUG
 
     // ensure sufficient size even if realignment happens
-    if (block->calcAlignDataSize(align) < size) {
+    if (block->calcAlignDataSize(_request->align) < _request->size) {
         return nullptr;
     }
 
@@ -768,9 +766,9 @@ MemMan::BlockInfo * MemMan::claimBack(BlockInfo * block, size_t size, size_t ali
     // if align==0, this will be the new block location.
     // if needs alignment, will be forward slightly, but should still be able
     // to accomodate `size`.
-    byte_t * newBlockPtr = block->data() + block->_dataSize - (size + align + sizeof(BlockInfo));
+    byte_t * newBlockPtr = block->data() + block->_dataSize - (_request->size + _request->align + sizeof(BlockInfo));
     // get padding
-    size_t newBlockPadding = alignPadding((size_t)newBlockPtr, align);
+    size_t newBlockPadding = alignPadding((size_t)newBlockPtr, _request->align);
     // actual block location
     byte_t * newBlockAlignedPtr = newBlockPtr + newBlockPadding;
 
@@ -789,7 +787,7 @@ MemMan::BlockInfo * MemMan::claimBack(BlockInfo * block, size_t size, size_t ali
     newBlock->_dataSize = (block->data() + block->_dataSize) - newBlock->data();
 
     #if DEBUG
-    assert(newBlock->_dataSize >= size && "New block's data size is not big enough.");
+    assert(newBlock->_dataSize >= _request->size && "New block's data size is not big enough.");
     #endif // DEBUG
 
     // update old block info
@@ -802,36 +800,19 @@ MemMan::BlockInfo * MemMan::claimBack(BlockInfo * block, size_t size, size_t ali
         _tail = newBlock;
     }
 
-    // if we are copying data from another block, copy then release other block,
-    // then find first free starting with our newly released copyFrom block
-    if (copyFrom && copyFrom->_dataSize <= size) {
-        assert(block->_dataSize >= copyFrom->_dataSize && "Newly claimed block not big enough for copyFrom block data.");
+    // set data bytes to 0
+    #if DEBUG
+    memset(block->data(), 0, block->_dataSize);
+    #endif // DEBUG
 
-        block->_type = copyFrom->_type;
-        memcpy(block->data(), copyFrom->data(), copyFrom->_dataSize);
-        release(copyFrom);
-
-        #if DEBUG
-        validateAll();
-        #endif // DEBUG
-
-    }
-    // no copyFrom block. zero out data in newly claimed block.
-    else {
-        // set data bytes to 0
-        #if DEBUG
-        memset(block->data(), 0, block->_dataSize);
-        #endif // DEBUG
-
-        #if DEBUG
-        validateAll();
-        #endif // DEBUG
-    }
+    #if DEBUG
+    validateAllBlocks();
+    #endif // DEBUG
 
     return newBlock;
 }
 
-MemMan::BlockInfo * MemMan::mergeWithNext(BlockInfo * block) {
+MemMan::BlockInfo * MemMan::mergeWithNextBlock(BlockInfo * block) {
     guard_t guard{_mainMutex};
 
     #if DEBUG
@@ -858,7 +839,7 @@ MemMan::BlockInfo * MemMan::mergeWithNext(BlockInfo * block) {
     return block;
 }
 
-MemMan::BlockInfo * MemMan::realign(BlockInfo * block, size_t relevantDataSize, size_t align) {
+MemMan::BlockInfo * MemMan::realignBlock(BlockInfo * block, size_t relevantDataSize, size_t align) {
     // guard_t guard{_mainMutex};
 
     // printl("MemMan::realign");
@@ -879,28 +860,28 @@ MemMan::BlockInfo * MemMan::realign(BlockInfo * block, size_t relevantDataSize, 
     // }
 
     // // find free space to copy data to
-    // BlockInfo * tempBlock = create(relevantDataSize, 0, block);
+    // BlockInfo * tempBlock = createBlock(relevantDataSize, 0, block);
     // assert(tempBlock == nullptr && "Couldn't find temp free space to realign.");
 
     // // copy data to temp
     // memcpy(tempBlock->data(), block->data(), relevantDataSize);
 
     // // free and re-claim current block with alignment
-    // block = release(block);
+    // block = releaseBlock(block);
     // block = claim(block, relevantDataSize, align);
 
     // assert(block && "Claim in realign failed.");
 
     // // copy relevant
     // memcpy(block->data(), tempBlock->data(), relevantDataSize);
-    // release(tempBlock);
+    // releaseBlock(tempBlock);
 
     // return block;
 
     return nullptr;
 }
 
-MemMan::BlockInfo * MemMan::shrink(BlockInfo * block, size_t smallerSize) {
+MemMan::BlockInfo * MemMan::shrinkBlock(BlockInfo * block, size_t smallerSize) {
     guard_t guard{_mainMutex};
 
     // do nothing if there's not enough room to create a new free block
@@ -919,12 +900,12 @@ MemMan::BlockInfo * MemMan::shrink(BlockInfo * block, size_t smallerSize) {
         _tail = newBlock;
     }
 
-    findFirstFree(newBlock);
+    findFirstFreeBlock(newBlock);
 
     return block;
 }
 
-MemMan::BlockInfo * MemMan::grow(BlockInfo * block, size_t biggerSize, size_t align) {
+MemMan::BlockInfo * MemMan::growBlock(BlockInfo * block, size_t biggerSize, size_t align) {
     guard_t guard{_mainMutex};
 
     #if DEBUG
@@ -944,50 +925,101 @@ MemMan::BlockInfo * MemMan::grow(BlockInfo * block, size_t biggerSize, size_t al
         if (sizeAvailable >= biggerSize) {
             size_t relevantDataSize = block->_dataSize;
             // consume next block
-            mergeWithNext(block);
+            mergeWithNextBlock(block);
             // move everything around to new alignment first
             if (isAligned == false) {
                 assert(false && "Does this ever happen? Untested. if so, realign needs rewrite.");
-                block = realign(block, relevantDataSize, align);
+                block = realignBlock(block, relevantDataSize, align);
             }
             assert(block && "Realignment failed.");
             // try to create a free block with any unneeded space
-            shrink(block, relevantDataSize);
+            shrinkBlock(block, relevantDataSize);
             return block;
         }
     }
 
     // next not free or not big enough
     // move the block to new location
-    BlockInfo * newBlock = create(biggerSize, align, block);
+    BlockInfo * newBlock = createBlock({.size = biggerSize, .align = align});
+    copy(newBlock->data(), block->data());
+    releaseBlock(block);
     assert(newBlock && "Not enough room to move block during grow.");
 
     #if DEBUG
-    validateAll();
+    validateAllBlocks();
     #endif // DEBUG
 
     return newBlock;
 }
 
-MemMan::BlockInfo * MemMan::resize(BlockInfo * block, size_t newSize, size_t align) {
+MemMan::BlockInfo * MemMan::resizeBlock(BlockInfo * block) {
     guard_t guard{_mainMutex};
-    if (block->_dataSize > newSize) return shrink(block, newSize);
-    if (block->_dataSize < newSize) return grow(block, newSize, align);
+    if (block->_dataSize > _request->size) return shrinkBlock(block, _request->size);
+    if (block->_dataSize < _request->size) return growBlock(block, _request->size, _request->align);
     return block;
 }
 
-void MemMan::mergeAllAdjacentFree() {
+void MemMan::copy(void * dst, void * src) {
+    assert(dst && src && "Both pointers must be valid.");
+
+    enum Loc { EXTERNAL, FSA, BLOCK };
+    Loc dstLoc = EXTERNAL;
+    Loc srcLoc = EXTERNAL;
+    BlockInfo * dstBlock = nullptr;
+    BlockInfo * srcBlock = nullptr;
+
+    // where is destination?
+    if (_fsa->containsPtr(dst)) {
+        dstLoc = FSA;
+    }
+    else if ((dstBlock = blockForPtr(dst))) {
+        dstLoc = BLOCK;
+    }
+    // where is source?
+    if (_fsa->containsPtr(src)) {
+        srcLoc = FSA;
+    }
+    else if ((srcBlock = blockForPtr(src))) {
+        srcLoc = BLOCK;
+    }
+
+    // eliminate some possibilities
+    assert((dstLoc == EXTERNAL && srcLoc == EXTERNAL) == false && "Both pointers can't be external.");
+
+    // 8 possibilities to find the size
+    size_t size = 0;
+    // handle block to block special
+    if (dstLoc == BLOCK && srcLoc == BLOCK) {
+        assert(dstBlock->_dataSize >= srcBlock->_dataSize && "Destination block not big enough.");
+
+        dstBlock->_type = srcBlock->_type;
+        memcpy(dstBlock->data(), srcBlock->data(), srcBlock->_dataSize);
+
+        return;
+    }
+    // everything else just needs a size for simple memcpy
+    else if (dstLoc == EXTERNAL && srcLoc == FSA     ) { size = _fsa->sizeForPtr(src); }
+    else if (dstLoc == EXTERNAL && srcLoc == BLOCK   ) { size = srcBlock->dataSize(); }
+    else if (dstLoc == FSA      && srcLoc == EXTERNAL) { size = _fsa->sizeForPtr(dst); }
+    else if (dstLoc == FSA      && srcLoc == FSA     ) { size = _fsa->sizeForPtr(src); }
+    else if (dstLoc == FSA      && srcLoc == BLOCK   ) { size = srcBlock->dataSize(); }
+    else if (dstLoc == BLOCK    && srcLoc == EXTERNAL) { size = dstBlock->dataSize(); }
+    else if (dstLoc == BLOCK    && srcLoc == FSA     ) { size = _fsa->sizeForPtr(src); }
+    memcpy(dst, src, size);
+}
+
+void MemMan::mergeAllAdjacentFreeBlocks() {
     guard_t guard{_mainMutex};
 
     _blockCount = 0;
     for (BlockInfo * bi = _head; bi; bi = bi->_next) {
-        BlockInfo * newBi = mergeWithNext(bi);
+        BlockInfo * newBi = mergeWithNextBlock(bi);
         if (newBi) bi = newBi;
         ++_blockCount;
     }
 }
 
-void MemMan::findFirstFree(BlockInfo * block) {
+void MemMan::findFirstFreeBlock(BlockInfo * block) {
     guard_t guard{_mainMutex};
 
     // if _firstFree is already earlier in list than suggested search starting point (block)
@@ -1006,7 +1038,7 @@ void MemMan::findFirstFree(BlockInfo * block) {
             _firstFree = bi;
 
             #if DEBUG
-            validateAll();
+            validateAllBlocks();
             #endif // DEBUG
 
             return;
@@ -1017,29 +1049,38 @@ void MemMan::findFirstFree(BlockInfo * block) {
     _firstFree = nullptr;
 
     #if DEBUG
-    validateAll();
+    validateAllBlocks();
     #endif // DEBUG
 }
 
 MemMan::BlockInfo * MemMan::blockForPtr(void * ptr) {
     guard_t guard{_mainMutex};
+    assert(_data && _size && "MemMan not initialized.");
 
-    byte_t * bptr = (byte_t *)ptr;
-    assert(
-        _data && _size &&
-        bptr - BlockInfoSize >= _data &&
-        bptr < _data + _size &&
-        "Invalid ptr range."
-    );
-    BlockInfo * block = (BlockInfo *)(bptr - BlockInfoSize);
-    #if DEBUG
-    assert(block->isValid() && "Block not valid.");
-    #endif // DEBUG
+    if (!containsPtr(ptr)) {
+        return nullptr;
+    }
+
+    BlockInfo * block = (BlockInfo *)((byte_t *)ptr - BlockInfoSize);
+
+    if (block->isValid() == false) {
+        return nullptr;
+    }
+
     return block;
 }
 
+bool MemMan::containsPtr(void * ptr) const {
+    assert(_data && _size);
+    byte_t * bptr = (byte_t *)ptr;
+    return (
+        bptr - BlockInfoSize >= _data &&
+        bptr < _data + _size
+    );
+}
+
 #if DEBUG
-void MemMan::validateAll() {
+void MemMan::validateAllBlocks() {
     guard_t guard{_mainMutex};
 
     assert(!_firstFree || _firstFree->isValid() && "_firstFree invalid.");
@@ -1085,7 +1126,7 @@ void MemMan::validateAll() {
 #endif // DEBUG
 
 #if DEBUG
-void MemMan::printAll() const {
+void MemMan::printAllBlocks() const {
     printl("printAll, this: %p", this);
     size_t totalBlocks = 0;
     size_t totalDataSize = 0;
@@ -1097,7 +1138,7 @@ void MemMan::printAll() const {
 #endif // DEBUG
 
 #if DEBUG
-void MemMan::printFreeSizes() const {
+void MemMan::printFreeBlockSizes() const {
     printl("printFreeSizes, this: %p, (first free expected: %p)", this, _firstFree);
     size_t freeBlocks = 0;
     size_t totalBlocks = 0;
@@ -1120,7 +1161,6 @@ void MemMan::printRequestResult() const {
     printl("    size: %zu", _request->size);
     printl("    align: %zu", _request->align);
     printl("    ptr: %p", _request->ptr);
-    printl("    copyFrom: %p", _request->copyFrom);
     printl("    type: %s", memBlockTypeStr(_request->type));
     printl("RESULT");
     printl("    size: %zu", _result->size);
@@ -1180,7 +1220,7 @@ void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * 
     // memMan->printRequestResult();
 
     #if DEBUG
-    memMan->validateAll();
+    memMan->validateAllBlocks();
     if (res->ptr == nullptr && size > 0) {
         debugBreak();
     }
@@ -1188,7 +1228,7 @@ void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * 
         debugBreak();
     }
     if constexpr (ShowMemManBGFXDbg) printl("          (RETURNS: %011p)", res->ptr);
-    if constexpr (ShowMemManBGFXDbg) memMan->printAll();
+    if constexpr (ShowMemManBGFXDbg) memMan->printAllBlocks();
     if constexpr (ShowMemManBGFXDbg) memMan->printRequestResult();
     #endif // DEBUG
     return res->ptr;

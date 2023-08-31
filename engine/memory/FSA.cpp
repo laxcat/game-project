@@ -33,7 +33,7 @@ bool FSA::isFree(uint16_t groupIndex, uint16_t subBlockIndex) const {
 
 bool FSA::indicesForPtr(void * ptr, uint16_t * foundGroupIndex, uint16_t * foundSubBlockIndex) const {
     // bail if pointer outside our FSA data block
-    if (ptr <= data() || ptr >= data() + _dataSize) {
+    if (!containsPtr(ptr)) {
         return false;
     }
 
@@ -70,9 +70,34 @@ bool FSA::indicesForPtr(void * ptr, uint16_t * foundGroupIndex, uint16_t * found
     return false;
 }
 
-
 byte_t const * FSA::data() const {
     return (byte_t const *)alignPtr((byte_t *)this + sizeof(FSA), _align);
+}
+
+bool FSA::containsPtr(void * ptr) const {
+    return (ptr >= data() && ptr < data() + _dataSize);
+}
+
+uint16_t FSA::sizeForPtr(void * ptr) const {
+    byte_t * bptr = (byte_t *)ptr;
+    uint16_t groupIndex = 0;
+    uint16_t byteSize = 0;
+    for (; groupIndex < Max; ++groupIndex) {
+        // this group doesn't exist
+        if (_groupBase[groupIndex] == nullptr) {
+            continue;
+        }
+
+        // we have gone past the bptr. it must not be valid!
+        if (bptr < _groupBase[groupIndex]) { return 0; }
+
+        // see indicesForPtr for breakdown of this logic
+        byteSize = 2 << groupIndex;
+        if ((bptr - _groupBase[groupIndex]) / byteSize < _nSubBlocks[groupIndex]) {
+            return byteSize;
+        }
+    }
+    return 0;
 }
 
 FSA::FSA(Setup const & setup) {

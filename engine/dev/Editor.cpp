@@ -505,7 +505,7 @@ void Editor::clearMemEditWindow() {
 //         (b->type == MEM_BLOCK_POOL)     ? "POOL"  :
 //         (b->type == MEM_BLOCK_STACK)    ? "STACK" :
 //         (b->type == MEM_BLOCK_FILE)     ? "FILE" :
-//         (b->type == MEM_BLOCK_EXTERNAL) ? "EXTERNAL" :
+//         (b->type == MEM_BLOCK_GENERIC) ? "GENERIC" :
 //         "(unknown type)"
 //     ,
 //     b,
@@ -557,7 +557,7 @@ void Editor::clearMemEditWindow() {
 //         file->path()
 //     );
 // }
-// else if (b->type == MEM_BLOCK_EXTERNAL) {
+// else if (b->type == MEM_BLOCK_GENERIC) {
 // }
 
 // wrote += snprintf(

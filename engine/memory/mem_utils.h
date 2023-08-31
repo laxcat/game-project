@@ -17,7 +17,7 @@ inline char const * memBlockTypeStr(MemBlockType type) {
     case MEM_BLOCK_GOBJ:       return "GOBJ";
     case MEM_BLOCK_POOL:       return "POOL";
     case MEM_BLOCK_BGFX:       return "BGFX";
-    case MEM_BLOCK_EXTERNAL:   return "EXTERNAL";
+    case MEM_BLOCK_GENERIC:    return "GENERIC";
     default:                   return "Unknown Type";
     }
 }

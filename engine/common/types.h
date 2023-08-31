@@ -83,7 +83,7 @@ enum MemBlockType {
     MEM_BLOCK_BGFX,
 
     // externally requested of any type
-    MEM_BLOCK_EXTERNAL
+    MEM_BLOCK_GENERIC
 };
 
 struct MemManFSASetup {

@@ -60,6 +60,8 @@ public:
     // returns false if not found
     bool indicesForPtr(void * ptr, uint16_t * foundGroupIndex, uint16_t * foundSubBlockIndex) const;
     byte_t const * data() const;
+    bool containsPtr(void * ptr) const;
+    uint16_t sizeForPtr(void * ptr) const;
 
     // INTERNALS
 private:

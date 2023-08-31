@@ -81,9 +81,12 @@ public:
         bool isAligned(size_t align) const;
         byte_t * basePtr();
 
+        // usually only checked in debug, but can help validate an unknown
+        // pointer to block conversion, so has release uses too
+        bool isValid() const;
+
         // debug only
         #if DEBUG
-        bool isValid() const;
         void print(size_t index = SIZE_MAX) const;
         #endif // DEBUG
 
@@ -99,9 +102,9 @@ public:
         size_t size = 0;
         size_t align = 0;
         void * ptr = nullptr;
-        BlockInfo * copyFrom = nullptr;
         MemBlockType type = MEM_BLOCK_NONE;
-        bool high = false; // request from tail of block
+        // request from tail of block
+        bool high = false;
     };
     class Result {
     public:
@@ -150,7 +153,7 @@ public:
     template<typename T>
     Pool<T> * createPool(size_t max);
 
-// DEV INTERFACE ONLY
+// DEV INTERFACE SPECIFIC
 #if DEV_INTERFACE
 public:
     struct TestAlloc {
@@ -199,30 +202,35 @@ private:
 private:
     // execute request as found in request block; combined alloc/realloc/free
     void request();
-    // explicitly finds/creates free block of size
-    BlockInfo * create(size_t size, size_t align = 0, BlockInfo * copyFrom = nullptr, bool high = false);
+    // explicitly finds/creates free block of size. reads params from most recent Request object.
+    BlockInfo * createBlock();
+    BlockInfo * createBlock(Request const & request);
     // explicitly releases block. set type to free and reset padding
-    void release(BlockInfo * block);
-    // alters _padding and _dataSize to align data() to alignment
-    BlockInfo * claim(BlockInfo * block, size_t size, size_t align = 0, BlockInfo * copyFrom = nullptr);
+    void releaseBlock(BlockInfo * block);
+    // alters _padding and _dataSize to align data() to alignment, reads params from most recent Request object.
+    BlockInfo * claimBlock(BlockInfo * block);
     // same as claim but splits off back of block instead of front
-    BlockInfo * claimBack(BlockInfo * block, size_t size, size_t align, BlockInfo * copyFrom = nullptr);
+    BlockInfo * claimBlockBack(BlockInfo * block);
     // consumes next block if free
-    BlockInfo * mergeWithNext(BlockInfo * block);
+    BlockInfo * mergeWithNextBlock(BlockInfo * block);
     // realigns block in place
-    BlockInfo * realign(BlockInfo * block, size_t relevantDataSize, size_t align);
+    BlockInfo * realignBlock(BlockInfo * block, size_t relevantDataSize, size_t align);
     // creates free block if possible
-    BlockInfo * shrink(BlockInfo * block, size_t smallerSize);
+    BlockInfo * shrinkBlock(BlockInfo * block, size_t smallerSize);
     // consumes next free block, or moves block
-    BlockInfo * grow(BlockInfo * block, size_t biggerSize, size_t align = 0);
+    BlockInfo * growBlock(BlockInfo * block, size_t biggerSize, size_t align = 0);
     // shortcut to grow/shrink
-    BlockInfo * resize(BlockInfo * block, size_t newSize, size_t align = 0);
+    BlockInfo * resizeBlock(BlockInfo * block);
+    // copy data from any block/FSA location to another block/FSA location
+    void copy(void * dst, void * src);
     // combine adjacent free blocks
-    void mergeAllAdjacentFree();
+    void mergeAllAdjacentFreeBlocks();
     // scan forward to find first free
-    void findFirstFree(BlockInfo * block);
+    void findFirstFreeBlock(BlockInfo * block);
     // BlockInfo for raw ptr pointing to data.
     BlockInfo * blockForPtr(void * ptr);
+    // is ptr within MemMan's data?
+    bool containsPtr(void * ptr) const;
 
     // // traverse nodes backwards to find first free
     // NOTE: WE SHOULDN'T NEED THIS IF HANDLED PROPERLY IN RELEASE
@@ -231,11 +239,11 @@ private:
 public:
     #if DEBUG
     // validate all blocks, update debug info like _debug_index
-    void validateAll();
+    void validateAllBlocks();
     // print all blocks
-    void printAll() const;
+    void printAllBlocks() const;
     // print free blocks
-    void printFreeSizes() const;
+    void printFreeBlockSizes() const;
     // print request and result
     void printRequestResult() const;
     #endif // DEBUG
@@ -255,7 +263,7 @@ template<typename T>
 Array<T> * MemMan::createArray(size_t max) {
     guard_t guard{_mainMutex};
 
-    BlockInfo * block = create(sizeof(Array<T>) + max * sizeof(T));
+    BlockInfo * block = createBlock({.size = sizeof(Array<T>) + max * sizeof(T)});
     if (!block) return nullptr;
     block->_type = MEM_BLOCK_ARRAY;
     return new (block->data()) Array<T>{max};
@@ -265,7 +273,7 @@ template<typename T>
 Pool<T> * MemMan::createPool(size_t size) {
     guard_t guard{_mainMutex};
 
-    BlockInfo * block = create(sizeof(Pool<T>) + Pool<T>::DataSize(size));
+    BlockInfo * block = createBlock({.size = sizeof(Pool<T>) + Pool<T>::DataSize(size)});
     if (!block) return nullptr;
     block->_type = MEM_BLOCK_POOL;
     return new (block->data()) Pool<T>{size};
@@ -275,8 +283,8 @@ template <typename T, typename ... TS>
 T * MemMan::create(TS && ... params) {
     guard_t guard{_mainMutex};
 
-    BlockInfo * block = create(sizeof(T) + T::DataSize());
+    BlockInfo * block = createBlock({.size = sizeof(T) + T::DataSize()});
     if (!block) return nullptr;
-    block->_type = MEM_BLOCK_EXTERNAL;
+    block->_type = MEM_BLOCK_GENERIC;
     return new (block->data()) T{static_cast<TS &&>(params)...};
 }

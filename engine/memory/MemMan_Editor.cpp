@@ -103,7 +103,10 @@ void MemMan::editor() {
             SameLine();
             if (Button("Create")) {
                 mm.editor.clearMemEditWindow();
-                BlockInfo * block = create(sizeAlign[0], sizeAlign[1]);
+                BlockInfo * block = createBlock({
+                    .size = (size_t)sizeAlign[0],
+                    .align = (size_t)sizeAlign[1]
+                });
                 if (block) {
                     addTestAlloc(block->data(), "Generic block (%zu bytes)", block->dataSize());
                 }
