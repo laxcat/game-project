@@ -82,6 +82,9 @@ target_sources(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/Gobj.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/Gobj_Editor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemMan.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemMan_Block.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemMan_BlockInfo.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemMan_Create.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/MemMan_Editor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/Pool_Editor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/render/CameraControl.cpp
