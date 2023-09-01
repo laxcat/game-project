@@ -30,18 +30,19 @@ class FrameStack;
 class FreeList;
 
 class MemMan {
-// FRIENDS
+// FRIENDS ------------------------------------------------------------------ //
 public:
     friend class BXAllocator;
 
-// TYPES
+
+// TYPES -------------------------------------------------------------------- //
 public:
     using guard_t = std::lock_guard<std::recursive_mutex>;
 
-    // "MemBlock"
     #if DEBUG
+    //                          M     e     m     B     l     o     c     k
     #define BLOCK_MAGIC_STRING {0x4D, 0x65, 0x6D, 0x42, 0x6C, 0x6F, 0x63, 0x6B}
-    constexpr static byte_t BlockMagicString[8] = BLOCK_MAGIC_STRING; // "MemBlock"
+    constexpr static byte_t BlockMagicString[8] = BLOCK_MAGIC_STRING;
     #endif // DEBUG
 
     class BlockInfo {
@@ -126,7 +127,8 @@ public:
         int lifetime = 1;
     };
 
-// API
+
+// PUBLIC INTERFACE --------------------------------------------------------- //
 public:
     // LIFECYCLE
     void init(EngineSetup const & setup, FrameStack ** frameStack = nullptr);
@@ -165,28 +167,8 @@ public:
     template<typename T>
     Pool<T> * createPool(size_t max);
 
-// DEV INTERFACE SPECIFIC
-#if DEV_INTERFACE
-public:
-    struct TestAlloc {
-        constexpr static size_t DescSize = 64;
-        char desc[DescSize];
-        void * ptr = nullptr;
-    };
 
-    static constexpr size_t MaxTestAllocs = 128;
-
-    void editor();
-    void addTestAlloc(void * ptr, char const * formatString = NULL, ...);
-    void removeAlloc(uint16_t i);
-    void removeAllAllocs();
-
-    TestAlloc testAllocs[MaxTestAllocs] = {};
-    uint16_t nTestAllocs = 0;
-
-#endif // DEV_INTERFACE
-
-// PRIVATE SPECIAL BLOCK OBJ CREATION
+// SPECIAL INIT BLOCK OBJ CREATION ------------------------------------------ //
 private:
     // create request block on init
     void createRequestResult();
@@ -195,7 +177,8 @@ private:
     // create auto-release buffer on init
     Array<MemMan::AutoRelease> * createAutoReleaseBuffer(size_t size);
 
-// STORAGE
+
+// STORAGE ------------------------------------------------------------------ //
 private:
     byte_t * _data = nullptr;
     size_t _size = 0;
@@ -213,7 +196,8 @@ private:
     size_t _blockCount = 0; // updated during end frame, for display purposes only
     mutable std::recursive_mutex _mainMutex;
 
-// INTERNALS
+
+// INTERNALS ---------------------------------------------------------------- //
 private:
     // execute request as found in request block; combined alloc/realloc/free
     void request();
@@ -255,10 +239,30 @@ private:
     // conditionally remove auto-release
     void removeAutoRelease();
 
-    // // traverse nodes backwards to find first free
-    // NOTE: WE SHOULDN'T NEED THIS IF HANDLED PROPERLY IN RELEASE
-    // void updateFirstFree();
 
+// DEV INTERFACE ------------------------------------------------------------ //
+#if DEV_INTERFACE
+public:
+    struct TestAlloc {
+        constexpr static size_t DescSize = 64;
+        char desc[DescSize];
+        void * ptr = nullptr;
+    };
+
+    static constexpr size_t MaxTestAllocs = 128;
+
+    void editor();
+    void addTestAlloc(void * ptr, char const * formatString = NULL, ...);
+    void removeAlloc(uint16_t i);
+    void removeAllAllocs();
+
+    TestAlloc testAllocs[MaxTestAllocs] = {};
+    uint16_t nTestAllocs = 0;
+
+#endif // DEV_INTERFACE
+
+
+// DEBUG ONLY --------------------------------------------------------------- //
 public:
     #if DEBUG
     // validate all blocks, update debug info like _debug_index
@@ -272,7 +276,8 @@ public:
     #endif // DEBUG
 };
 
-// ALLOCATORS
+
+// ALLOCATORS --------------------------------------------------------------- //
 
 class BXAllocator : public bx::AllocatorI {
 public:
@@ -280,7 +285,8 @@ public:
     void * realloc(void *, size_t, size_t, char const *, uint32_t);
 };
 
-// INLINE DECLARATIONS
+
+// INLINE DECLARATIONS ------------------------------------------------------ //
 
 template<typename T>
 Array<T> * MemMan::createArray(size_t max) {
