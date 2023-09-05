@@ -1,6 +1,7 @@
 #include "GLTFLoader4.h"
 #include <rapidjson/reader.h>
 #include <rapidjson/prettywriter.h>
+#include <rapidjson/error/en.h>
 #include "mem_utils.h"
 #include "../common/file_utils.h"
 #include "../common/modp_b64.h"
@@ -35,7 +36,7 @@ bool GLTFLoader4::Counter::Uint(unsigned i) {
     if (l->crumb(-2).matches(TYPE_ARR, "buffers") &&
         l->crumb().matches("byteLength")
     ) {
-        l->counts.buffersLen += i;
+        l->counts.rawDataLen += i;
     }
 
     l->pop();
@@ -132,7 +133,7 @@ GLTFLoader4::Scanner::Scanner(GLTFLoader4 * loader, Gobj * gobj) :
     l(loader),
     g(gobj)
 {
-    nextBufferPtr = g->buffer;
+    nextRawDataPtr = g->rawData;
 
     #if DEBUG
     // write pretty JSON into string buffer
@@ -243,8 +244,15 @@ bool GLTFLoader4::Scanner::Uint(unsigned i) {
     {
         uint16_t bufIndex = l->crumb(-1).index;
         g->buffers[bufIndex].byteLength = i;
-        g->buffers[bufIndex].data = nextBufferPtr;
-        nextBufferPtr += i;
+        if (l->isGLB && bufIndex == 0) {
+            if (i != l->binDataSize()) {
+                fprintf(stderr, "Unexpected buffer size.\n");
+                return false;
+            }
+            memcpy(nextRawDataPtr, l->binData(), i);
+            g->buffers[bufIndex].data = nextRawDataPtr;
+            nextRawDataPtr += i;
+        }
     }
     else if (l->crumb(-2).matches(TYPE_ARR, "bufferViews")) {
         uint16_t bvIndex = l->crumb(-1).index;
@@ -257,6 +265,14 @@ bool GLTFLoader4::Scanner::Uint(unsigned i) {
     }
     else if (l->crumb(-3).matches(TYPE_ARR, "cameras")) {
         handleCameraData((float)i);
+    }
+    else if (
+        l->crumb(-2).matches(TYPE_ARR, "images") &&
+        l->crumb().matches("bufferView"))
+    {
+        uint16_t imgIndex = l->crumb(-1).index;
+        Gobj::Image * img = g->images + imgIndex;
+        img->bufferView = g->bufferViews + i;
     }
     l->pop();
     return true;
@@ -334,22 +350,34 @@ bool GLTFLoader4::Scanner::String(char const * str, uint32_t length, bool copy) 
         l->crumb(-2).matches(TYPE_ARR, "buffers") &&
         l->crumb().matches("uri"))
     {
+            uint16_t bufIndex = l->crumb(-1).index;
             if (l->isGLB) {
-                fprintf(stderr, "Unexpected buffer.uri in GLB.");
+                fprintf(stderr, "Unexpected buffer.uri in GLB.\n");
                 return false;
             }
-            size_t bytesWritten = l->handleData(nextBufferPtr, str, length);
+            size_t bytesWritten = l->handleData(nextRawDataPtr, str, length);
             if (bytesWritten == 0) {
+                fprintf(stderr, "No bytes written in buffer %d.\n", bufIndex);
                 return false;
             }
-            Gobj::Buffer * buf = g->buffers + l->crumb(-1).index;
-            buf->data = nextBufferPtr;
+            Gobj::Buffer * buf = g->buffers + bufIndex;
+            buf->data = nextRawDataPtr;
             buf->byteLength = bytesWritten;
-            nextBufferPtr += bytesWritten;
+            nextRawDataPtr += bytesWritten;
     }
     else if (l->crumb(-2).matches("cameras") && l->crumb().matches("type")) {
         Gobj::Camera * c = g->cameras + l->crumb(-1).index;
         c->type = l->cameraTypeFromStr(str);
+    }
+    else if (l->crumb(-2).matches(TYPE_ARR, "images")) {
+        if (l->crumb().matches("uri")) {
+            fprintf(stderr, "WARNING, external images are not loaded to main memory. TODO: load directly to GPU.\n");
+        }
+        else if (l->crumb().matches("mimeType")) {
+            uint16_t imgIndex = l->crumb(-1).index;
+            Gobj::Image * img = g->images + imgIndex;
+            img->mimeType = l->imageMIMETypeFromStr(str);
+        }
     }
     l->pop();
     return true;
@@ -500,12 +528,12 @@ GLTFLoader4::GLTFLoader4(byte_t const * gltfData, char const * loadingDir) :
         isGLB = true;
 
         if (!strEqu((char const *)(gltfData + 16), "JSON", 4)) {
-            fprintf(stderr, "glTF JSON chunk magic string not found.");
+            fprintf(stderr, "glTF JSON chunk magic string not found.\n");
             gltfData = nullptr;
             return;
         }
         if (!strEqu((char const *)(binChunkStart() + 4), "BIN\0", 4)) {
-            fprintf(stderr, "BIN chunk magic string not found.");
+            fprintf(stderr, "BIN chunk magic string not found.\n");
             gltfData = nullptr;
             return;
         }
@@ -528,19 +556,22 @@ void GLTFLoader4::calculateSize() {
     Counter counter{this};
     rapidjson::Reader reader;
     auto ss = rapidjson::StringStream(jsonStr());
-    reader.Parse(ss, counter);
+    reader.Parse<rapidjson::kParseStopWhenDoneFlag>(ss, counter);
 }
 
 bool GLTFLoader4::load(Gobj * gobj) {
+    using namespace rapidjson;
     assert(gltfData && "GLTF data invalid.");
     Scanner scanner{this, gobj};
     rapidjson::Reader reader;
     auto ss = rapidjson::StringStream(jsonStr());
-    bool success = reader.Parse(ss, scanner);
-    if (isGLB && success) {
-        memcpy(gobj->buffer, binData(), binDataSize());
+    rapidjson::ParseResult result =
+        reader.Parse<rapidjson::kParseStopWhenDoneFlag>(ss, scanner);
+    if (result.IsError()) {
+        fprintf(stderr, "JSON parse error: %s (%zu)\n",
+            rapidjson::GetParseError_En(result.Code()), result.Offset());
     }
-    return success;
+    return result;
 }
 
 char const * GLTFLoader4::prettyJSON(uint32_t * prettyJSONSize) const {
@@ -656,6 +687,13 @@ Gobj::Camera::Type GLTFLoader4::cameraTypeFromStr(char const * str) {
     if (strEqu(str, "perspective" )) return Gobj::Camera::TYPE_PERSP;
     return Gobj::Camera::TYPE_PERSP;
 }
+
+Gobj::Image::MIMEType GLTFLoader4::imageMIMETypeFromStr(char const * str) {
+    if (strEqu(str, "image/jpeg"))  return Gobj::Image::TYPE_JPEG;
+    if (strEqu(str, "image/png" ))  return Gobj::Image::TYPE_PNG;
+    return Gobj::Image::TYPE_PNG;
+}
+
 
 size_t GLTFLoader4::handleData(byte_t * dst, char const * str, size_t strLength) {
     // base64?

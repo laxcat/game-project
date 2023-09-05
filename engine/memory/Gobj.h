@@ -105,7 +105,10 @@ Texture
 Texture
 ...
 ----------------------------------------
-buffer data
+raw data                                // buffer data, image data, etc.
+                                        // anything that loaded externally or from base64 data.
+                                        // for now, just buffer data, as images are not loaded
+                                        // to main memory.
 ----------------------------------------
 
 */
@@ -165,7 +168,7 @@ public:
         uint16_t textures = 0;
 
         uint32_t allStrLen = 0;
-        uint32_t buffersLen = 0;
+        uint32_t rawDataLen = 0;
 
         size_t totalSize() const;
         #if DEBUG || DEV_INTERFACE
@@ -196,7 +199,7 @@ public:
     Node *           * sceneNodes        = nullptr;
     Skin             * skins             = nullptr;
     Texture          * textures          = nullptr;
-    byte_t           * buffer            = nullptr;
+    byte_t           * rawData           = nullptr;
 
     Counts counts;
 

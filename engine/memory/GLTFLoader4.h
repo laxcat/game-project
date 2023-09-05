@@ -33,6 +33,7 @@ public:
 // TYPES
 public:
     // rapidjson handler
+    // counts objects to determine size/layout of final Gobj
     class Counter {
     public:
         Counter(GLTFLoader4 * loader);
@@ -55,6 +56,7 @@ public:
     };
 
     // rapidjson handler
+    // responsible for transfering data from JSON to Gobj
     class Scanner {
     public:
         Scanner(GLTFLoader4 * loader, Gobj * gobj);
@@ -78,7 +80,7 @@ public:
     private:
         uint16_t nextAnimationChannel = 0;
         uint16_t nextAnimationSampler = 0;
-        byte_t * nextBufferPtr = nullptr;
+        byte_t * nextRawDataPtr = nullptr;
 
         void handleCameraData(float num);
     };
@@ -167,5 +169,6 @@ private:
     Gobj::AnimationTarget animationTargetFromStr(char const * str);
     Gobj::AnimationSampler::Interpolation interpolationFromStr(char const * str);
     Gobj::Camera::Type cameraTypeFromStr(char const * str);
+    Gobj::Image::MIMEType imageMIMETypeFromStr(char const * str);
     size_t handleData(byte_t * dst, char const * str, size_t strLength);
 };

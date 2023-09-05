@@ -139,7 +139,7 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     #if DEBUG
     if (loader4.isGLB) {
         assert(
-            gobj->buffer + alignSize(loader4.binDataSize(), Gobj::Align) ==
+            gobj->rawData + alignSize(loader4.binDataSize(), Gobj::Align) ==
             block->data() + block->dataSize() &&
             "Gobj block unexpected size."
         );
