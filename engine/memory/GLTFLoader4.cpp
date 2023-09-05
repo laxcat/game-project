@@ -158,6 +158,9 @@ bool GLTFLoader4::Scanner::Int(int i) {
         if      (l->crumb(-1).matches("min")) { g->accessors[accIndex].min[minMaxIndex] = (float)i; }
         else if (l->crumb(-1).matches("max")) { g->accessors[accIndex].max[minMaxIndex] = (float)i; }
     }
+    else if (l->crumb(-3).matches(TYPE_ARR, "cameras")) {
+        handleCameraData((float)i);
+    }
     l->pop();
     return true;
 }
@@ -252,6 +255,9 @@ bool GLTFLoader4::Scanner::Uint(unsigned i) {
         else if (l->crumb().matches("byteStride")) { bv->byteStride = i; }
         else if (l->crumb().matches("target"))     { bv->target = (Gobj::BufferView::Target)i; }
     }
+    else if (l->crumb(-3).matches(TYPE_ARR, "cameras")) {
+        handleCameraData((float)i);
+    }
     l->pop();
     return true;
 }
@@ -265,6 +271,9 @@ bool GLTFLoader4::Scanner::Double(double d) {
         // printl("ACCESSOR[%d] %s[%d] = %f (float)", accIndex, l->crumb(-1).key, minMaxIndex, d);
         if      (l->crumb(-1).matches("min")) { g->accessors[accIndex].min[minMaxIndex] = (float)d; }
         else if (l->crumb(-1).matches("max")) { g->accessors[accIndex].max[minMaxIndex] = (float)d; }
+    }
+    else if (l->crumb(-3).matches(TYPE_ARR, "cameras")) {
+        handleCameraData((float)d);
     }
     l->pop();
     return true;
@@ -338,6 +347,10 @@ bool GLTFLoader4::Scanner::String(char const * str, uint32_t length, bool copy) 
             buf->byteLength = bytesWritten;
             nextBufferPtr += bytesWritten;
     }
+    else if (l->crumb(-2).matches("cameras") && l->crumb().matches("type")) {
+        Gobj::Camera * c = g->cameras + l->crumb(-1).index;
+        c->type = l->cameraTypeFromStr(str);
+    }
     l->pop();
     return true;
 }
@@ -349,6 +362,18 @@ bool GLTFLoader4::Scanner::StartObject() {
         uint16_t index = l->crumb().index;
         g->animations[index].channels = g->animationChannels + nextAnimationChannel;
         g->animations[index].samplers = g->animationSamplers + nextAnimationSampler;
+    }
+    else if (l->crumb(-2).matches(TYPE_ARR, "cameras")) {
+        uint16_t camIndex = l->crumb(-1).index;
+        Gobj::Camera * c = g->cameras + camIndex;
+        if (l->crumb().matches("orthographic")) {
+            assert(c->perspective == nullptr && "Orthographic camera found but perspective already set.");
+            c->orthographic = (Gobj::CameraOrthographic *)&c->_data;
+        }
+        else if (l->crumb().matches("perspective")) {
+            assert(c->orthographic == nullptr && "Orthographic camera found but orthographic already set.");
+            c->perspective = (Gobj::CameraPerspective *)&c->_data;
+        }
     }
     return true;
 }
@@ -385,6 +410,30 @@ bool GLTFLoader4::Scanner::EndArray(uint32_t elementCount) {
     l->pop();
     l->popIndex();
     return true;
+}
+
+void GLTFLoader4::Scanner::handleCameraData(float num) {
+    uint16_t camIndex = l->crumb(-2).index;
+    Gobj::Camera * c = g->cameras + camIndex;
+    char const * key = l->crumb().key;
+
+    // unsafely relies on object member order. see below.
+    if      (strWithin(key, "xmag,aspectRatio")) { c->_data[0] = num; }
+    else if (strWithin(key, "ymag,yfov"))        { c->_data[1] = num; }
+    else if (strEqu(key, "zfar"))                { c->_data[2] = num; }
+    else if (strEqu(key, "znear"))               { c->_data[3] = num; }
+
+    // since the above code unsafely relies on object member order, lets put
+    // some static checks to make sure the members are where we expect them.
+    static_assert(sizeof(float) == 4);
+    static_assert(offsetof(Gobj::CameraOrthographic, xmag) == 0);
+    static_assert(offsetof(Gobj::CameraOrthographic, ymag) == 4);
+    static_assert(offsetof(Gobj::CameraOrthographic, zfar) == 8);
+    static_assert(offsetof(Gobj::CameraOrthographic, znear) == 12);
+    static_assert(offsetof(Gobj::CameraPerspective, aspectRatio) == 0);
+    static_assert(offsetof(Gobj::CameraPerspective, yfov) == 4);
+    static_assert(offsetof(Gobj::CameraPerspective, zfar) == 8);
+    static_assert(offsetof(Gobj::CameraPerspective, znear) == 12);
 }
 
 // -------------------------------------------------------------------------- //
@@ -600,6 +649,12 @@ Gobj::AnimationSampler::Interpolation GLTFLoader4::interpolationFromStr(char con
     if (strEqu(str, "STEP"       )) return Gobj::AnimationSampler::INTERP_STEP;
     if (strEqu(str, "CUBICSPLINE")) return Gobj::AnimationSampler::INTERP_CUBICSPLINE;
     return Gobj::AnimationSampler::INTERP_LINEAR;
+}
+
+Gobj::Camera::Type GLTFLoader4::cameraTypeFromStr(char const * str) {
+    if (strEqu(str, "orthographic")) return Gobj::Camera::TYPE_ORTHO;
+    if (strEqu(str, "perspective" )) return Gobj::Camera::TYPE_PERSP;
+    return Gobj::Camera::TYPE_PERSP;
 }
 
 size_t GLTFLoader4::handleData(byte_t * dst, char const * str, size_t strLength) {

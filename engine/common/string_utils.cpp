@@ -55,15 +55,6 @@ bool strWithin(char const * str, char const * strGroup, char sep) {
     return false;
 }
 
-// SOME STRING TESTS
-// printl("test %d", strWithin("hello", "hello,goodbye"));
-// printl("test %d", strWithin("goodbye", "hello,goodbye"));
-// printl("test %d", strWithin("b", "a,b,c"));
-// printl("test %d", strWithin("", ",b,c"));
-// printl("test %d", strWithin("", "a,,c"));
-// printl("test %d", strWithin("", "a,b,"));
-// printl("test %d", strWithin("hell", "hello,goodbye"));
-
 ImageData loadImageBase64(char const * data, size_t length) {
     if (strEqualForLength("data:image/jpeg;base64,", data, 23)) {
         data   += 23;

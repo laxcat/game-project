@@ -79,6 +79,8 @@ public:
         uint16_t nextAnimationChannel = 0;
         uint16_t nextAnimationSampler = 0;
         byte_t * nextBufferPtr = nullptr;
+
+        void handleCameraData(float num);
     };
 
     enum ObjType {
@@ -164,5 +166,6 @@ private:
     Gobj::Accessor::Type accessorTypeFromStr(char const * str);
     Gobj::AnimationTarget animationTargetFromStr(char const * str);
     Gobj::AnimationSampler::Interpolation interpolationFromStr(char const * str);
+    Gobj::Camera::Type cameraTypeFromStr(char const * str);
     size_t handleData(byte_t * dst, char const * str, size_t strLength);
 };
