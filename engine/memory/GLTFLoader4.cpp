@@ -187,6 +187,13 @@ bool GLTFLoader4::Scanner::Bool(bool b) {
         uint16_t index = l->crumb(-1).index;
         if     (l->crumb().matches("normalized"))     { g->accessors[index].normalized = b; }
     }
+    else if (
+        l->crumb(-2).matches(TYPE_ARR, "materials") &&
+        l->crumb().matches("doubleSided")) {
+        uint16_t matIndex = l->crumb(-1).index;
+        g->materials[matIndex].doubleSided = b;
+    }
+
     l->pop();
     return true;
 }
@@ -274,6 +281,39 @@ bool GLTFLoader4::Scanner::Uint(unsigned i) {
         Gobj::Image * img = g->images + imgIndex;
         img->bufferView = g->bufferViews + i;
     }
+    else if (l->crumb(-4).matches(TYPE_ARR, "materials")) {
+        uint16_t matIndex = l->crumb(-3).index;
+        Gobj::Material * mat = g->materials + matIndex;
+        if (l->crumb().matches("index")) {
+            if      (l->crumb(-1).matches("baseColorTexture"))        { mat->baseColorTexture = g->textures + i; }
+            else if (l->crumb(-1).matches("metallicRoughnessTexture")){ mat->metallicRoughnessTexture = g->textures + i; }
+        }
+        else if (l->crumb().matches("texCoord")) {
+            if      (l->crumb(-1).matches("baseColorTexture"))        { mat->baseColorTexCoord = (Gobj::Attr)i; }
+            else if (l->crumb(-1).matches("metallicRoughnessTexture")){ mat->metallicRoughnessTexCoord = (Gobj::Attr)i; }
+        }
+        else {
+            handleMaterialData((float)i);
+        }
+    }
+    else if (l->crumb(-3).matches(TYPE_ARR, "materials")) {
+        uint16_t matIndex = l->crumb(-2).index;
+        Gobj::Material * mat = g->materials + matIndex;
+        if (l->crumb().matches("index")) {
+            if      (l->crumb(-1).matches("emissiveTexture"))   { mat->emissiveTexture = g->textures + i; }
+            else if (l->crumb(-1).matches("normalTexture"))     { mat->normalTexture = g->textures + i; }
+            else if (l->crumb(-1).matches("occlusionTexture"))  { mat->occlusionTexture = g->textures + i; }
+        }
+        else if (l->crumb().matches("texCoord")) {
+            if      (l->crumb(-1).matches("emissiveTexture"))   { mat->emissiveTexCoord = (Gobj::Attr)i; }
+            else if (l->crumb(-1).matches("normalTexture"))     { mat->normalTexCoord = (Gobj::Attr)i; }
+            else if (l->crumb(-1).matches("occlusionTexture"))  { mat->occlusionTexCoord = (Gobj::Attr)i; }
+        }
+        else {
+            handleMaterialData((float)i);
+        }
+    }
+
     l->pop();
     return true;
 }
@@ -290,6 +330,17 @@ bool GLTFLoader4::Scanner::Double(double d) {
     }
     else if (l->crumb(-3).matches(TYPE_ARR, "cameras")) {
         handleCameraData((float)d);
+    }
+    else if (
+        l->crumb(-2).matches(TYPE_ARR, "materials") &&
+        l->crumb().matches("alphaCutoff"))
+    {
+        uint16_t matIndex = l->crumb(-1).index;
+        g->materials[matIndex].alphaCutoff = (float)d;
+    }
+    else if (l->crumb(-3).matches(TYPE_ARR, "materials"))
+    {
+        handleMaterialData((float)d);
     }
     l->pop();
     return true;
@@ -379,6 +430,12 @@ bool GLTFLoader4::Scanner::String(char const * str, uint32_t length, bool copy) 
             img->mimeType = l->imageMIMETypeFromStr(str);
         }
     }
+    else if (
+        l->crumb(-2).matches(TYPE_ARR, "materials") &&
+        l->crumb().matches("alphaMode")) {
+        uint16_t matIndex = l->crumb(-1).index;
+        g->materials[matIndex].alphaMode = l->alphaModeFromStr(str);
+    }
     l->pop();
     return true;
 }
@@ -462,6 +519,29 @@ void GLTFLoader4::Scanner::handleCameraData(float num) {
     static_assert(offsetof(Gobj::CameraPerspective, yfov) == 4);
     static_assert(offsetof(Gobj::CameraPerspective, zfar) == 8);
     static_assert(offsetof(Gobj::CameraPerspective, znear) == 12);
+}
+
+void GLTFLoader4::Scanner::handleMaterialData(float num) {
+    uint16_t matIndex = l->crumb(-2).index;
+    if (l->crumb(-1).matches(TYPE_ARR, "emissiveFactor")) {
+        uint16_t efIndex = l->crumb().index;
+        g->materials[matIndex].emissiveFactor[efIndex] = num;
+    }
+    if (l->crumb(-1).matches(TYPE_ARR, "baseColorFactor")) {
+        uint16_t bcfIndex = l->crumb().index;
+        g->materials[matIndex].baseColorFactor[bcfIndex] = num;
+    }
+    else if (l->crumb(-1).matches("normalTexture") && l->crumb().matches("scale")) {
+        g->materials[matIndex].normalScale = num;
+    }
+    else if (l->crumb(-1).matches("occlusionTexture") && l->crumb().matches("strength")) {
+        g->materials[matIndex].occlusionStrength = num;
+    }
+    else if (l->crumb(-1).matches("pbrMetallicRoughness")) {
+        if (l->crumb().matches("metallicFactor")) { g->materials[matIndex].metallicFactor = num; }
+        else if (l->crumb().matches("roughnessFactor")) { g->materials[matIndex].roughnessFactor = num; }
+    }
+
 }
 
 // -------------------------------------------------------------------------- //
@@ -694,6 +774,12 @@ Gobj::Image::MIMEType GLTFLoader4::imageMIMETypeFromStr(char const * str) {
     return Gobj::Image::TYPE_PNG;
 }
 
+Gobj::Material::AlphaMode GLTFLoader4::alphaModeFromStr(char const * str) {
+    if (strEqu(str, "ALPHA_OPAQUE"))    return Gobj::Material::ALPHA_OPAQUE;
+    if (strEqu(str, "ALPHA_MASK" ))     return Gobj::Material::ALPHA_MASK;
+    if (strEqu(str, "ALPHA_BLEND" ))    return Gobj::Material::ALPHA_BLEND;
+    return Gobj::Material::ALPHA_OPAQUE;
+}
 
 size_t GLTFLoader4::handleData(byte_t * dst, char const * str, size_t strLength) {
     // base64?

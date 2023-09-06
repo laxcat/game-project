@@ -379,29 +379,27 @@ public:
         };
         AlphaMode alphaMode = ALPHA_OPAQUE;
         float alphaCutoff = 0.5f;
-        float baseColorFactor[4] = {1.f};
-        TextureInfo * baseColorTexture = nullptr;
         bool doubleSided = false;
+        Texture * emissiveTexture = nullptr;
+        Attr emissiveTexCoord = ATTR_TEXCOORD0;
         float emissiveFactor[3] = {0.f};
-        TextureInfo * emissiveTexture = nullptr;
-        float metalicFactor = 1.f;
-        TextureInfo * metallicRoughnessTexture = nullptr;
+        // normalTexture
+            Texture * normalTexture = nullptr;
+            Attr normalTexCoord = ATTR_TEXCOORD0;
+            float normalScale = 1.f;
+        // occlusionTexture
+            Texture * occlusionTexture = nullptr;
+            Attr occlusionTexCoord = ATTR_TEXCOORD0;
+            float occlusionStrength = 1.f;
+        // pbrMetallicRoughness
+            float baseColorFactor[4] = {1.f};
+            Texture * baseColorTexture = nullptr;
+            Attr baseColorTexCoord = ATTR_TEXCOORD0;
+            float metallicFactor = 1.f;
+            Texture * metallicRoughnessTexture = nullptr;
+            Attr metallicRoughnessTexCoord = ATTR_TEXCOORD0;
+            float roughnessFactor = 1.f;
         char const * name = nullptr;
-        MatieralNormalTexture * normalTexture = nullptr;
-        MatieralOcclusionTexture * occlusionTexture = nullptr;
-        float roughnessFactor = 1.f;
-    };
-
-    struct MatieralNormalTexture {
-        Texture * index = nullptr;
-        Attr texCoord = ATTR_TEXCOORD0;
-        float scale = 0.0f;
-    };
-
-    struct MatieralOcclusionTexture {
-        Texture * index = nullptr;
-        Attr texCoord = ATTR_TEXCOORD0;
-        float strength = 1.0f;
     };
 
     struct Mesh {
@@ -490,11 +488,6 @@ public:
         Sampler * sampler = nullptr;
         Image * source = nullptr;
         char const * name = nullptr;
-    };
-
-    struct TextureInfo {
-        Texture * index = nullptr;
-        Attr texCoord = ATTR_TEXCOORD0;
     };
 
     // DEBUG

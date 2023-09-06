@@ -28,7 +28,7 @@ NOT implemented yet:
 class GLTFLoader4 {
 // CONSTANTS
 public:
-    static constexpr size_t MaxDepth = 8;
+    static constexpr size_t MaxDepth = 12;
     static constexpr size_t MaxKeyLen = 32;
 // TYPES
 public:
@@ -83,6 +83,7 @@ public:
         byte_t * nextRawDataPtr = nullptr;
 
         void handleCameraData(float num);
+        void handleMaterialData(float num);
     };
 
     enum ObjType {
@@ -170,5 +171,6 @@ private:
     Gobj::AnimationSampler::Interpolation interpolationFromStr(char const * str);
     Gobj::Camera::Type cameraTypeFromStr(char const * str);
     Gobj::Image::MIMEType imageMIMETypeFromStr(char const * str);
+    Gobj::Material::AlphaMode alphaModeFromStr(char const * str);
     size_t handleData(byte_t * dst, char const * str, size_t strLength);
 };
