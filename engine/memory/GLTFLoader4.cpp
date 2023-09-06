@@ -82,6 +82,18 @@ bool GLTFLoader4::Counter::Key(char const * str, uint32_t length, bool copy) {
 }
 
 bool GLTFLoader4::Counter::EndObject(uint32_t memberCount) {
+    if (l->crumb(-4).matches(TYPE_ARR, "meshes") &&
+        l->crumb(-2).matches("primitives") &&
+        l->crumb().matches("attributes"))
+    {
+        l->counts.meshAttributes += memberCount;
+    }
+    else if (l->crumb(-5).matches(TYPE_ARR, "meshes") &&
+        l->crumb(-3).matches(TYPE_ARR, "primitives") &&
+        l->crumb(-1).matches(TYPE_ARR, "targets"))
+    {
+        l->counts.meshAttributes += memberCount;
+    }
     l->pop();
     return true;
 }
@@ -119,6 +131,11 @@ bool GLTFLoader4::Counter::EndArray(uint32_t elementCount) {
     else if (l->depth == 4 && l->crumb(-2).matches("animations")) {
         if      (crumb.matches("channels")) { l->counts.animationChannels += elementCount; }
         else if (crumb.matches("samplers")) { l->counts.animationSamplers += elementCount; }
+    }
+    // mesh primitives and weights
+    else if (l->depth == 4 && l->crumb(-2).matches("meshes")) {
+        if      (crumb.matches("primitives")) { l->counts.meshPrimitives += elementCount; }
+        else if (crumb.matches("weights")) { l->counts.meshWeights += elementCount; }
     }
     l->pop();
     l->popIndex();
@@ -319,6 +336,38 @@ bool GLTFLoader4::Scanner::Uint(unsigned i) {
             handleMaterialData((float)i);
         }
     }
+    else if (
+        (l->crumb(-5).matches(TYPE_ARR, "meshes") &&
+        l->crumb(-3).matches(TYPE_ARR, "primitives") &&
+        l->crumb(-1).matches("attributes"))
+        ||
+        (l->crumb(-6).matches(TYPE_ARR, "meshes") &&
+        l->crumb(-4).matches(TYPE_ARR, "primitives") &&
+        l->crumb(-2).matches(TYPE_ARR, "targets")))
+    {
+        g->meshAttributes[nextMeshAttribute].type = l->attrFromStr(l->key);
+        g->meshAttributes[nextMeshAttribute].accessor = g->accessors + i;
+        ++nextMeshAttribute;
+    }
+    else if (
+        l->crumb(-4).matches(TYPE_ARR, "meshes") &&
+        l->crumb(-2).matches(TYPE_ARR, "primitives"))
+    {
+        uint16_t mshIndex = l->crumb(-3).index;
+        uint16_t priIndex = l->crumb(-1).index;
+        Gobj::MeshPrimitive * prim = &g->meshes[mshIndex].primitives[priIndex];
+        if      (l->crumb().matches("indices"))  { prim->indices = g->accessors + i; }
+        else if (l->crumb().matches("material")) { prim->material = g->materials + i; }
+        else if (l->crumb().matches("mode"))     { prim->mode = (Gobj::MeshPrimitive::Mode)i; }
+    }
+    else if (
+        l->crumb(-3).matches(TYPE_ARR, "meshes") &&
+        l->crumb(-1).matches(TYPE_ARR, "weights"))
+    {
+        uint16_t mshIndex = l->crumb(-2).index;
+        uint16_t numIndex = l->crumb().index;
+        g->meshes[mshIndex].weights[numIndex] = (float)i;
+    }
 
     l->pop();
     return true;
@@ -331,7 +380,6 @@ bool GLTFLoader4::Scanner::Double(double d) {
     if (l->crumb(-3).matches(TYPE_ARR, "accessors")) {
         uint16_t accIndex = l->crumb(-2).index;
         uint16_t minMaxIndex = l->crumb().index;
-        // printl("ACCESSOR[%d] %s[%d] = %f (float)", accIndex, l->crumb(-1).key, minMaxIndex, d);
         if      (l->crumb(-1).matches("min")) { g->accessors[accIndex].min[minMaxIndex] = (float)d; }
         else if (l->crumb(-1).matches("max")) { g->accessors[accIndex].max[minMaxIndex] = (float)d; }
     }
@@ -348,6 +396,14 @@ bool GLTFLoader4::Scanner::Double(double d) {
     else if (l->crumb(-3).matches(TYPE_ARR, "materials"))
     {
         handleMaterialData((float)d);
+    }
+    else if (
+        l->crumb(-3).matches(TYPE_ARR, "meshes") &&
+        l->crumb(-1).matches(TYPE_ARR, "weights"))
+    {
+        uint16_t mshIndex = l->crumb(-2).index;
+        uint16_t numIndex = l->crumb().index;
+        g->meshes[mshIndex].weights[numIndex] = (float)d;
     }
     l->pop();
     return true;
@@ -468,6 +524,20 @@ bool GLTFLoader4::Scanner::StartObject() {
             assert(c->orthographic == nullptr && "Orthographic camera found but orthographic already set.");
             c->perspective = (Gobj::CameraPerspective *)&c->_data;
         }
+    }
+    else if (l->crumb(-1).matches(TYPE_ARR, "meshes")) {
+        uint16_t index = l->crumb().index;
+        g->meshes[index].primitives = g->meshPrimitives + nextMeshPrimitive;
+        g->meshes[index].weights = g->meshWeights + nextMeshWeight;
+    }
+    else if (
+        l->crumb(-4).matches(TYPE_ARR, "meshes") &&
+        l->crumb(-2).matches(TYPE_ARR, "primitives") &&
+        l->crumb().matches("attributes"))
+    {
+        uint16_t mshIndex = l->crumb(-3).index;
+        uint16_t priIndex = l->crumb(-1).index;
+        g->meshes[mshIndex].primitives[priIndex].attributes = g->meshAttributes + nextMeshAttribute;
     }
     return true;
 }
@@ -796,6 +866,36 @@ Gobj::Material::AlphaMode GLTFLoader4::alphaModeFromStr(char const * str) {
     if (strEqu(str, "ALPHA_MASK" ))     return Gobj::Material::ALPHA_MASK;
     if (strEqu(str, "ALPHA_BLEND" ))    return Gobj::Material::ALPHA_BLEND;
     return Gobj::Material::ALPHA_OPAQUE;
+}
+
+Gobj::Attr GLTFLoader4::attrFromStr(char const * str) {
+    if (strEqu(str, "POSITION"))   return Gobj::ATTR_POSITION;
+    if (strEqu(str, "NORMAL"))     return Gobj::ATTR_NORMAL;
+    if (strEqu(str, "TANGENT"))    return Gobj::ATTR_TANGENT;
+    if (strEqu(str, "BITANGENT"))  return Gobj::ATTR_BITANGENT;
+    if (strEqu(str, "COLOR0"))     return Gobj::ATTR_COLOR0;
+    if (strEqu(str, "COLOR1"))     return Gobj::ATTR_COLOR1;
+    if (strEqu(str, "COLOR2"))     return Gobj::ATTR_COLOR2;
+    if (strEqu(str, "COLOR3"))     return Gobj::ATTR_COLOR3;
+    if (strEqu(str, "INDICES"))    return Gobj::ATTR_INDICES;
+    if (strEqu(str, "WEIGHT"))     return Gobj::ATTR_WEIGHT;
+    if (strEqu(str, "TEXCOORD_0")) return Gobj::ATTR_TEXCOORD0;
+    if (strEqu(str, "TEXCOORD_1")) return Gobj::ATTR_TEXCOORD1;
+    if (strEqu(str, "TEXCOORD_2")) return Gobj::ATTR_TEXCOORD2;
+    if (strEqu(str, "TEXCOORD_3")) return Gobj::ATTR_TEXCOORD3;
+    if (strEqu(str, "TEXCOORD_4")) return Gobj::ATTR_TEXCOORD4;
+    if (strEqu(str, "TEXCOORD_5")) return Gobj::ATTR_TEXCOORD5;
+    if (strEqu(str, "TEXCOORD_6")) return Gobj::ATTR_TEXCOORD6;
+    if (strEqu(str, "TEXCOORD_7")) return Gobj::ATTR_TEXCOORD7;
+    if (strEqu(str, "TEXCOORD0"))  return Gobj::ATTR_TEXCOORD0;
+    if (strEqu(str, "TEXCOORD1"))  return Gobj::ATTR_TEXCOORD1;
+    if (strEqu(str, "TEXCOORD2"))  return Gobj::ATTR_TEXCOORD2;
+    if (strEqu(str, "TEXCOORD3"))  return Gobj::ATTR_TEXCOORD3;
+    if (strEqu(str, "TEXCOORD4"))  return Gobj::ATTR_TEXCOORD4;
+    if (strEqu(str, "TEXCOORD5"))  return Gobj::ATTR_TEXCOORD5;
+    if (strEqu(str, "TEXCOORD6"))  return Gobj::ATTR_TEXCOORD6;
+    if (strEqu(str, "TEXCOORD7"))  return Gobj::ATTR_TEXCOORD7;
+    return Gobj::ATTR_POSITION;
 }
 
 size_t GLTFLoader4::handleData(byte_t * dst, char const * str, size_t strLength) {

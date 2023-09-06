@@ -119,6 +119,14 @@ Gobj::Gobj(MemMan *, Gobj::Counts const & counts) :
         }
     }
 
+    if (counts.meshWeights) {
+        meshWeights = (float *)head;
+        for (uint16_t i = 0; i < counts.meshWeights; ++i) {
+            *(float *)head = 0.f;
+            head += ALIGN_SIZE(sizeof(float));
+        }
+    }
+
     if (counts.nodes) {
         nodes = (Node *)head;
         for (uint16_t i = 0; i < counts.nodes; ++i) {
@@ -193,6 +201,7 @@ size_t Gobj::Counts::totalSize() const {
         ALIGN_SIZE(sizeof(Gobj::Mesh) )            * meshes +
         ALIGN_SIZE(sizeof(Gobj::MeshAttribute))    * meshAttributes +
         ALIGN_SIZE(sizeof(Gobj::MeshPrimitive))    * meshPrimitives +
+        ALIGN_SIZE(sizeof(float))                  * meshWeights +
         ALIGN_SIZE(sizeof(Gobj::Node))             * nodes +
         ALIGN_SIZE(sizeof(Gobj::Sampler))          * samplers +
         ALIGN_SIZE(sizeof(Gobj::Scene))            * scenes +
@@ -227,6 +236,7 @@ char * Gobj::printToFrameStack() const {
     fs.formatPen("Mesh        %011p (%d)\n", meshes,            counts.meshes);
     fs.formatPen("MAttribute  %011p (%d)\n", meshAttributes,    counts.meshAttributes);
     fs.formatPen("MPrimitive  %011p (%d)\n", meshPrimitives,    counts.meshPrimitives);
+    fs.formatPen("MWeights    %011p (%d)\n", meshWeights,       counts.meshWeights);
     fs.formatPen("Node        %011p (%d)\n", nodes,             counts.nodes);
     fs.formatPen("Sampler     %011p (%d)\n", samplers,          counts.samplers);
     fs.formatPen("Scene       %011p (%d)\n", scenes,            counts.scenes);

@@ -29,7 +29,9 @@ Brief memory layout:
         |---- DataSize --------------------------------------------------------|
 
 
-Complete memory layout:
+Complete memory layout below. Sections (marked with ---) are aligned to
+Gobj::Align. Repeated objects indicate tight arrays with no interstitial
+alignment. All layout should happen in Gobj ctor.
 
 ----------------------------------------
 Gobj
@@ -77,6 +79,18 @@ Mesh
 Mesh
 ...
 ----------------------------------------
+MeshAttribute
+MeshAttribute
+...
+----------------------------------------
+MeshPrimitive
+MeshPrimitive
+...
+----------------------------------------
+float                                   // Mesh weights
+float
+...
+----------------------------------------
 Node
 Node
 ...
@@ -95,10 +109,6 @@ Node *
 ----------------------------------------
 Skin
 Skin
-...
-----------------------------------------
-Scene
-Scene
 ...
 ----------------------------------------
 Texture
@@ -135,8 +145,6 @@ public:
     struct CameraPerspective;
     struct Image;
     struct Material;
-    struct MatieralNormalTexture;
-    struct MatieralOcclusionTexture;
     struct Mesh;
     struct MeshAttribute;
     struct MeshPrimitive;
@@ -145,7 +153,6 @@ public:
     struct Scene;
     struct Skin;
     struct Texture;
-    struct TextureInfo;
 
     // COUNTS
     struct Counts {
@@ -160,7 +167,8 @@ public:
         uint16_t materials = 0;
         uint16_t meshes = 0;
         uint16_t meshPrimitives = 0;
-        uint16_t meshAttributes = 0; // combined count of nAttributes and nTargets for all primitives
+        uint16_t meshAttributes = 0;
+        uint16_t meshWeights = 0;
         uint16_t nodes = 0;
         uint16_t samplers = 0;
         uint16_t scenes = 0;
@@ -194,6 +202,7 @@ public:
     Mesh             * meshes            = nullptr;
     MeshAttribute    * meshAttributes    = nullptr;
     MeshPrimitive    * meshPrimitives    = nullptr;
+    float            * meshWeights       = nullptr;
     Node             * nodes             = nullptr;
     Sampler          * samplers          = nullptr;
     Scene            * scenes            = nullptr;

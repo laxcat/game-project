@@ -80,6 +80,9 @@ public:
     private:
         uint16_t nextAnimationChannel = 0;
         uint16_t nextAnimationSampler = 0;
+        uint16_t nextMeshPrimitive = 0;
+        uint16_t nextMeshWeight = 0;
+        uint16_t nextMeshAttribute = 0;
         byte_t * nextRawDataPtr = nullptr;
 
         void handleCameraData(float num);
@@ -172,5 +175,6 @@ private:
     Gobj::Camera::Type cameraTypeFromStr(char const * str);
     Gobj::Image::MIMEType imageMIMETypeFromStr(char const * str);
     Gobj::Material::AlphaMode alphaModeFromStr(char const * str);
+    Gobj::Attr attrFromStr(char const * str);
     size_t handleData(byte_t * dst, char const * str, size_t strLength);
 };
