@@ -146,12 +146,14 @@ GLTFLoader4::Scanner::Scanner(GLTFLoader4 * loader, Gobj * gobj) :
 bool GLTFLoader4::Scanner::Null() {
     l->push(TYPE_NULL);
     l->printBreadcrumbs();
+    printl("(null)");
     l->pop();
     return true;
 }
 bool GLTFLoader4::Scanner::Int(int i) {
     l->push(TYPE_INT);
     l->printBreadcrumbs();
+    printl("%d", i);
     if      (l->crumb(-3).matches(TYPE_ARR, "accessors")) {
         uint16_t accIndex = l->crumb(-2).index;
         uint16_t minMaxIndex = l->crumb().index;
@@ -168,12 +170,14 @@ bool GLTFLoader4::Scanner::Int(int i) {
 bool GLTFLoader4::Scanner::Int64(int64_t i) {
     l->push(TYPE_INT);
     l->printBreadcrumbs();
+    printl("%d", i);
     l->pop();
     return true;
 }
 bool GLTFLoader4::Scanner::Uint64(uint64_t i) {
     l->push(TYPE_UINT);
     l->printBreadcrumbs();
+    printl("%u", i);
     l->pop();
     return true;
 }
@@ -183,6 +187,7 @@ bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool cop
 bool GLTFLoader4::Scanner::Bool(bool b) {
     l->push(TYPE_BOOL);
     l->printBreadcrumbs();
+    printl("%s", b?"true":"false");
     if (l->crumb(-2).matches(TYPE_ARR, "accessors")) {
         uint16_t index = l->crumb(-1).index;
         if     (l->crumb().matches("normalized"))     { g->accessors[index].normalized = b; }
@@ -201,6 +206,7 @@ bool GLTFLoader4::Scanner::Bool(bool b) {
 bool GLTFLoader4::Scanner::Uint(unsigned i) {
     l->push(TYPE_UINT);
     l->printBreadcrumbs();
+    printl("%u", i);
     if (l->crumb(-2).matches(TYPE_ARR, "accessors")) {
         uint16_t index = l->crumb(-1).index;
         if      (l->crumb().matches("bufferView"))     { g->accessors[index].bufferView = g->bufferViews + i; }
@@ -321,7 +327,8 @@ bool GLTFLoader4::Scanner::Uint(unsigned i) {
 bool GLTFLoader4::Scanner::Double(double d) {
     l->push(TYPE_FLOAT);
     l->printBreadcrumbs();
-    if      (l->crumb(-3).matches(TYPE_ARR, "accessors")) {
+    printl("%f", d);
+    if (l->crumb(-3).matches(TYPE_ARR, "accessors")) {
         uint16_t accIndex = l->crumb(-2).index;
         uint16_t minMaxIndex = l->crumb().index;
         // printl("ACCESSOR[%d] %s[%d] = %f (float)", accIndex, l->crumb(-1).key, minMaxIndex, d);
@@ -349,6 +356,7 @@ bool GLTFLoader4::Scanner::Double(double d) {
 bool GLTFLoader4::Scanner::String(char const * str, uint32_t length, bool copy) {
     l->push(TYPE_STR);
     l->printBreadcrumbs();
+    printl("\"%s\"", str);
     // handle name strings
     if (l->crumb().matches("name")) {
         char const * key = l->crumb(-2).key;
@@ -443,6 +451,7 @@ bool GLTFLoader4::Scanner::String(char const * str, uint32_t length, bool copy) 
 bool GLTFLoader4::Scanner::StartObject() {
     l->push(TYPE_OBJ);
     l->printBreadcrumbs();
+    printl();
     if (l->crumb(-1).matches(TYPE_ARR, "animations")) {
         uint16_t index = l->crumb().index;
         g->animations[index].channels = g->animationChannels + nextAnimationChannel;
@@ -477,6 +486,7 @@ bool GLTFLoader4::Scanner::StartArray() {
     l->push(TYPE_ARR);
     l->pushIndex();
     l->printBreadcrumbs();
+    printl();
     return true;
 }
 
@@ -673,9 +683,13 @@ char const * GLTFLoader4::prettyJSON(uint32_t * prettyJSONSize) const {
 void GLTFLoader4::printBreadcrumbs() const {
     if (depth < 1) return;
     for (int i = 0; i < depth; ++i) {
-        print("%s(%s,%d) > ", crumbs[i].objTypeStr(), crumbs[i].key, crumbs[i].index);
+        if (crumbs[i].index == -1) {
+            print("%s(%s) > ", crumbs[i].objTypeStr(), crumbs[i].key);
+        }
+        else {
+            print("%s(%d) > ", crumbs[i].objTypeStr(), crumbs[i].index);
+        }
     }
-    printl();
 }
 
 uint32_t GLTFLoader4::jsonStrSize() const {
@@ -715,6 +729,9 @@ void GLTFLoader4::push(ObjType objType) {
     if (depth && crumbs[depth-1].objType == TYPE_ARR) {
         crumbs[depth].index = arrIndices[arrDepth-1];
         ++arrIndices[arrDepth-1];
+    }
+    else {
+        crumbs[depth].index = -1;
     }
 
     crumbs[depth].objType = objType;
