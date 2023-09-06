@@ -123,7 +123,7 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
         fprintf(stderr, "Error creating Gobj block\n");
         return nullptr;
     }
-    Gobj * gobj = new (block->data()) Gobj{loader4.counts};
+    Gobj * gobj = new (block->data()) Gobj{this, loader4.counts};
 
     // load into gobj
     bool success = loader4.load(gobj);

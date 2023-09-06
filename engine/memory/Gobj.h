@@ -114,6 +114,7 @@ raw data                                // buffer data, image data, etc.
 */
 
 // forward
+class MemMan;
 class FrameStack;
 
 class Gobj {
@@ -223,7 +224,7 @@ public:
 
     // API
 public:
-    Gobj(Counts const & counts);
+    Gobj(MemMan *, Counts const & counts);
     byte_t const * data () const;
     FrameStack const * stringStack () const;
 
