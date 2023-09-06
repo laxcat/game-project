@@ -124,7 +124,7 @@ struct GLTFSizeFinder {
         animSamplerCountConds.push(-2, Crumb::ARR, "animations");
 
         // mesh sub objects
-        meshPrimCountConds.allAction = [this](void * ud) { cntr.nMeshPrimatives += (size_t)ud; };
+        meshPrimCountConds.allAction = [this](void * ud) { cntr.nMeshPrimitives += (size_t)ud; };
         meshPrimCountConds.push( 0, Crumb::ARR, "primitives");
         meshPrimCountConds.push(-2, Crumb::ARR, "meshes");
         // TODO: add morph targets to same nMeshAttributes count
@@ -304,7 +304,7 @@ struct GLTFSizeFinder {
         printl("Images:       %8u", cntr.nImages);
         printl("Materials:    %8u", cntr.nMaterials);
         printl("Meshes:       %8u", cntr.nMeshes);
-        printl("Mesh prims:   %8u", cntr.nMeshPrimatives);
+        printl("Mesh prims:   %8u", cntr.nMeshPrimitives);
         printl("Mesh attrs:   %8u", cntr.nMeshAttributes);
         printl("Nodes:        %8u", cntr.nNodes);
         printl("Samplers:     %8u", cntr.nSamplers);

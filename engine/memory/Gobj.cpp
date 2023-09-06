@@ -111,11 +111,11 @@ Gobj::Gobj(Gobj::Counts const & counts) :
         }
     }
 
-    if (counts.meshPrimatives) {
-        meshPrimatives = (MeshPrimative *)head;
-        for (uint16_t i = 0; i < counts.meshPrimatives; ++i) {
-            new (head) MeshPrimative{};
-            head += ALIGN_SIZE(sizeof(MeshPrimative));
+    if (counts.meshPrimitives) {
+        meshPrimitives = (MeshPrimitive *)head;
+        for (uint16_t i = 0; i < counts.meshPrimitives; ++i) {
+            new (head) MeshPrimitive{};
+            head += ALIGN_SIZE(sizeof(MeshPrimitive));
         }
     }
 
@@ -192,7 +192,7 @@ size_t Gobj::Counts::totalSize() const {
         ALIGN_SIZE(sizeof(Gobj::Material))         * materials +
         ALIGN_SIZE(sizeof(Gobj::Mesh) )            * meshes +
         ALIGN_SIZE(sizeof(Gobj::MeshAttribute))    * meshAttributes +
-        ALIGN_SIZE(sizeof(Gobj::MeshPrimative))    * meshPrimatives +
+        ALIGN_SIZE(sizeof(Gobj::MeshPrimitive))    * meshPrimitives +
         ALIGN_SIZE(sizeof(Gobj::Node))             * nodes +
         ALIGN_SIZE(sizeof(Gobj::Sampler))          * samplers +
         ALIGN_SIZE(sizeof(Gobj::Scene))            * scenes +
@@ -226,7 +226,7 @@ char * Gobj::printToFrameStack() const {
     fs.formatPen("Material    %011p (%d)\n", materials,         counts.materials);
     fs.formatPen("Mesh        %011p (%d)\n", meshes,            counts.meshes);
     fs.formatPen("MAttribute  %011p (%d)\n", meshAttributes,    counts.meshAttributes);
-    fs.formatPen("MPrimative  %011p (%d)\n", meshPrimatives,    counts.meshPrimatives);
+    fs.formatPen("MPrimitive  %011p (%d)\n", meshPrimitives,    counts.meshPrimitives);
     fs.formatPen("Node        %011p (%d)\n", nodes,             counts.nodes);
     fs.formatPen("Sampler     %011p (%d)\n", samplers,          counts.samplers);
     fs.formatPen("Scene       %011p (%d)\n", scenes,            counts.scenes);
@@ -278,7 +278,7 @@ char * Gobj::Counts::printToFrameStack() const {
     fs.formatPen("Material:     %d\n", materials);
     fs.formatPen("Mesh:         %d\n", meshes);
     fs.formatPen("MAttribute:   %d\n", meshAttributes);
-    fs.formatPen("MPrimative:   %d\n", meshPrimatives);
+    fs.formatPen("MPrimitive:   %d\n", meshPrimitives);
     fs.formatPen("Node:         %d\n", nodes);
     fs.formatPen("Sampler:      %d\n", samplers);
     fs.formatPen("Scene:        %d\n", scenes);

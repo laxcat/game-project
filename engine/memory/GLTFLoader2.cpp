@@ -114,7 +114,7 @@ GLTFLoader2::GLTFLoader2(byte_t * dst, size_t dstSize, Counter const & counted) 
     if (counted.nMeshes) {
         gltf->meshes = (Mesh *)head();
         _head += sizeof(Mesh) * counted.nMeshes;
-        _head += sizeof(MeshPrimative) * counted.nMeshPrimatives;
+        _head += sizeof(MeshPrimitive) * counted.nMeshPrimitives;
         _head += sizeof(MeshAttribute) * counted.nMeshAttributes;
     }
     if (counted.nNodes) {

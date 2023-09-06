@@ -79,7 +79,7 @@ GLTFLoader3::SizeFinder::SizeFinder() {
     animSamplerCountConds.push(-2, Crumb::ARR, "animations");
 
     // mesh sub objects
-    meshPrimCountConds.allAction = [this](void * ud) { cntr.meshPrimatives += (size_t)ud; };
+    meshPrimCountConds.allAction = [this](void * ud) { cntr.meshPrimitives += (size_t)ud; };
     meshPrimCountConds.push( 0, Crumb::ARR, "primitives");
     meshPrimCountConds.push(-2, Crumb::ARR, "meshes");
     // TODO: add morph targets to same nMeshAttributes count
@@ -259,7 +259,7 @@ void GLTFLoader3::SizeFinder::printStats() const {
     printl("Images:       %8u", cntr.images);
     printl("Materials:    %8u", cntr.materials);
     printl("Meshes:       %8u", cntr.meshes);
-    printl("Mesh prims:   %8u", cntr.meshPrimatives);
+    printl("Mesh prims:   %8u", cntr.meshPrimitives);
     printl("Mesh attrs:   %8u", cntr.meshAttributes);
     printl("Nodes:        %8u", cntr.nodes);
     printl("Samplers:     %8u", cntr.samplers);
@@ -386,7 +386,7 @@ GLTFLoader3::Loader::Loader(byte_t * dst, size_t dstSize, Gobj::Counts const & c
     if (counts.meshes) {
         gobj->meshes = (Gobj::Mesh *)head();
         _head += sizeof(Gobj::Mesh) * counts.meshes;
-        _head += sizeof(Gobj::MeshPrimative) * counts.meshPrimatives;
+        _head += sizeof(Gobj::MeshPrimitive) * counts.meshPrimitives;
         _head += sizeof(Gobj::MeshAttribute) * counts.meshAttributes;
     }
     if (counts.nodes) {

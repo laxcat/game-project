@@ -117,7 +117,7 @@ void GLTFLoader::load(Renderable * r) {
 
     glm::mat4 mat{1.f};
 
-    // traverse all nodes to find our primatives and meshes
+    // traverse all nodes to find our primitives and meshes
     r->meshes.clear();
     traverseNodes(r, model, mat, model.scenes[model.defaultScene].nodes, 0);
 

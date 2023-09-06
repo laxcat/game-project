@@ -138,7 +138,7 @@ public:
     struct MatieralOcclusionTexture;
     struct Mesh;
     struct MeshAttribute;
-    struct MeshPrimative;
+    struct MeshPrimitive;
     struct Node;
     struct Sampler;
     struct Scene;
@@ -158,8 +158,8 @@ public:
         uint16_t images = 0;
         uint16_t materials = 0;
         uint16_t meshes = 0;
-        uint16_t meshPrimatives = 0;
-        uint16_t meshAttributes = 0; // combined count of nAttributes and nTargets for all primatives
+        uint16_t meshPrimitives = 0;
+        uint16_t meshAttributes = 0; // combined count of nAttributes and nTargets for all primitives
         uint16_t nodes = 0;
         uint16_t samplers = 0;
         uint16_t scenes = 0;
@@ -192,7 +192,7 @@ public:
     Material         * materials         = nullptr;
     Mesh             * meshes            = nullptr;
     MeshAttribute    * meshAttributes    = nullptr;
-    MeshPrimative    * meshPrimatives    = nullptr;
+    MeshPrimitive    * meshPrimitives    = nullptr;
     Node             * nodes             = nullptr;
     Sampler          * samplers          = nullptr;
     Scene            * scenes            = nullptr;
@@ -403,8 +403,8 @@ public:
     };
 
     struct Mesh {
-        MeshPrimative * primatives = nullptr;
-        int nPrimatives = 0;
+        MeshPrimitive * primitives = nullptr;
+        int nPrimitives = 0;
         float * weights = nullptr;
         int nWeights = 0;
         char const * name = nullptr;
@@ -415,7 +415,7 @@ public:
         Accessor * accessor = nullptr;
     };
 
-    struct MeshPrimative {
+    struct MeshPrimitive {
         MeshAttribute * attributes = nullptr;
         int nAttributes = 0;
         Accessor * indices = nullptr;
