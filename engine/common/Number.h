@@ -1,0 +1,83 @@
+#pragma once
+#include <errno.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+#if DEBUG
+#include <stdio.h>
+#endif
+
+class Number {
+public:
+    Number(char const * str, int length = -1) {
+        // special case, all invalid
+        if (length == 0) {
+            return;
+        }
+
+        set(str, length, TYPE_UINT);
+        set(str, length, TYPE_INT);
+        set(str, length, TYPE_DOUBLE);
+    }
+
+    operator uint64_t() const { validate(TYPE_UINT); return _uint; }
+    operator int64_t()  const { validate(TYPE_INT); return _int; }
+    operator int()      const { validate(TYPE_INT, INT_MIN, INT_MAX); return (int)_int; }
+    operator double()   const { validate(TYPE_DOUBLE); return _double; }
+
+private:
+    enum Type {
+        TYPE_NONE      = 0,
+        TYPE_UINT      = 1 << 0,
+        TYPE_INT       = 1 << 1,
+        TYPE_DOUBLE    = 1 << 2
+    };
+
+    uint64_t _uint = 0;
+    int64_t _int = 0;
+    double _double = 0;
+    Type _valid = TYPE_NONE;
+
+    void set(char const * str, int length, Type type) {
+        if (type == TYPE_NONE) {
+            return;
+        }
+
+        char * end = NULL;
+        errno = 0;
+        switch (type) {
+        case TYPE_UINT:     { _uint     = strtoull(str, &end, 10);  break; }
+        case TYPE_INT:      { _int      = strtoll(str, &end, 10);   break; }
+        case TYPE_DOUBLE:   { _double   = strtod(str, &end);        break; }
+        default: {}
+        }
+
+        if (errno == 0 && ((length > 0 && str + length == end) || (*end == '\0'))) {
+            _valid = (Type)(_valid | type);
+        }
+    }
+
+    #if DEBUG
+    void validate(Type type, int64_t min = 0, uint64_t max = 0) const {
+        if ((_valid & type) == 0) {
+            fprintf(stderr, "Converting to invalid type.\n");
+        }
+        switch (type) {
+        case TYPE_UINT: {
+            if (max && _uint > max) fprintf(stderr, "Uint out of range.\n");
+            else if ((_valid & TYPE_INT) && _int < 0) fprintf(stderr, "Negative value (%lld) cast as uint.\n", _int);
+            break;
+        }
+        case TYPE_INT: {
+            if (min && _int < min) fprintf(stderr, "Int out of min range.\n");
+            else if (max && _int > (int64_t)max) fprintf(stderr, "Int out of max range.\n");
+            break;
+        }
+        case TYPE_DOUBLE: {}
+        default: {}
+        }
+    }
+    #elif
+    void validate(Type, int64_t, uint64_t) {}
+    #endif // DEBUG
+};
