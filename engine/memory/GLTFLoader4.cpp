@@ -4,6 +4,7 @@
 #include <rapidjson/error/en.h>
 #include "mem_utils.h"
 #include "../common/file_utils.h"
+#include "../common/Number.h"
 #include "../common/modp_b64.h"
 #include "../common/string_utils.h"
 #include "../MrManager.h"
@@ -161,84 +162,68 @@ GLTFLoader4::Scanner::Scanner(GLTFLoader4 * loader, Gobj * gobj) :
 }
 
 bool GLTFLoader4::Scanner::Null() {
-    l->push(TYPE_NULL);
-    l->printBreadcrumbs();
-    printl("(null)");
-    l->pop();
     return true;
 }
 bool GLTFLoader4::Scanner::Int(int i) {
-    l->push(TYPE_INT);
-    l->printBreadcrumbs();
-    printl("%d", i);
-    if      (l->crumb(-3).matches(TYPE_ARR, "accessors")) {
-        uint16_t accIndex = l->crumb(-2).index;
-        uint16_t minMaxIndex = l->crumb().index;
-        // printl("ACCESSOR[%d] %s[%d] = %d (int)", accIndex, l->crumb(-1).key, minMaxIndex, i);
-        if      (l->crumb(-1).matches("min")) { g->accessors[accIndex].min[minMaxIndex] = (float)i; }
-        else if (l->crumb(-1).matches("max")) { g->accessors[accIndex].max[minMaxIndex] = (float)i; }
-    }
-    else if (l->crumb(-3).matches(TYPE_ARR, "cameras")) {
-        handleCameraData((float)i);
-    }
-    l->pop();
     return true;
 }
 bool GLTFLoader4::Scanner::Int64(int64_t i) {
-    l->push(TYPE_INT);
-    l->printBreadcrumbs();
-    printl("%d", i);
-    l->pop();
     return true;
 }
 bool GLTFLoader4::Scanner::Uint64(uint64_t i) {
-    l->push(TYPE_UINT);
-    l->printBreadcrumbs();
-    printl("%u", i);
-    l->pop();
     return true;
 }
 
-bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool copy) { return true; }
-
-bool GLTFLoader4::Scanner::Bool(bool b) {
-    l->push(TYPE_BOOL);
+bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool copy) {
+    l->push(TYPE_NUM);
     l->printBreadcrumbs();
-    printl("%s", b?"true":"false");
+    printl("%.*s", length, str);
+
+    Number n{str, length};
+
+    // OLD INT
+
+    if (l->crumb(-3).matches(TYPE_ARR, "accessors")) {
+        uint16_t accIndex = l->crumb(-2).index;
+        uint16_t minMaxIndex = l->crumb().index;
+        // printl("ACCESSOR[%d] %s[%d] = %d (int)", accIndex, l->crumb(-1).key, minMaxIndex, i);
+        if      (l->crumb(-1).matches("min")) { g->accessors[accIndex].min[minMaxIndex] = (float)n; }
+        else if (l->crumb(-1).matches("max")) { g->accessors[accIndex].max[minMaxIndex] = (float)n; }
+    }
+    else if (l->crumb(-3).matches(TYPE_ARR, "cameras")) {
+        handleCameraData((float)n);
+    }
+
+    // OLD BOOL
+
     if (l->crumb(-2).matches(TYPE_ARR, "accessors")) {
         uint16_t index = l->crumb(-1).index;
-        if     (l->crumb().matches("normalized"))     { g->accessors[index].normalized = b; }
+        if     (l->crumb().matches("normalized"))     { g->accessors[index].normalized = n; }
     }
     else if (
         l->crumb(-2).matches(TYPE_ARR, "materials") &&
         l->crumb().matches("doubleSided")) {
         uint16_t matIndex = l->crumb(-1).index;
-        g->materials[matIndex].doubleSided = b;
+        g->materials[matIndex].doubleSided = n;
     }
 
-    l->pop();
-    return true;
-}
+    // OLD UINT
 
-bool GLTFLoader4::Scanner::Uint(unsigned i) {
-    l->push(TYPE_UINT);
-    l->printBreadcrumbs();
-    printl("%u", i);
     if (l->crumb(-2).matches(TYPE_ARR, "accessors")) {
         uint16_t index = l->crumb(-1).index;
-        if      (l->crumb().matches("bufferView"))     { g->accessors[index].bufferView = g->bufferViews + i; }
-        else if (l->crumb().matches("byteOffset"))     { g->accessors[index].byteOffset = i; }
-        else if (l->crumb().matches("componentType"))  { g->accessors[index].componentType = (Gobj::Accessor::ComponentType)i; }
-        else if (l->crumb().matches("normalized"))     { g->accessors[index].normalized = i; }
-        else if (l->crumb().matches("count"))          { g->accessors[index].count = i; }
+        if      (l->crumb().matches("bufferView"))     { g->accessors[index].bufferView = g->bufferViews + (int)n; }
+        else if (l->crumb().matches("byteOffset"))     { g->accessors[index].byteOffset = (int)n; }
+        else if (l->crumb().matches("componentType"))  { g->accessors[index].componentType = (Gobj::Accessor::ComponentType)(int)n; }
+        else if (l->crumb().matches("normalized"))     { g->accessors[index].normalized = (int)n; }
+        else if (l->crumb().matches("count"))          { g->accessors[index].count = (int)n; }
 
     }
     else if (l->crumb(-3).matches(TYPE_ARR, "accessors")) {
         uint16_t accIndex = l->crumb(-2).index;
         uint16_t minMaxIndex = l->crumb().index;
         // printl("ACCESSOR[%d] %s[%d] = %d (uint)", accIndex, l->crumb(-1).key, minMaxIndex, i);
-        if      (l->crumb(-1).matches("min")) { g->accessors[accIndex].min[minMaxIndex] = (float)i; }
-        else if (l->crumb(-1).matches("max")) { g->accessors[accIndex].max[minMaxIndex] = (float)i; }
+        if      (l->crumb(-1).matches("min")) { g->accessors[accIndex].min[minMaxIndex] = (float)n; }
+        else if (l->crumb(-1).matches("max")) { g->accessors[accIndex].max[minMaxIndex] = (float)n; }
     }
     else if (
         l->crumb(-4).matches(TYPE_ARR, "animations") &&
@@ -247,7 +232,7 @@ bool GLTFLoader4::Scanner::Uint(unsigned i) {
     {
         uint16_t aniIndex = l->crumb(-3).index;
         Gobj::AnimationChannel * ac = g->animations[aniIndex].channels + l->crumb(-1).index;
-        ac->sampler = g->animations[aniIndex].samplers + i;
+        ac->sampler = g->animations[aniIndex].samplers + (int)n;
     }
     else if (
         l->crumb(-5).matches(TYPE_ARR, "animations") &&
@@ -257,7 +242,7 @@ bool GLTFLoader4::Scanner::Uint(unsigned i) {
     {
         uint16_t aniIndex = l->crumb(-4).index;
         Gobj::AnimationChannel * ac = g->animations[aniIndex].channels + l->crumb(-2).index;
-        ac->node = g->nodes + i;
+        ac->node = g->nodes + (int)n;
     }
     else if (
         l->crumb(-4).matches(TYPE_ARR, "animations") &&
@@ -265,36 +250,36 @@ bool GLTFLoader4::Scanner::Uint(unsigned i) {
     {
         uint16_t aniIndex = l->crumb(-3).index;
         Gobj::AnimationSampler * as = g->animations[aniIndex].samplers + l->crumb(-1).index;
-        if      (l->crumb().matches("input"))  { as->input  = g->accessors + i; }
-        else if (l->crumb().matches("output")) { as->output = g->accessors + i; }
+        if      (l->crumb().matches("input"))  { as->input  = g->accessors + (int)n; }
+        else if (l->crumb().matches("output")) { as->output = g->accessors + (int)n; }
     }
     else if (
         l->crumb(-2).matches(TYPE_ARR, "buffers") &&
         l->crumb().matches("byteLength"))
     {
         uint16_t bufIndex = l->crumb(-1).index;
-        g->buffers[bufIndex].byteLength = i;
+        g->buffers[bufIndex].byteLength = n;
         if (l->isGLB && bufIndex == 0) {
-            if (i != l->binDataSize()) {
+            if ((uint32_t)n != l->binDataSize()) {
                 fprintf(stderr, "Unexpected buffer size.\n");
                 return false;
             }
-            memcpy(nextRawDataPtr, l->binData(), i);
+            memcpy(nextRawDataPtr, l->binData(), (uint64_t)n);
             g->buffers[bufIndex].data = nextRawDataPtr;
-            nextRawDataPtr += i;
+            nextRawDataPtr += (uint64_t)n;
         }
     }
     else if (l->crumb(-2).matches(TYPE_ARR, "bufferViews")) {
         uint16_t bvIndex = l->crumb(-1).index;
         Gobj::BufferView * bv = g->bufferViews + bvIndex;
-        if      (l->crumb().matches("buffer"))     { bv->buffer = g->buffers + i; }
-        else if (l->crumb().matches("byteLength")) { bv->byteLength = i; }
-        else if (l->crumb().matches("byteOffset")) { bv->byteOffset = i; }
-        else if (l->crumb().matches("byteStride")) { bv->byteStride = i; }
-        else if (l->crumb().matches("target"))     { bv->target = (Gobj::BufferView::Target)i; }
+        if      (l->crumb().matches("buffer"))     { bv->buffer = g->buffers + (int)n; }
+        else if (l->crumb().matches("byteLength")) { bv->byteLength = (int)n; }
+        else if (l->crumb().matches("byteOffset")) { bv->byteOffset = (int)n; }
+        else if (l->crumb().matches("byteStride")) { bv->byteStride = (int)n; }
+        else if (l->crumb().matches("target"))     { bv->target = (Gobj::BufferView::Target)(int)n; }
     }
     else if (l->crumb(-3).matches(TYPE_ARR, "cameras")) {
-        handleCameraData((float)i);
+        handleCameraData((float)n);
     }
     else if (
         l->crumb(-2).matches(TYPE_ARR, "images") &&
@@ -302,38 +287,38 @@ bool GLTFLoader4::Scanner::Uint(unsigned i) {
     {
         uint16_t imgIndex = l->crumb(-1).index;
         Gobj::Image * img = g->images + imgIndex;
-        img->bufferView = g->bufferViews + i;
+        img->bufferView = g->bufferViews + (int)n;
     }
     else if (l->crumb(-4).matches(TYPE_ARR, "materials")) {
         uint16_t matIndex = l->crumb(-3).index;
         Gobj::Material * mat = g->materials + matIndex;
         if (l->crumb().matches("index")) {
-            if      (l->crumb(-1).matches("baseColorTexture"))        { mat->baseColorTexture = g->textures + i; }
-            else if (l->crumb(-1).matches("metallicRoughnessTexture")){ mat->metallicRoughnessTexture = g->textures + i; }
+            if      (l->crumb(-1).matches("baseColorTexture"))        { mat->baseColorTexture = g->textures + (int)n; }
+            else if (l->crumb(-1).matches("metallicRoughnessTexture")){ mat->metallicRoughnessTexture = g->textures + (int)n; }
         }
         else if (l->crumb().matches("texCoord")) {
-            if      (l->crumb(-1).matches("baseColorTexture"))        { mat->baseColorTexCoord = (Gobj::Attr)i; }
-            else if (l->crumb(-1).matches("metallicRoughnessTexture")){ mat->metallicRoughnessTexCoord = (Gobj::Attr)i; }
+            if      (l->crumb(-1).matches("baseColorTexture"))        { mat->baseColorTexCoord = (Gobj::Attr)(int)n; }
+            else if (l->crumb(-1).matches("metallicRoughnessTexture")){ mat->metallicRoughnessTexCoord = (Gobj::Attr)(int)n; }
         }
         else {
-            handleMaterialData((float)i);
+            handleMaterialData((float)n);
         }
     }
     else if (l->crumb(-3).matches(TYPE_ARR, "materials")) {
         uint16_t matIndex = l->crumb(-2).index;
         Gobj::Material * mat = g->materials + matIndex;
         if (l->crumb().matches("index")) {
-            if      (l->crumb(-1).matches("emissiveTexture"))   { mat->emissiveTexture = g->textures + i; }
-            else if (l->crumb(-1).matches("normalTexture"))     { mat->normalTexture = g->textures + i; }
-            else if (l->crumb(-1).matches("occlusionTexture"))  { mat->occlusionTexture = g->textures + i; }
+            if      (l->crumb(-1).matches("emissiveTexture"))   { mat->emissiveTexture = g->textures + (int)n; }
+            else if (l->crumb(-1).matches("normalTexture"))     { mat->normalTexture = g->textures + (int)n; }
+            else if (l->crumb(-1).matches("occlusionTexture"))  { mat->occlusionTexture = g->textures + (int)n; }
         }
         else if (l->crumb().matches("texCoord")) {
-            if      (l->crumb(-1).matches("emissiveTexture"))   { mat->emissiveTexCoord = (Gobj::Attr)i; }
-            else if (l->crumb(-1).matches("normalTexture"))     { mat->normalTexCoord = (Gobj::Attr)i; }
-            else if (l->crumb(-1).matches("occlusionTexture"))  { mat->occlusionTexCoord = (Gobj::Attr)i; }
+            if      (l->crumb(-1).matches("emissiveTexture"))   { mat->emissiveTexCoord = (Gobj::Attr)(int)n; }
+            else if (l->crumb(-1).matches("normalTexture"))     { mat->normalTexCoord = (Gobj::Attr)(int)n; }
+            else if (l->crumb(-1).matches("occlusionTexture"))  { mat->occlusionTexCoord = (Gobj::Attr)(int)n; }
         }
         else {
-            handleMaterialData((float)i);
+            handleMaterialData((float)n);
         }
     }
     else if (
@@ -346,7 +331,7 @@ bool GLTFLoader4::Scanner::Uint(unsigned i) {
         l->crumb(-2).matches(TYPE_ARR, "targets")))
     {
         g->meshAttributes[nextMeshAttribute].type = l->attrFromStr(l->key);
-        g->meshAttributes[nextMeshAttribute].accessor = g->accessors + i;
+        g->meshAttributes[nextMeshAttribute].accessor = g->accessors + (int)n;
         ++nextMeshAttribute;
     }
     else if (
@@ -356,9 +341,9 @@ bool GLTFLoader4::Scanner::Uint(unsigned i) {
         uint16_t mshIndex = l->crumb(-3).index;
         uint16_t priIndex = l->crumb(-1).index;
         Gobj::MeshPrimitive * prim = &g->meshes[mshIndex].primitives[priIndex];
-        if      (l->crumb().matches("indices"))  { prim->indices = g->accessors + i; }
-        else if (l->crumb().matches("material")) { prim->material = g->materials + i; }
-        else if (l->crumb().matches("mode"))     { prim->mode = (Gobj::MeshPrimitive::Mode)i; }
+        if      (l->crumb().matches("indices"))  { prim->indices = g->accessors + (int)n; }
+        else if (l->crumb().matches("material")) { prim->material = g->materials + (int)n; }
+        else if (l->crumb().matches("mode"))     { prim->mode = (Gobj::MeshPrimitive::Mode)(int)n; }
     }
     else if (
         l->crumb(-3).matches(TYPE_ARR, "meshes") &&
@@ -366,36 +351,30 @@ bool GLTFLoader4::Scanner::Uint(unsigned i) {
     {
         uint16_t mshIndex = l->crumb(-2).index;
         uint16_t numIndex = l->crumb().index;
-        g->meshes[mshIndex].weights[numIndex] = (float)i;
+        g->meshes[mshIndex].weights[numIndex] = (float)(int)n;
     }
 
-    l->pop();
-    return true;
-}
+    // OLD DOUBLE
 
-bool GLTFLoader4::Scanner::Double(double d) {
-    l->push(TYPE_FLOAT);
-    l->printBreadcrumbs();
-    printl("%f", d);
     if (l->crumb(-3).matches(TYPE_ARR, "accessors")) {
         uint16_t accIndex = l->crumb(-2).index;
         uint16_t minMaxIndex = l->crumb().index;
-        if      (l->crumb(-1).matches("min")) { g->accessors[accIndex].min[minMaxIndex] = (float)d; }
-        else if (l->crumb(-1).matches("max")) { g->accessors[accIndex].max[minMaxIndex] = (float)d; }
+        if      (l->crumb(-1).matches("min")) { g->accessors[accIndex].min[minMaxIndex] = (float)n; }
+        else if (l->crumb(-1).matches("max")) { g->accessors[accIndex].max[minMaxIndex] = (float)n; }
     }
     else if (l->crumb(-3).matches(TYPE_ARR, "cameras")) {
-        handleCameraData((float)d);
+        handleCameraData((float)n);
     }
     else if (
         l->crumb(-2).matches(TYPE_ARR, "materials") &&
         l->crumb().matches("alphaCutoff"))
     {
         uint16_t matIndex = l->crumb(-1).index;
-        g->materials[matIndex].alphaCutoff = (float)d;
+        g->materials[matIndex].alphaCutoff = (float)n;
     }
     else if (l->crumb(-3).matches(TYPE_ARR, "materials"))
     {
-        handleMaterialData((float)d);
+        handleMaterialData((float)n);
     }
     else if (
         l->crumb(-3).matches(TYPE_ARR, "meshes") &&
@@ -403,9 +382,23 @@ bool GLTFLoader4::Scanner::Double(double d) {
     {
         uint16_t mshIndex = l->crumb(-2).index;
         uint16_t numIndex = l->crumb().index;
-        g->meshes[mshIndex].weights[numIndex] = (float)d;
+        g->meshes[mshIndex].weights[numIndex] = (float)n;
     }
+
     l->pop();
+    return true;
+}
+
+bool GLTFLoader4::Scanner::Bool(bool b) {
+    return true;
+}
+
+bool GLTFLoader4::Scanner::Uint(unsigned i) {
+
+    return true;
+}
+
+bool GLTFLoader4::Scanner::Double(double d) {
     return true;
 }
 
@@ -671,6 +664,7 @@ char const * GLTFLoader4::Crumb::objTypeStr() const {
         (objType == TYPE_UINT)  ? "UINT" :
         (objType == TYPE_INT)   ? "INT" :
         (objType == TYPE_FLOAT) ? "FLOAT" :
+        (objType == TYPE_NUM)   ? "NUM" :
         "UNKNOWN";
 }
 
@@ -723,13 +717,13 @@ bool GLTFLoader4::load(Gobj * gobj) {
     using namespace rapidjson;
     assert(gltfData && "GLTF data invalid.");
     Scanner scanner{this, gobj};
-    rapidjson::Reader reader;
-    auto ss = rapidjson::StringStream(jsonStr());
-    rapidjson::ParseResult result =
-        reader.Parse<rapidjson::kParseStopWhenDoneFlag>(ss, scanner);
+    Reader reader;
+    auto ss = StringStream(jsonStr());
+    ParseResult result =
+        reader.Parse<kParseStopWhenDoneFlag|kParseNumbersAsStringsFlag>(ss, scanner);
     if (result.IsError()) {
         fprintf(stderr, "JSON parse error: %s (%zu)\n",
-            rapidjson::GetParseError_En(result.Code()), result.Offset());
+            GetParseError_En(result.Code()), result.Offset());
     }
     return result;
 }

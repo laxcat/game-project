@@ -99,6 +99,7 @@ public:
         TYPE_UINT,
         TYPE_INT,
         TYPE_FLOAT,
+        TYPE_NUM,
     };
 
     // each obj/arr shift gets a new crumb.

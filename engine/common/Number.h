@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <limits.h>
 
 #if DEBUG
 #include <stdio.h>
@@ -9,7 +10,7 @@
 
 class Number {
 public:
-    Number(char const * str, int length = -1) {
+    Number(char const * str, uint32_t length = UINT32_MAX) {
         // special case, all invalid
         if (length == 0) {
             return;
@@ -21,9 +22,12 @@ public:
     }
 
     operator uint64_t() const { validate(TYPE_UINT); return _uint; }
+    operator uint32_t() const { validate(TYPE_UINT, 0, UINT32_MAX); return (uint32_t)_uint; }
+    operator bool()     const { validate(TYPE_UINT); return (bool)_uint; }
     operator int64_t()  const { validate(TYPE_INT); return _int; }
     operator int()      const { validate(TYPE_INT, INT_MIN, INT_MAX); return (int)_int; }
     operator double()   const { validate(TYPE_DOUBLE); return _double; }
+    operator float()    const { validate(TYPE_DOUBLE); return (float)_double; }
 
 private:
     enum Type {
@@ -38,7 +42,7 @@ private:
     double _double = 0;
     Type _valid = TYPE_NONE;
 
-    void set(char const * str, int length, Type type) {
+    void set(char const * str, uint32_t length, Type type) {
         if (type == TYPE_NONE) {
             return;
         }
@@ -52,7 +56,7 @@ private:
         default: {}
         }
 
-        if (errno == 0 && ((length > 0 && str + length == end) || (*end == '\0'))) {
+        if (errno == 0 && ((length < UINT32_MAX && str + length == end) || (*end == '\0'))) {
             _valid = (Type)(_valid | type);
         }
     }
