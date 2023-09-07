@@ -31,49 +31,37 @@ bool GLTFLoader4::Counter::Double(double d) { return true; }
 bool GLTFLoader4::Counter::RawNumber(char const * str, uint32_t length, bool copy) { return true; }
 
 bool GLTFLoader4::Counter::Uint(unsigned i) {
-    l->push(TYPE_UINT);
-    // l->printBreadcrumbs();
-
-    if (l->crumb(-2).matches(TYPE_ARR, "buffers") &&
-        l->crumb().matches("byteLength")
+    if (l->crumb(-1).matches(TYPE_ARR, "buffers") &&
+        strEqu(l->key, "byteLength")
     ) {
         l->counts.rawDataLen += i;
     }
-
-    l->pop();
     return true;
 }
 
 bool GLTFLoader4::Counter::String(char const * str, uint32_t length, bool copy) {
-    l->push(TYPE_STR);
-    // l->printBreadcrumbs();
-
-    Crumb & thisCrumb = l->crumb();
     // name strings
-    if (l->crumb(-2).matches(TYPE_ARR,
+    if (l->crumb(-1).matches(TYPE_ARR,
             "accessors|animations|buffers|bufferViews|cameras|images|materials|"
             "meshes|nodes|samplers|scenes|skins|textures") &&
-        thisCrumb.matches("name")
+        strEqu(l->key, "name")
     ) {
         l->counts.allStrLen += length + 1;
     }
 
     // asset strings
     else if (
-        l->crumb(-1).matches(TYPE_OBJ, "asset") &&
-        thisCrumb.matches("copyright|generator|version|minVersion")
+        l->crumb().matches(TYPE_OBJ, "asset") &&
+        strWithin(l->key, "copyright|generator|version|minVersion")
     ) {
         l->counts.allStrLen += length + 1;
     }
-
-    l->pop();
     return true;
 }
 
 
 bool GLTFLoader4::Counter::StartObject() {
     l->push(TYPE_OBJ);
-    // l->printBreadcrumbs();
     return true;
 }
 
@@ -102,7 +90,6 @@ bool GLTFLoader4::Counter::EndObject(uint32_t memberCount) {
 bool GLTFLoader4::Counter::StartArray() {
     l->push(TYPE_ARR);
     l->pushIndex();
-    // l->printBreadcrumbs();
     return true;
 }
 
@@ -161,17 +148,17 @@ GLTFLoader4::Scanner::Scanner(GLTFLoader4 * loader, Gobj * gobj) :
     #endif // DEBUG
 }
 
-bool GLTFLoader4::Scanner::Null() {
-    return true;
-}
-bool GLTFLoader4::Scanner::Int(int i) {
-    return true;
-}
-bool GLTFLoader4::Scanner::Int64(int64_t i) {
-    return true;
-}
-bool GLTFLoader4::Scanner::Uint64(uint64_t i) {
-    return true;
+bool GLTFLoader4::Scanner::Null() { return false; }
+bool GLTFLoader4::Scanner::Int(int i) { return false; }
+bool GLTFLoader4::Scanner::Int64(int64_t i) { return false; }
+bool GLTFLoader4::Scanner::Uint64(uint64_t i) { return false; }
+bool GLTFLoader4::Scanner::Uint(unsigned i) { return false; }
+bool GLTFLoader4::Scanner::Double(double d) { return false; }
+
+bool GLTFLoader4::Scanner::Bool(bool b) {
+    return (b) ?
+        RawNumber("1", 1, false) :
+        RawNumber("0", 1, false);
 }
 
 bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool copy) {
@@ -181,24 +168,35 @@ bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool cop
 
     Number n{str, length};
 
-    // OLD INT
-
     if (l->crumb(-3).matches(TYPE_ARR, "accessors")) {
         uint16_t accIndex = l->crumb(-2).index;
         uint16_t minMaxIndex = l->crumb().index;
         // printl("ACCESSOR[%d] %s[%d] = %d (int)", accIndex, l->crumb(-1).key, minMaxIndex, i);
-        if      (l->crumb(-1).matches("min")) { g->accessors[accIndex].min[minMaxIndex] = (float)n; }
-        else if (l->crumb(-1).matches("max")) { g->accessors[accIndex].max[minMaxIndex] = (float)n; }
+        if      (l->crumb(-1).matches("min")) { g->accessors[accIndex].min[minMaxIndex] = n; }
+        else if (l->crumb(-1).matches("max")) { g->accessors[accIndex].max[minMaxIndex] = n; }
     }
     else if (l->crumb(-3).matches(TYPE_ARR, "cameras")) {
-        handleCameraData((float)n);
-    }
+        uint16_t camIndex = l->crumb(-2).index;
+        Gobj::Camera * c = g->cameras + camIndex;
+        char const * key = l->crumb().key;
 
-    // OLD BOOL
+        // unsafely relies on object member order. see below.
+        if      (strWithin(key, "xmag,aspectRatio")) { c->_data[0] = n; }
+        else if (strWithin(key, "ymag,yfov"))        { c->_data[1] = n; }
+        else if (strEqu(key, "zfar"))                { c->_data[2] = n; }
+        else if (strEqu(key, "znear"))               { c->_data[3] = n; }
 
-    if (l->crumb(-2).matches(TYPE_ARR, "accessors")) {
-        uint16_t index = l->crumb(-1).index;
-        if     (l->crumb().matches("normalized"))     { g->accessors[index].normalized = n; }
+        // since the above code unsafely relies on object member order, lets put
+        // some static checks to make sure the members are where we expect them.
+        static_assert(sizeof(float) == 4);
+        static_assert(offsetof(Gobj::CameraOrthographic, xmag) == 0);
+        static_assert(offsetof(Gobj::CameraOrthographic, ymag) == 4);
+        static_assert(offsetof(Gobj::CameraOrthographic, zfar) == 8);
+        static_assert(offsetof(Gobj::CameraOrthographic, znear) == 12);
+        static_assert(offsetof(Gobj::CameraPerspective, aspectRatio) == 0);
+        static_assert(offsetof(Gobj::CameraPerspective, yfov) == 4);
+        static_assert(offsetof(Gobj::CameraPerspective, zfar) == 8);
+        static_assert(offsetof(Gobj::CameraPerspective, znear) == 12);
     }
     else if (
         l->crumb(-2).matches(TYPE_ARR, "materials") &&
@@ -206,24 +204,20 @@ bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool cop
         uint16_t matIndex = l->crumb(-1).index;
         g->materials[matIndex].doubleSided = n;
     }
-
-    // OLD UINT
-
-    if (l->crumb(-2).matches(TYPE_ARR, "accessors")) {
+    else if (l->crumb(-2).matches(TYPE_ARR, "accessors")) {
         uint16_t index = l->crumb(-1).index;
-        if      (l->crumb().matches("bufferView"))     { g->accessors[index].bufferView = g->bufferViews + (int)n; }
-        else if (l->crumb().matches("byteOffset"))     { g->accessors[index].byteOffset = (int)n; }
+        if      (l->crumb().matches("bufferView"))     { g->accessors[index].bufferView = g->bufferViews + n; }
+        else if (l->crumb().matches("byteOffset"))     { g->accessors[index].byteOffset = n; }
         else if (l->crumb().matches("componentType"))  { g->accessors[index].componentType = (Gobj::Accessor::ComponentType)(int)n; }
-        else if (l->crumb().matches("normalized"))     { g->accessors[index].normalized = (int)n; }
-        else if (l->crumb().matches("count"))          { g->accessors[index].count = (int)n; }
+        else if (l->crumb().matches("normalized"))     { g->accessors[index].normalized = n; }
+        else if (l->crumb().matches("count"))          { g->accessors[index].count = n; }
 
     }
     else if (l->crumb(-3).matches(TYPE_ARR, "accessors")) {
         uint16_t accIndex = l->crumb(-2).index;
         uint16_t minMaxIndex = l->crumb().index;
-        // printl("ACCESSOR[%d] %s[%d] = %d (uint)", accIndex, l->crumb(-1).key, minMaxIndex, i);
-        if      (l->crumb(-1).matches("min")) { g->accessors[accIndex].min[minMaxIndex] = (float)n; }
-        else if (l->crumb(-1).matches("max")) { g->accessors[accIndex].max[minMaxIndex] = (float)n; }
+        if      (l->crumb(-1).matches("min")) { g->accessors[accIndex].min[minMaxIndex] = n; }
+        else if (l->crumb(-1).matches("max")) { g->accessors[accIndex].max[minMaxIndex] = n; }
     }
     else if (
         l->crumb(-4).matches(TYPE_ARR, "animations") &&
@@ -232,7 +226,7 @@ bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool cop
     {
         uint16_t aniIndex = l->crumb(-3).index;
         Gobj::AnimationChannel * ac = g->animations[aniIndex].channels + l->crumb(-1).index;
-        ac->sampler = g->animations[aniIndex].samplers + (int)n;
+        ac->sampler = g->animations[aniIndex].samplers + n;
     }
     else if (
         l->crumb(-5).matches(TYPE_ARR, "animations") &&
@@ -242,7 +236,7 @@ bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool cop
     {
         uint16_t aniIndex = l->crumb(-4).index;
         Gobj::AnimationChannel * ac = g->animations[aniIndex].channels + l->crumb(-2).index;
-        ac->node = g->nodes + (int)n;
+        ac->node = g->nodes + n;
     }
     else if (
         l->crumb(-4).matches(TYPE_ARR, "animations") &&
@@ -250,8 +244,8 @@ bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool cop
     {
         uint16_t aniIndex = l->crumb(-3).index;
         Gobj::AnimationSampler * as = g->animations[aniIndex].samplers + l->crumb(-1).index;
-        if      (l->crumb().matches("input"))  { as->input  = g->accessors + (int)n; }
-        else if (l->crumb().matches("output")) { as->output = g->accessors + (int)n; }
+        if      (l->crumb().matches("input"))  { as->input  = g->accessors + n; }
+        else if (l->crumb().matches("output")) { as->output = g->accessors + n; }
     }
     else if (
         l->crumb(-2).matches(TYPE_ARR, "buffers") &&
@@ -264,22 +258,19 @@ bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool cop
                 fprintf(stderr, "Unexpected buffer size.\n");
                 return false;
             }
-            memcpy(nextRawDataPtr, l->binData(), (uint64_t)n);
+            memcpy(nextRawDataPtr, l->binData(), n);
             g->buffers[bufIndex].data = nextRawDataPtr;
-            nextRawDataPtr += (uint64_t)n;
+            nextRawDataPtr += n;
         }
     }
     else if (l->crumb(-2).matches(TYPE_ARR, "bufferViews")) {
         uint16_t bvIndex = l->crumb(-1).index;
         Gobj::BufferView * bv = g->bufferViews + bvIndex;
-        if      (l->crumb().matches("buffer"))     { bv->buffer = g->buffers + (int)n; }
-        else if (l->crumb().matches("byteLength")) { bv->byteLength = (int)n; }
-        else if (l->crumb().matches("byteOffset")) { bv->byteOffset = (int)n; }
-        else if (l->crumb().matches("byteStride")) { bv->byteStride = (int)n; }
+        if      (l->crumb().matches("buffer"))     { bv->buffer = g->buffers + n; }
+        else if (l->crumb().matches("byteLength")) { bv->byteLength = n; }
+        else if (l->crumb().matches("byteOffset")) { bv->byteOffset = n; }
+        else if (l->crumb().matches("byteStride")) { bv->byteStride = n; }
         else if (l->crumb().matches("target"))     { bv->target = (Gobj::BufferView::Target)(int)n; }
-    }
-    else if (l->crumb(-3).matches(TYPE_ARR, "cameras")) {
-        handleCameraData((float)n);
     }
     else if (
         l->crumb(-2).matches(TYPE_ARR, "images") &&
@@ -287,30 +278,30 @@ bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool cop
     {
         uint16_t imgIndex = l->crumb(-1).index;
         Gobj::Image * img = g->images + imgIndex;
-        img->bufferView = g->bufferViews + (int)n;
+        img->bufferView = g->bufferViews + n;
     }
     else if (l->crumb(-4).matches(TYPE_ARR, "materials")) {
         uint16_t matIndex = l->crumb(-3).index;
         Gobj::Material * mat = g->materials + matIndex;
         if (l->crumb().matches("index")) {
-            if      (l->crumb(-1).matches("baseColorTexture"))        { mat->baseColorTexture = g->textures + (int)n; }
-            else if (l->crumb(-1).matches("metallicRoughnessTexture")){ mat->metallicRoughnessTexture = g->textures + (int)n; }
+            if      (l->crumb(-1).matches("baseColorTexture"))        { mat->baseColorTexture = g->textures + n; }
+            else if (l->crumb(-1).matches("metallicRoughnessTexture")){ mat->metallicRoughnessTexture = g->textures + n; }
         }
         else if (l->crumb().matches("texCoord")) {
             if      (l->crumb(-1).matches("baseColorTexture"))        { mat->baseColorTexCoord = (Gobj::Attr)(int)n; }
             else if (l->crumb(-1).matches("metallicRoughnessTexture")){ mat->metallicRoughnessTexCoord = (Gobj::Attr)(int)n; }
         }
         else {
-            handleMaterialData((float)n);
+            handleMaterialData(n);
         }
     }
     else if (l->crumb(-3).matches(TYPE_ARR, "materials")) {
         uint16_t matIndex = l->crumb(-2).index;
         Gobj::Material * mat = g->materials + matIndex;
         if (l->crumb().matches("index")) {
-            if      (l->crumb(-1).matches("emissiveTexture"))   { mat->emissiveTexture = g->textures + (int)n; }
-            else if (l->crumb(-1).matches("normalTexture"))     { mat->normalTexture = g->textures + (int)n; }
-            else if (l->crumb(-1).matches("occlusionTexture"))  { mat->occlusionTexture = g->textures + (int)n; }
+            if      (l->crumb(-1).matches("emissiveTexture"))   { mat->emissiveTexture = g->textures + n; }
+            else if (l->crumb(-1).matches("normalTexture"))     { mat->normalTexture = g->textures + n; }
+            else if (l->crumb(-1).matches("occlusionTexture"))  { mat->occlusionTexture = g->textures + n; }
         }
         else if (l->crumb().matches("texCoord")) {
             if      (l->crumb(-1).matches("emissiveTexture"))   { mat->emissiveTexCoord = (Gobj::Attr)(int)n; }
@@ -318,7 +309,7 @@ bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool cop
             else if (l->crumb(-1).matches("occlusionTexture"))  { mat->occlusionTexCoord = (Gobj::Attr)(int)n; }
         }
         else {
-            handleMaterialData((float)n);
+            handleMaterialData(n);
         }
     }
     else if (
@@ -331,7 +322,7 @@ bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool cop
         l->crumb(-2).matches(TYPE_ARR, "targets")))
     {
         g->meshAttributes[nextMeshAttribute].type = l->attrFromStr(l->key);
-        g->meshAttributes[nextMeshAttribute].accessor = g->accessors + (int)n;
+        g->meshAttributes[nextMeshAttribute].accessor = g->accessors + n;
         ++nextMeshAttribute;
     }
     else if (
@@ -341,8 +332,8 @@ bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool cop
         uint16_t mshIndex = l->crumb(-3).index;
         uint16_t priIndex = l->crumb(-1).index;
         Gobj::MeshPrimitive * prim = &g->meshes[mshIndex].primitives[priIndex];
-        if      (l->crumb().matches("indices"))  { prim->indices = g->accessors + (int)n; }
-        else if (l->crumb().matches("material")) { prim->material = g->materials + (int)n; }
+        if      (l->crumb().matches("indices"))  { prim->indices = g->accessors + n; }
+        else if (l->crumb().matches("material")) { prim->material = g->materials + n; }
         else if (l->crumb().matches("mode"))     { prim->mode = (Gobj::MeshPrimitive::Mode)(int)n; }
     }
     else if (
@@ -351,54 +342,17 @@ bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool cop
     {
         uint16_t mshIndex = l->crumb(-2).index;
         uint16_t numIndex = l->crumb().index;
-        g->meshes[mshIndex].weights[numIndex] = (float)(int)n;
-    }
-
-    // OLD DOUBLE
-
-    if (l->crumb(-3).matches(TYPE_ARR, "accessors")) {
-        uint16_t accIndex = l->crumb(-2).index;
-        uint16_t minMaxIndex = l->crumb().index;
-        if      (l->crumb(-1).matches("min")) { g->accessors[accIndex].min[minMaxIndex] = (float)n; }
-        else if (l->crumb(-1).matches("max")) { g->accessors[accIndex].max[minMaxIndex] = (float)n; }
-    }
-    else if (l->crumb(-3).matches(TYPE_ARR, "cameras")) {
-        handleCameraData((float)n);
+        g->meshes[mshIndex].weights[numIndex] = n;
     }
     else if (
         l->crumb(-2).matches(TYPE_ARR, "materials") &&
         l->crumb().matches("alphaCutoff"))
     {
         uint16_t matIndex = l->crumb(-1).index;
-        g->materials[matIndex].alphaCutoff = (float)n;
-    }
-    else if (l->crumb(-3).matches(TYPE_ARR, "materials"))
-    {
-        handleMaterialData((float)n);
-    }
-    else if (
-        l->crumb(-3).matches(TYPE_ARR, "meshes") &&
-        l->crumb(-1).matches(TYPE_ARR, "weights"))
-    {
-        uint16_t mshIndex = l->crumb(-2).index;
-        uint16_t numIndex = l->crumb().index;
-        g->meshes[mshIndex].weights[numIndex] = (float)n;
+        g->materials[matIndex].alphaCutoff = n;
     }
 
     l->pop();
-    return true;
-}
-
-bool GLTFLoader4::Scanner::Bool(bool b) {
-    return true;
-}
-
-bool GLTFLoader4::Scanner::Uint(unsigned i) {
-
-    return true;
-}
-
-bool GLTFLoader4::Scanner::Double(double d) {
     return true;
 }
 
@@ -570,30 +524,6 @@ bool GLTFLoader4::Scanner::EndArray(uint32_t elementCount) {
     return true;
 }
 
-void GLTFLoader4::Scanner::handleCameraData(float num) {
-    uint16_t camIndex = l->crumb(-2).index;
-    Gobj::Camera * c = g->cameras + camIndex;
-    char const * key = l->crumb().key;
-
-    // unsafely relies on object member order. see below.
-    if      (strWithin(key, "xmag,aspectRatio")) { c->_data[0] = num; }
-    else if (strWithin(key, "ymag,yfov"))        { c->_data[1] = num; }
-    else if (strEqu(key, "zfar"))                { c->_data[2] = num; }
-    else if (strEqu(key, "znear"))               { c->_data[3] = num; }
-
-    // since the above code unsafely relies on object member order, lets put
-    // some static checks to make sure the members are where we expect them.
-    static_assert(sizeof(float) == 4);
-    static_assert(offsetof(Gobj::CameraOrthographic, xmag) == 0);
-    static_assert(offsetof(Gobj::CameraOrthographic, ymag) == 4);
-    static_assert(offsetof(Gobj::CameraOrthographic, zfar) == 8);
-    static_assert(offsetof(Gobj::CameraOrthographic, znear) == 12);
-    static_assert(offsetof(Gobj::CameraPerspective, aspectRatio) == 0);
-    static_assert(offsetof(Gobj::CameraPerspective, yfov) == 4);
-    static_assert(offsetof(Gobj::CameraPerspective, zfar) == 8);
-    static_assert(offsetof(Gobj::CameraPerspective, znear) == 12);
-}
-
 void GLTFLoader4::Scanner::handleMaterialData(float num) {
     uint16_t matIndex = l->crumb(-2).index;
     if (l->crumb(-1).matches(TYPE_ARR, "emissiveFactor")) {
@@ -659,11 +589,6 @@ char const * GLTFLoader4::Crumb::objTypeStr() const {
         (objType == TYPE_OBJ)   ? "OBJ" :
         (objType == TYPE_ARR)   ? "ARR" :
         (objType == TYPE_STR)   ? "STR" :
-        (objType == TYPE_NULL)  ? "NULL" :
-        (objType == TYPE_BOOL)  ? "BOOL" :
-        (objType == TYPE_UINT)  ? "UINT" :
-        (objType == TYPE_INT)   ? "INT" :
-        (objType == TYPE_FLOAT) ? "FLOAT" :
         (objType == TYPE_NUM)   ? "NUM" :
         "UNKNOWN";
 }
@@ -716,6 +641,7 @@ void GLTFLoader4::calculateSize() {
 bool GLTFLoader4::load(Gobj * gobj) {
     using namespace rapidjson;
     assert(gltfData && "GLTF data invalid.");
+    key[0] = '\0';
     Scanner scanner{this, gobj};
     Reader reader;
     auto ss = StringStream(jsonStr());

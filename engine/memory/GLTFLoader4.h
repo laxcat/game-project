@@ -85,7 +85,6 @@ public:
         uint16_t nextMeshAttribute = 0;
         byte_t * nextRawDataPtr = nullptr;
 
-        void handleCameraData(float num);
         void handleMaterialData(float num);
     };
 
@@ -94,11 +93,6 @@ public:
         TYPE_OBJ,
         TYPE_ARR,
         TYPE_STR,
-        TYPE_NULL,
-        TYPE_BOOL,
-        TYPE_UINT,
-        TYPE_INT,
-        TYPE_FLOAT,
         TYPE_NUM,
     };
 

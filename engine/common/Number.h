@@ -21,13 +21,15 @@ public:
         set(str, length, TYPE_DOUBLE);
     }
 
-    operator uint64_t() const { validate(TYPE_UINT); return _uint; }
-    operator uint32_t() const { validate(TYPE_UINT, 0, UINT32_MAX); return (uint32_t)_uint; }
-    operator bool()     const { validate(TYPE_UINT); return (bool)_uint; }
-    operator int64_t()  const { validate(TYPE_INT); return _int; }
-    operator int()      const { validate(TYPE_INT, INT_MIN, INT_MAX); return (int)_int; }
-    operator double()   const { validate(TYPE_DOUBLE); return _double; }
-    operator float()    const { validate(TYPE_DOUBLE); return (float)_double; }
+    operator uint64_t()      const { validate(TYPE_UINT); return _uint; }
+    operator uint32_t()      const { validate(TYPE_UINT, 0, UINT32_MAX); return (uint32_t)_uint; }
+    operator unsigned long() const { validate(TYPE_UINT, 0, ULONG_MAX); return (unsigned long)_uint; }
+    operator bool()          const { validate(TYPE_UINT); return (bool)_uint; }
+    operator int64_t()       const { validate(TYPE_INT); return _int; }
+    operator long()          const { validate(TYPE_INT, LONG_MIN, LONG_MAX); return (long)_int; }
+    operator int()           const { validate(TYPE_INT, INT_MIN, INT_MAX); return (int)_int; }
+    operator double()        const { validate(TYPE_DOUBLE); return _double; }
+    operator float()         const { validate(TYPE_DOUBLE); return (float)_double; }
 
 private:
     enum Type {
