@@ -470,81 +470,7 @@ void GLTFLoader4::pop() {
     --depth;
 }
 
-Gobj::Accessor::Type GLTFLoader4::accessorTypeFromStr(char const * str) {
-    if (strEqu(str, "SCALAR")) return Gobj::Accessor::TYPE_SCALAR;
-    if (strEqu(str, "VEC2"  )) return Gobj::Accessor::TYPE_VEC2;
-    if (strEqu(str, "VEC3"  )) return Gobj::Accessor::TYPE_VEC3;
-    if (strEqu(str, "VEC4"  )) return Gobj::Accessor::TYPE_VEC4;
-    if (strEqu(str, "MAT2"  )) return Gobj::Accessor::TYPE_MAT2;
-    if (strEqu(str, "MAT3"  )) return Gobj::Accessor::TYPE_MAT3;
-    if (strEqu(str, "MAT4"  )) return Gobj::Accessor::TYPE_MAT4;
-    return Gobj::Accessor::TYPE_UNDEFINED;
-}
-
-Gobj::AnimationTarget GLTFLoader4::animationTargetFromStr(char const * str) {
-    if (strEqu(str, "weights"    )) return Gobj::ANIM_TAR_WEIGHTS;
-    if (strEqu(str, "translation")) return Gobj::ANIM_TAR_TRANSLATION;
-    if (strEqu(str, "rotation"   )) return Gobj::ANIM_TAR_ROTATION;
-    if (strEqu(str, "scale"      )) return Gobj::ANIM_TAR_SCALE;
-    return Gobj::ANIM_TAR_UNDEFINED;
-}
-
-Gobj::AnimationSampler::Interpolation GLTFLoader4::interpolationFromStr(char const * str) {
-    if (strEqu(str, "STEP"       )) return Gobj::AnimationSampler::INTERP_STEP;
-    if (strEqu(str, "CUBICSPLINE")) return Gobj::AnimationSampler::INTERP_CUBICSPLINE;
-    return Gobj::AnimationSampler::INTERP_LINEAR;
-}
-
-Gobj::Camera::Type GLTFLoader4::cameraTypeFromStr(char const * str) {
-    if (strEqu(str, "orthographic")) return Gobj::Camera::TYPE_ORTHO;
-    if (strEqu(str, "perspective" )) return Gobj::Camera::TYPE_PERSP;
-    return Gobj::Camera::TYPE_PERSP;
-}
-
-Gobj::Image::MIMEType GLTFLoader4::imageMIMETypeFromStr(char const * str) {
-    if (strEqu(str, "image/jpeg"))  return Gobj::Image::TYPE_JPEG;
-    if (strEqu(str, "image/png" ))  return Gobj::Image::TYPE_PNG;
-    return Gobj::Image::TYPE_PNG;
-}
-
-Gobj::Material::AlphaMode GLTFLoader4::alphaModeFromStr(char const * str) {
-    if (strEqu(str, "ALPHA_OPAQUE"))    return Gobj::Material::ALPHA_OPAQUE;
-    if (strEqu(str, "ALPHA_MASK" ))     return Gobj::Material::ALPHA_MASK;
-    if (strEqu(str, "ALPHA_BLEND" ))    return Gobj::Material::ALPHA_BLEND;
-    return Gobj::Material::ALPHA_OPAQUE;
-}
-
-Gobj::Attr GLTFLoader4::attrFromStr(char const * str) {
-    if (strEqu(str, "POSITION"))   return Gobj::ATTR_POSITION;
-    if (strEqu(str, "NORMAL"))     return Gobj::ATTR_NORMAL;
-    if (strEqu(str, "TANGENT"))    return Gobj::ATTR_TANGENT;
-    if (strEqu(str, "BITANGENT"))  return Gobj::ATTR_BITANGENT;
-    if (strEqu(str, "COLOR0"))     return Gobj::ATTR_COLOR0;
-    if (strEqu(str, "COLOR1"))     return Gobj::ATTR_COLOR1;
-    if (strEqu(str, "COLOR2"))     return Gobj::ATTR_COLOR2;
-    if (strEqu(str, "COLOR3"))     return Gobj::ATTR_COLOR3;
-    if (strEqu(str, "INDICES"))    return Gobj::ATTR_INDICES;
-    if (strEqu(str, "WEIGHT"))     return Gobj::ATTR_WEIGHT;
-    if (strEqu(str, "TEXCOORD_0")) return Gobj::ATTR_TEXCOORD0;
-    if (strEqu(str, "TEXCOORD_1")) return Gobj::ATTR_TEXCOORD1;
-    if (strEqu(str, "TEXCOORD_2")) return Gobj::ATTR_TEXCOORD2;
-    if (strEqu(str, "TEXCOORD_3")) return Gobj::ATTR_TEXCOORD3;
-    if (strEqu(str, "TEXCOORD_4")) return Gobj::ATTR_TEXCOORD4;
-    if (strEqu(str, "TEXCOORD_5")) return Gobj::ATTR_TEXCOORD5;
-    if (strEqu(str, "TEXCOORD_6")) return Gobj::ATTR_TEXCOORD6;
-    if (strEqu(str, "TEXCOORD_7")) return Gobj::ATTR_TEXCOORD7;
-    if (strEqu(str, "TEXCOORD0"))  return Gobj::ATTR_TEXCOORD0;
-    if (strEqu(str, "TEXCOORD1"))  return Gobj::ATTR_TEXCOORD1;
-    if (strEqu(str, "TEXCOORD2"))  return Gobj::ATTR_TEXCOORD2;
-    if (strEqu(str, "TEXCOORD3"))  return Gobj::ATTR_TEXCOORD3;
-    if (strEqu(str, "TEXCOORD4"))  return Gobj::ATTR_TEXCOORD4;
-    if (strEqu(str, "TEXCOORD5"))  return Gobj::ATTR_TEXCOORD5;
-    if (strEqu(str, "TEXCOORD6"))  return Gobj::ATTR_TEXCOORD6;
-    if (strEqu(str, "TEXCOORD7"))  return Gobj::ATTR_TEXCOORD7;
-    return Gobj::ATTR_POSITION;
-}
-
-size_t GLTFLoader4::handleData(byte_t * dst, char const * str, size_t strLength) {
+size_t GLTFLoader4::handleDataString(byte_t * dst, char const * str, size_t strLength) {
     // base64?
     static char const * isDataStr = "data:application/octet-stream;base64,";
     size_t isDataLen = strlen(isDataStr);
@@ -735,7 +661,7 @@ bool handleAccessor(HANDLE_CHILD_SIG) {
         break; }
     // type
     case 't'|'y'<<8: {
-        a->type = l->accessorTypeFromStr(str);
+        a->type = Gobj::accessorTypeFromStr(str);
         break; }
     }
     return true;
@@ -816,7 +742,7 @@ bool handleAnimationChannel(HANDLE_CHILD_SIG) {
                 break; }
             // path
             case 'p': {
-                ac->path = l->animationTargetFromStr(str);
+                ac->path = Gobj::animationTargetFromStr(str);
                 break; }
             }
             return true;
@@ -837,7 +763,7 @@ bool handleAnimationSampler(HANDLE_CHILD_SIG) {
         break; }
     // interpolation
     case 'i'|'n'<<8|'t'<<16|'e'<<24: {
-        as->interpolation = l->interpolationFromStr(str);
+        as->interpolation = Gobj::interpolationFromStr(str);
         break; }
     // output
     case 'o'|'u'<<8|'t'<<16|'p'<<24: {
@@ -859,7 +785,7 @@ bool handleBuffer(HANDLE_CHILD_SIG) {
             fprintf(stderr, "Unexpected buffer.uri in GLB.\n");
             return false;
         }
-        size_t bytesWritten = l->handleData(l->nextRawDataPtr, str, len);
+        size_t bytesWritten = l->handleDataString(l->nextRawDataPtr, str, len);
         if (bytesWritten == 0) {
             fprintf(stderr, "No bytes written in buffer %d.\n", bufIndex);
             return false;
@@ -971,7 +897,7 @@ bool handleCamera(HANDLE_CHILD_SIG) {
         };
         break; }
     case 't': {
-        cam->type = l->cameraTypeFromStr(str);
+        cam->type = Gobj::cameraTypeFromStr(str);
         break; }
     case 'n': {
         cam->name = g->strings->writeStr(str, len);
@@ -993,7 +919,7 @@ bool handleImage(HANDLE_CHILD_SIG) {
         break; }
     // mimeType
     case 'm': {
-        img->mimeType = l->imageMIMETypeFromStr(str);
+        img->mimeType = Gobj::imageMIMETypeFromStr(str);
         break; }
     // bufferView
     case 'b': {
@@ -1014,7 +940,7 @@ bool handleMaterial(HANDLE_CHILD_SIG) {
     // alphaMode || alphaCutoff
     case 'a': {
         switch (c.key[5]) {
-        case 'M': { mat->alphaMode = l->alphaModeFromStr(str); break; }
+        case 'M': { mat->alphaMode = Gobj::alphaModeFromStr(str); break; }
         case 'C': { mat->alphaCutoff = Number{str, len}; break; }
         }
         break; }
@@ -1190,7 +1116,7 @@ bool handleMeshPrimitive(HANDLE_CHILD_SIG) {
         prim->attributes = g->meshAttributes + l->nextMeshAttribute;
         // handle each attribute
         c.handleChild = [prim](HANDLE_CHILD_SIG) {
-            prim->attributes[prim->nAttributes].type = l->attrFromStr(l->crumb().key);
+            prim->attributes[prim->nAttributes].type = Gobj::attrFromStr(l->crumb().key);
             prim->attributes[prim->nAttributes].accessor = g->accessors + Number{str, len};
             ++prim->nAttributes;
             ++l->nextMeshAttribute;
@@ -1218,7 +1144,7 @@ bool handleMeshPrimitive(HANDLE_CHILD_SIG) {
             targ->attributes = g->meshAttributes + l->nextMeshAttribute;
             // handle each attribute of the target
             l->crumb().handleChild = [targ](HANDLE_CHILD_SIG) {
-                targ->attributes[targ->nAttributes].type = l->attrFromStr(l->crumb().key);
+                targ->attributes[targ->nAttributes].type = Gobj::attrFromStr(l->crumb().key);
                 targ->attributes[targ->nAttributes].accessor = g->accessors + Number{str, len};
                 ++targ->nAttributes;
                 ++l->nextMeshAttribute;

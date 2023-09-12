@@ -11,14 +11,21 @@ Loads GLTF files into Gobj.
 
 Implemented:
     • opening/reading .glb files
+    • opening/reading .gltf files
     • Calculating size
     • loading strings
     • loading accessors
+    • loading animations and related sub-objects
+    • loading buffers
+    • loading bufferViews
+    • loading cameras
+    • loading images
+    • loading materials
+    • loading meshes and related sub-objects
 
 NOT implemented yet:
-    • opening/reading .gltf files
+    • external images
     • accessor.sparce
-    • buffer uri (or any external file loading)
     • any extensions
     • any extras
     • loading anything not specifically mentioned in "Implemented" list
@@ -167,14 +174,6 @@ private:
     void push(ObjType objType);
     void pop();
 
-// TODO: these conversion functions should be somewhere else maybe
 public:
-    Gobj::Accessor::Type accessorTypeFromStr(char const * str);
-    Gobj::AnimationTarget animationTargetFromStr(char const * str);
-    Gobj::AnimationSampler::Interpolation interpolationFromStr(char const * str);
-    Gobj::Camera::Type cameraTypeFromStr(char const * str);
-    Gobj::Image::MIMEType imageMIMETypeFromStr(char const * str);
-    Gobj::Material::AlphaMode alphaModeFromStr(char const * str);
-    Gobj::Attr attrFromStr(char const * str);
-    size_t handleData(byte_t * dst, char const * str, size_t strLength);
+    size_t handleDataString(byte_t * dst, char const * str, size_t strLength);
 };

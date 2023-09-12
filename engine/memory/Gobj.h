@@ -512,6 +512,16 @@ public:
         char const * name = nullptr;
     };
 
+// STRING TO TYPE CONVERSIONS
+public:
+    static Accessor::Type accessorTypeFromStr(char const * str);
+    static AnimationTarget animationTargetFromStr(char const * str);
+    static AnimationSampler::Interpolation interpolationFromStr(char const * str);
+    static Camera::Type cameraTypeFromStr(char const * str);
+    static Image::MIMEType imageMIMETypeFromStr(char const * str);
+    static Material::AlphaMode alphaModeFromStr(char const * str);
+    static Attr attrFromStr(char const * str);
+
     // DEBUG
 public:
     #if DEBUG || DEV_INTERFACE
