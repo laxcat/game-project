@@ -224,35 +224,28 @@ char * Gobj::printToFrameStack() const {
 
     char * str = (char *)fs.dataHead();
 
-    fs.formatPen("Accessor    %011p (%d)\n", accessors,         counts.accessors);
+    fs.formatPen("Accessors   %011p (%d)\n", accessors,         counts.accessors);
     fs.formatPen("Animation   %011p (%d)\n", animations,        counts.animations);
     fs.formatPen("AChannels               (%d)\n",              counts.animationChannels);
     fs.formatPen("ASamplers               (%d)\n",              counts.animationSamplers);
-    fs.formatPen("Buffer      %011p (%d)\n", buffers,           counts.buffers);
-    fs.formatPen("BufferView  %011p (%d)\n", bufferViews,       counts.bufferViews);
-    fs.formatPen("Camera      %011p (%d)\n", cameras,           counts.cameras);
-    fs.formatPen("Image       %011p (%d)\n", images,            counts.images);
-    fs.formatPen("Material    %011p (%d)\n", materials,         counts.materials);
-    fs.formatPen("Mesh        %011p (%d)\n", meshes,            counts.meshes);
-    fs.formatPen("MAttribute  %011p (%d)\n", meshAttributes,    counts.meshAttributes);
-    fs.formatPen("MPrimitive  %011p (%d)\n", meshPrimitives,    counts.meshPrimitives);
+    fs.formatPen("Buffers     %011p (%d)\n", buffers,           counts.buffers);
+    fs.formatPen("BufferViews %011p (%d)\n", bufferViews,       counts.bufferViews);
+    fs.formatPen("Cameras     %011p (%d)\n", cameras,           counts.cameras);
+    fs.formatPen("Images      %011p (%d)\n", images,            counts.images);
+    fs.formatPen("Materials   %011p (%d)\n", materials,         counts.materials);
+    fs.formatPen("Meshs       %011p (%d)\n", meshes,            counts.meshes);
+    fs.formatPen("MAttributes %011p (%d)\n", meshAttributes,    counts.meshAttributes);
+    fs.formatPen("MPrimitives %011p (%d)\n", meshPrimitives,    counts.meshPrimitives);
     fs.formatPen("MWeights    %011p (%d)\n", meshWeights,       counts.meshWeights);
-    fs.formatPen("Node        %011p (%d)\n", nodes,             counts.nodes);
-    fs.formatPen("Sampler     %011p (%d)\n", samplers,          counts.samplers);
-    fs.formatPen("Scene       %011p (%d)\n", scenes,            counts.scenes);
+    fs.formatPen("Nodes       %011p (%d)\n", nodes,             counts.nodes);
+    fs.formatPen("Samplers    %011p (%d)\n", samplers,          counts.samplers);
+    fs.formatPen("Scenes      %011p (%d)\n", scenes,            counts.scenes);
     fs.formatPen("Scene Nodes             (%d)\n",              counts.sceneNodes);
-    fs.formatPen("Skin        %011p (%d)\n", skins,             counts.skins);
-    fs.formatPen("Texture     %011p (%d)\n", textures,          counts.textures);
+    fs.formatPen("Skins       %011p (%d)\n", skins,             counts.skins);
+    fs.formatPen("Textures    %011p (%d)\n", textures,          counts.textures);
     fs.formatPen("raw data    %011p (%zu)\n",rawData,           counts.rawDataLen);
 
-    fs.formatPen("scene index %d (", scene);
-    if (scene == -1) {
-        fs.formatPen("0");
-    }
-    else {
-        fs.formatPen("%p", scenes + scene);
-    }
-    fs.formatPen(")\n");
+    fs.formatPen("scene       %011p (%zu)\n", scene, scene - scenes);
 
     fs.formatPen("copyright:  %s\n", copyright);
     fs.formatPen("generator:  %s\n", generator);

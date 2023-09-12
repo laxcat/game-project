@@ -213,7 +213,7 @@ public:
 
     Counts counts;
 
-    int16_t scene = -1;
+    Scene * scene = nullptr;
 
     // asset
     char const * copyright = nullptr;
