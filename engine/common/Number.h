@@ -83,7 +83,7 @@ private:
         default: {}
         }
     }
-    #elif
-    void validate(Type, int64_t, uint64_t) {}
+    #else
+    void validate(Type, int64_t = 0, uint64_t = 0) const {}
     #endif // DEBUG
 };
