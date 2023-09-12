@@ -308,30 +308,6 @@ bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool cop
     //     Gobj::Image * img = g->images + imgIndex;
     //     img->bufferView = g->bufferViews + n;
     // }
-    else if (
-        (l->crumb(-5).matches(TYPE_ARR, "meshes") &&
-        l->crumb(-3).matches(TYPE_ARR, "primitives") &&
-        l->crumb(-1).matches("attributes"))
-        ||
-        (l->crumb(-6).matches(TYPE_ARR, "meshes") &&
-        l->crumb(-4).matches(TYPE_ARR, "primitives") &&
-        l->crumb(-2).matches(TYPE_ARR, "targets")))
-    {
-        g->meshAttributes[nextMeshAttribute].type = l->attrFromStr(l->key);
-        g->meshAttributes[nextMeshAttribute].accessor = g->accessors + n;
-        ++nextMeshAttribute;
-    }
-    else if (
-        l->crumb(-4).matches(TYPE_ARR, "meshes") &&
-        l->crumb(-2).matches(TYPE_ARR, "primitives"))
-    {
-        uint16_t mshIndex = l->crumb(-3).index;
-        uint16_t priIndex = l->crumb(-1).index;
-        Gobj::MeshPrimitive * prim = &g->meshes[mshIndex].primitives[priIndex];
-        if      (l->crumb().matches("indices"))  { prim->indices = g->accessors + n; }
-        else if (l->crumb().matches("material")) { prim->material = g->materials + n; }
-        else if (l->crumb().matches("mode"))     { prim->mode = (Gobj::MeshPrimitive::Mode)(int)n; }
-    }
     // else if (l->crumb(-4).matches(TYPE_ARR, "materials")) {
     //     uint16_t matIndex = l->crumb(-3).index;
     //     Gobj::Material * mat = g->materials + matIndex;
@@ -363,6 +339,30 @@ bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool cop
     //     else {
     //         handleMaterialData(n);
     //     }
+    // }
+    // else if (
+    //     (l->crumb(-5).matches(TYPE_ARR, "meshes") &&
+    //     l->crumb(-3).matches(TYPE_ARR, "primitives") &&
+    //     l->crumb(-1).matches("attributes"))
+    //     ||
+    //     (l->crumb(-6).matches(TYPE_ARR, "meshes") &&
+    //     l->crumb(-4).matches(TYPE_ARR, "primitives") &&
+    //     l->crumb(-2).matches(TYPE_ARR, "targets")))
+    // {
+    //     g->meshAttributes[nextMeshAttribute].type = l->attrFromStr(l->key);
+    //     g->meshAttributes[nextMeshAttribute].accessor = g->accessors + n;
+    //     ++nextMeshAttribute;
+    // }
+    // else if (
+    //     l->crumb(-4).matches(TYPE_ARR, "meshes") &&
+    //     l->crumb(-2).matches(TYPE_ARR, "primitives"))
+    // {
+    //     uint16_t mshIndex = l->crumb(-3).index;
+    //     uint16_t priIndex = l->crumb(-1).index;
+    //     Gobj::MeshPrimitive * prim = &g->meshes[mshIndex].primitives[priIndex];
+    //     if      (l->crumb().matches("indices"))  { prim->indices = g->accessors + n; }
+    //     else if (l->crumb().matches("material")) { prim->material = g->materials + n; }
+    //     else if (l->crumb().matches("mode"))     { prim->mode = (Gobj::MeshPrimitive::Mode)(int)n; }
     // }
     else if (
         l->crumb(-3).matches(TYPE_ARR, "meshes") &&
@@ -410,8 +410,8 @@ bool GLTFLoader4::Scanner::String(char const * str, uint32_t length, bool copy) 
         // else if (strEqu(key, "bufferViews")){ g->bufferViews[index].name = g->strings->writeStr(str, length); }
         // else if (strEqu(key, "cameras"))    { g->cameras[index].name     = g->strings->writeStr(str, length); }
         // else if (strEqu(key, "images"))     { g->images[index].name      = g->strings->writeStr(str, length); }
-        else if (strEqu(key, "meshes"))     { g->meshes[index].name      = g->strings->writeStr(str, length); }
         // else if (strEqu(key, "materials"))  { g->materials[index].name   = g->strings->writeStr(str, length); }
+        // else if (strEqu(key, "meshes"))     { g->meshes[index].name      = g->strings->writeStr(str, length); }
         else if (strEqu(key, "nodes"))      { g->nodes[index].name       = g->strings->writeStr(str, length); }
         else if (strEqu(key, "samplers"))   { g->samplers[index].name    = g->strings->writeStr(str, length); }
         else if (strEqu(key, "scenes"))     { g->scenes[index].name      = g->strings->writeStr(str, length); }
@@ -525,20 +525,20 @@ bool GLTFLoader4::Scanner::StartObject() {
     //         c->perspective = (Gobj::CameraPerspective *)&c->_data;
     //     }
     // }
-    else if (l->crumb(-1).matches(TYPE_ARR, "meshes")) {
-        uint16_t index = l->crumb().index;
-        g->meshes[index].primitives = g->meshPrimitives + nextMeshPrimitive;
-        g->meshes[index].weights = g->meshWeights + nextMeshWeight;
-    }
-    else if (
-        l->crumb(-4).matches(TYPE_ARR, "meshes") &&
-        l->crumb(-2).matches(TYPE_ARR, "primitives") &&
-        l->crumb().matches("attributes"))
-    {
-        uint16_t mshIndex = l->crumb(-3).index;
-        uint16_t priIndex = l->crumb(-1).index;
-        g->meshes[mshIndex].primitives[priIndex].attributes = g->meshAttributes + nextMeshAttribute;
-    }
+    // else if (l->crumb(-1).matches(TYPE_ARR, "meshes")) {
+    //     uint16_t index = l->crumb().index;
+    //     g->meshes[index].primitives = g->meshPrimitives + nextMeshPrimitive;
+    //     g->meshes[index].weights = g->meshWeights + nextMeshWeight;
+    // }
+    // else if (
+    //     l->crumb(-4).matches(TYPE_ARR, "meshes") &&
+    //     l->crumb(-2).matches(TYPE_ARR, "primitives") &&
+    //     l->crumb().matches("attributes"))
+    // {
+    //     uint16_t mshIndex = l->crumb(-3).index;
+    //     uint16_t priIndex = l->crumb(-1).index;
+    //     g->meshes[mshIndex].primitives[priIndex].attributes = g->meshAttributes + nextMeshAttribute;
+    // }
     return true;
 }
 
@@ -971,7 +971,13 @@ bool handleRoot(HANDLE_CHILD_SIG) {
         };
         break; }
     // meshes
-    case 'm'|'e'<<8: { printl("!!!!!!!! meshes"); break; }
+    case 'm'|'e'<<8: {
+        printl("!!!!!!!! meshes");
+        c.handleChild = [](HANDLE_CHILD_SIG) {
+            l->crumb().handleChild = handleMesh;
+            return true;
+        };
+        break; }
     // nodes
     case 'n'|'o'<<8: { printl("!!!!!!!! nodes"); break; }
     // samplers
@@ -1448,6 +1454,96 @@ bool handleMaterial(HANDLE_CHILD_SIG) {
             // roughnessFactor
             case 'r': { mat->roughnessFactor = Number{str, len}; break; }
             }
+            return true;
+        };
+        break; }
+    }
+    return true;
+}
+
+bool handleMesh(HANDLE_CHILD_SIG) {
+    auto & c = l->crumb();
+    Gobj::Mesh * mesh = g->meshes + l->crumb(-1).index;
+    switch (c.key[0]) {
+    // primitives
+    case 'p': {
+        // primitives array
+        mesh->primitives = g->meshPrimitives + l->nextMeshPrimitive;
+        // handle each primitive
+        c.handleChild = [mesh](HANDLE_CHILD_SIG) {
+            l->crumb().handleChild = handleMeshPrimitive;
+            return true;
+        };
+        // on end of primitives array
+        c.handleEnd = [mesh](HANDLE_END_SIG) {
+            mesh->nPrimitives = count;
+            l->nextMeshPrimitive += count;
+            return true;
+        };
+        break; }
+    // weights
+    case 'w': {
+        mesh->weights = g->meshWeights + l->nextMeshWeight;
+        c.handleChild = [mesh](HANDLE_CHILD_SIG) {
+            mesh->weights[mesh->nWeights] = Number{str, len};
+            ++mesh->nWeights;
+            ++l->nextMeshWeight;
+            return true;
+        };
+        break; }
+    // name
+    case 'n': { mesh->name = g->strings->writeStr(str, len); break; }
+    }
+    return true;
+}
+
+bool handleMeshPrimitive(HANDLE_CHILD_SIG) {
+    Gobj::Mesh * mesh = g->meshes + l->crumb(-3).index;
+    Gobj::MeshPrimitive * prim = mesh->primitives + l->crumb(-1).index;
+    auto & c = l->crumb();
+    switch (l->crumb().key[0]) {
+    // attributes
+    case 'a': {
+        // set array location
+        prim->attributes = g->meshAttributes + l->nextMeshAttribute;
+        // handle each attribute
+        c.handleChild = [prim](HANDLE_CHILD_SIG) {
+            prim->attributes[prim->nAttributes].type = l->attrFromStr(l->crumb().key);
+            prim->attributes[prim->nAttributes].accessor = g->accessors + Number{str, len};
+            ++prim->nAttributes;
+            ++l->nextMeshAttribute;
+            return true;
+        };
+        break; }
+    // indices
+    case 'i': { prim->indices = g->accessors + Number{str, len}; break; }
+    // material || mode
+    case 'm': {
+        switch (l->crumb().key[1]) {
+        // material
+        case 'a': { prim->material = g->materials + Number{str, len}; break; }
+        // mode
+        case 'o': { prim->mode = (Gobj::MeshPrimitive::Mode)(int)Number{str, len}; break; }
+        }
+        break; }
+    // targets
+    case 't': {
+        // set array location
+        prim->targets = g->meshTargets + l->nextMeshTarget;
+        // handle each target
+        c.handleChild = [prim](HANDLE_CHILD_SIG) {
+            Gobj::MeshTarget * targ = prim->targets + prim->nTargets;
+            targ->attributes = g->meshAttributes + l->nextMeshAttribute;
+            // handle each attribute of the target
+            l->crumb().handleChild = [targ](HANDLE_CHILD_SIG) {
+                targ->attributes[targ->nAttributes].type = l->attrFromStr(l->crumb().key);
+                targ->attributes[targ->nAttributes].accessor = g->accessors + Number{str, len};
+                ++targ->nAttributes;
+                ++l->nextMeshAttribute;
+                return true;
+            };
+            ++prim->nTargets;
+            ++l->nextMeshTarget;
             return true;
         };
         break; }

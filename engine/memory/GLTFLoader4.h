@@ -79,9 +79,11 @@ public:
         GLTFLoader4 * l;
         Gobj * g;
     private:
+        // THESE ARE OLD DON'T USE THESE
         uint16_t nextAnimationChannel = 0;
         uint16_t nextAnimationSampler = 0;
         uint16_t nextMeshPrimitive = 0;
+        // uint16_t nextMeshTarget = 0;
         uint16_t nextMeshWeight = 0;
         uint16_t nextMeshAttribute = 0;
         byte_t * nextRawDataPtr = nullptr;
@@ -162,6 +164,7 @@ public:
     uint16_t nextAnimationChannel = 0;
     uint16_t nextAnimationSampler = 0;
     uint16_t nextMeshPrimitive = 0;
+    uint16_t nextMeshTarget = 0;
     uint16_t nextMeshWeight = 0;
     uint16_t nextMeshAttribute = 0;
     byte_t * nextRawDataPtr = nullptr;
