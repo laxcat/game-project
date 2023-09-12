@@ -33,6 +33,15 @@ public:
     static constexpr size_t MaxKeyLen = 32;
 // TYPES
 public:
+    // type of each SAX object while traversing JSON
+    enum ObjType {
+        TYPE_UNKNOWN,
+        TYPE_OBJ,
+        TYPE_ARR,
+        TYPE_STR,
+        TYPE_NUM,
+    };
+
     // rapidjson handler
     // counts objects to determine size/layout of final Gobj
     class Counter {
@@ -75,28 +84,11 @@ public:
         bool EndObject(uint32_t memberCount);
         bool StartArray();
         bool EndArray(uint32_t elementCount);
-    public:
+    private:
         GLTFLoader4 * l;
         Gobj * g;
-    private:
-        // THESE ARE OLD DON'T USE THESE
-        uint16_t nextAnimationChannel = 0;
-        uint16_t nextAnimationSampler = 0;
-        uint16_t nextMeshPrimitive = 0;
-        // uint16_t nextMeshTarget = 0;
-        uint16_t nextMeshWeight = 0;
-        uint16_t nextMeshAttribute = 0;
-        byte_t * nextRawDataPtr = nullptr;
-
-        void handleMaterialData(float num);
-    };
-
-    enum ObjType {
-        TYPE_UNKNOWN,
-        TYPE_OBJ,
-        TYPE_ARR,
-        TYPE_STR,
-        TYPE_NUM,
+        // handles both String and RawNumber
+        bool Value(ObjType type, char const * str, uint32_t length);
     };
 
     // each obj/arr shift gets a new crumb.
