@@ -117,8 +117,8 @@ public:
         bool hasKey() const;
         bool isValid() const;
 
-        std::function<void(GLTFLoader4 *, Gobj * g, char const *, uint32_t)> handleChild = nullptr;
-        std::function<void(GLTFLoader4 *, Gobj * g, uint32_t)> handleEnd = nullptr;
+        std::function<bool(GLTFLoader4 *, Gobj * g, char const *, uint32_t)> handleChild = nullptr;
+        std::function<bool(GLTFLoader4 *, Gobj * g, uint32_t)> handleEnd = nullptr;
     };
 
 // PUBLIC INTERFACE
@@ -192,4 +192,5 @@ private:
     static bool handleBuffer(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
     static bool handleBufferView(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
     static bool handleCamera(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleImage(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
 };
