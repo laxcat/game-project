@@ -71,16 +71,15 @@ bool GLTFLoader4::Counter::Key(char const * str, uint32_t length, bool copy) {
 }
 
 bool GLTFLoader4::Counter::EndObject(uint32_t memberCount) {
-    if (l->crumb(-4).matches(TYPE_ARR, "meshes") &&
+    if (
+        (l->crumb(-4).matches(TYPE_ARR, "meshes") &&
         l->crumb(-2).matches("primitives") &&
         l->crumb().matches("attributes"))
-    {
-        l->counts.meshAttributes += memberCount;
-    }
-    else if (l->crumb(-5).matches(TYPE_ARR, "meshes") &&
-        l->crumb(-3).matches(TYPE_ARR, "primitives") &&
-        l->crumb(-1).matches(TYPE_ARR, "targets"))
-    {
+        ||
+        (l->crumb(-5).matches(TYPE_ARR, "meshes") &&
+        l->crumb(-3).matches("primitives") &&
+        l->crumb(-1).matches("targets"))
+    ) {
         l->counts.meshAttributes += memberCount;
     }
     l->pop();
@@ -123,6 +122,12 @@ bool GLTFLoader4::Counter::EndArray(uint32_t elementCount) {
     else if (l->depth == 4 && l->crumb(-2).matches("meshes")) {
         if      (crumb.matches("primitives")) { l->counts.meshPrimitives += elementCount; }
         else if (crumb.matches("weights")) { l->counts.meshWeights += elementCount; }
+    }
+    else if (l->crumb(-4).matches(TYPE_ARR, "meshes") &&
+        l->crumb(-2).matches(TYPE_ARR, "primitives") &&
+        l->crumb().matches(TYPE_ARR, "targets"))
+    {
+        l->counts.meshTargets += elementCount;
     }
     l->pop();
     return true;

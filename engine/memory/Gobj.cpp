@@ -119,6 +119,14 @@ Gobj::Gobj(MemMan *, Gobj::Counts const & counts) :
         }
     }
 
+    if (counts.meshTargets) {
+        meshTargets = (MeshTarget *)head;
+        for (uint16_t i = 0; i < counts.meshTargets; ++i) {
+            new (head) MeshTarget{};
+            head += ALIGN_SIZE(sizeof(MeshTarget));
+        }
+    }
+
     if (counts.meshWeights) {
         meshWeights = (float *)head;
         for (uint16_t i = 0; i < counts.meshWeights; ++i) {
@@ -201,6 +209,7 @@ size_t Gobj::Counts::totalSize() const {
         ALIGN_SIZE(sizeof(Gobj::Mesh) )            * meshes +
         ALIGN_SIZE(sizeof(Gobj::MeshAttribute))    * meshAttributes +
         ALIGN_SIZE(sizeof(Gobj::MeshPrimitive))    * meshPrimitives +
+        ALIGN_SIZE(sizeof(Gobj::MeshTarget))       * meshTargets +
         ALIGN_SIZE(sizeof(float))                  * meshWeights +
         ALIGN_SIZE(sizeof(Gobj::Node))             * nodes +
         ALIGN_SIZE(sizeof(Gobj::Sampler))          * samplers +
@@ -236,6 +245,7 @@ char * Gobj::printToFrameStack() const {
     fs.formatPen("Meshs       %011p (%d)\n", meshes,            counts.meshes);
     fs.formatPen("MAttributes %011p (%d)\n", meshAttributes,    counts.meshAttributes);
     fs.formatPen("MPrimitives %011p (%d)\n", meshPrimitives,    counts.meshPrimitives);
+    fs.formatPen("MTargets    %011p (%d)\n", meshTargets,       counts.meshTargets);
     fs.formatPen("MWeights    %011p (%d)\n", meshWeights,       counts.meshWeights);
     fs.formatPen("Nodes       %011p (%d)\n", nodes,             counts.nodes);
     fs.formatPen("Samplers    %011p (%d)\n", samplers,          counts.samplers);
@@ -282,6 +292,7 @@ char * Gobj::Counts::printToFrameStack() const {
     fs.formatPen("Mesh:         %d\n", meshes);
     fs.formatPen("MAttribute:   %d\n", meshAttributes);
     fs.formatPen("MPrimitive:   %d\n", meshPrimitives);
+    fs.formatPen("MTarget:      %d\n", meshTargets);
     fs.formatPen("Node:         %d\n", nodes);
     fs.formatPen("Sampler:      %d\n", samplers);
     fs.formatPen("Scene:        %d\n", scenes);

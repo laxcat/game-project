@@ -87,6 +87,10 @@ MeshPrimitive
 MeshPrimitive
 ...
 ----------------------------------------
+MeshTarget
+MeshTarget
+...
+----------------------------------------
 float                                   // Mesh weights
 float
 ...
@@ -148,6 +152,7 @@ public:
     struct Mesh;
     struct MeshAttribute;
     struct MeshPrimitive;
+    struct MeshTarget;
     struct Node;
     struct Sampler;
     struct Scene;
@@ -168,6 +173,7 @@ public:
         uint16_t meshes = 0;
         uint16_t meshPrimitives = 0;
         uint16_t meshAttributes = 0;
+        uint16_t meshTargets = 0;
         uint16_t meshWeights = 0;
         uint16_t nodes = 0;
         uint16_t samplers = 0;
@@ -202,6 +208,7 @@ public:
     Mesh             * meshes            = nullptr;
     MeshAttribute    * meshAttributes    = nullptr;
     MeshPrimitive    * meshPrimitives    = nullptr;
+    MeshTarget       * meshTargets       = nullptr;
     float            * meshWeights       = nullptr;
     Node             * nodes             = nullptr;
     Sampler          * samplers          = nullptr;
@@ -440,8 +447,13 @@ public:
             MODE_TRIANGLE_FAN,
         };
         Mode mode = MODE_TRIANGLES;
-        MeshAttribute * targets = nullptr;
+        MeshTarget * targets = nullptr;
         int nTargets = 0;
+    };
+
+    struct MeshTarget {
+        MeshAttribute * attributes = nullptr;
+        int nAttributes = 0;
     };
 
     struct Node {
