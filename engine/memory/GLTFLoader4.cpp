@@ -52,7 +52,7 @@ bool GLTFLoader4::Counter::String(char const * str, uint32_t length, bool copy) 
     // asset strings
     else if (
         l->crumb().matches(TYPE_OBJ, "asset") &&
-        strWithin(l->key, "copyright|generator|version|minVersion")
+        strWithin(l->key, "copyright|generator|version|minVersion", '|')
     ) {
         l->counts.allStrLen += length + 1;
     }
