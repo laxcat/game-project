@@ -172,6 +172,8 @@ private:
     void push(ObjType objType);
     void pop();
 
+// TODO: these conversion functions should be somewhere else maybe
+public:
     Gobj::Accessor::Type accessorTypeFromStr(char const * str);
     Gobj::AnimationTarget animationTargetFromStr(char const * str);
     Gobj::AnimationSampler::Interpolation interpolationFromStr(char const * str);
@@ -180,17 +182,4 @@ private:
     Gobj::Material::AlphaMode alphaModeFromStr(char const * str);
     Gobj::Attr attrFromStr(char const * str);
     size_t handleData(byte_t * dst, char const * str, size_t strLength);
-
-// HANDLERS
-private:
-    static bool handleRoot(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleAccessor(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleAsset(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleAnimation(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleAnimationChannel(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleAnimationSampler(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleBuffer(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleBufferView(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleCamera(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleImage(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
 };
