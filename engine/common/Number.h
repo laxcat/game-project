@@ -66,7 +66,7 @@ private:
     #if DEBUG
     void validate(Type type, int64_t min = 0, uint64_t max = 0) const {
         if ((_valid & type) == 0) {
-            fprintf(stderr, "Converting to invalid type.\n");
+            fprintf(stderr, "Converting to invalid type. (_valid:%d, type:%d)\n", _valid, type);
         }
         switch (type) {
         case TYPE_UINT: {

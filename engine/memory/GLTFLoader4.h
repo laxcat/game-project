@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <stdint.h>
 #include <stddef.h>
 #include "../common/debug_defines.h"
@@ -102,6 +103,7 @@ public:
         ObjType objType = TYPE_UNKNOWN;
         char key[MaxKeyLen] = {'\0'};
         uint32_t index = UINT32_MAX; // index if is child of array.
+        uint32_t childCount = 0;
 
         Crumb(ObjType objType, char const * key = nullptr);
         Crumb();
@@ -113,6 +115,10 @@ public:
         bool matches(ObjType objType, char const * key = nullptr) const;
         char const * objTypeStr() const;
         bool hasKey() const;
+        bool isValid() const;
+
+        std::function<void(GLTFLoader4 *, Gobj * g, char const *, uint32_t)> handleChild = nullptr;
+        std::function<void(GLTFLoader4 *, Gobj * g, uint32_t)> handleEnd = nullptr;
     };
 
 // PUBLIC INTERFACE
@@ -132,6 +138,7 @@ public:
     uint32_t binDataSize() const;
     byte_t const * binData() const;
     bool validData() const;
+    static char const * objTypeStr(ObjType objType);
 
     char const * prettyJSON(uint32_t * prettyJSONSize = nullptr) const;
     void printBreadcrumbs() const;
@@ -149,20 +156,21 @@ public:
     Crumb crumbs[MaxDepth];
     uint32_t depth = 0;
     Crumb invalidCrumb;
-    // most recent key encountered
+    // key buffer, for most recent key encountered
     char key[MaxKeyLen] = {'\0'};
-    // index stack for keeping track of index of array items
-    uint32_t arrIndices[MaxDepth];
-    uint32_t arrDepth = 0;
+
+    uint16_t nextAnimationChannel = 0;
+    uint16_t nextAnimationSampler = 0;
+    uint16_t nextMeshPrimitive = 0;
+    uint16_t nextMeshWeight = 0;
+    uint16_t nextMeshAttribute = 0;
+    byte_t * nextRawDataPtr = nullptr;
 
 // INTERNALS
 private:
     // push/pop to crumb stack
     void push(ObjType objType);
     void pop();
-    // push/pop to index stack
-    void pushIndex();
-    void popIndex();
 
     Gobj::Accessor::Type accessorTypeFromStr(char const * str);
     Gobj::AnimationTarget animationTargetFromStr(char const * str);
@@ -172,4 +180,16 @@ private:
     Gobj::Material::AlphaMode alphaModeFromStr(char const * str);
     Gobj::Attr attrFromStr(char const * str);
     size_t handleData(byte_t * dst, char const * str, size_t strLength);
+
+// HANDLERS
+private:
+    static bool handleRoot(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleAccessor(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleAsset(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleAnimation(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleAnimationChannel(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleAnimationSampler(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleBuffer(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleBufferView(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleCamera(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
 };

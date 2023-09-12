@@ -89,7 +89,6 @@ bool GLTFLoader4::Counter::EndObject(uint32_t memberCount) {
 
 bool GLTFLoader4::Counter::StartArray() {
     l->push(TYPE_ARR);
-    l->pushIndex();
     return true;
 }
 
@@ -126,7 +125,6 @@ bool GLTFLoader4::Counter::EndArray(uint32_t elementCount) {
         else if (crumb.matches("weights")) { l->counts.meshWeights += elementCount; }
     }
     l->pop();
-    l->popIndex();
     return true;
 }
 
@@ -139,6 +137,7 @@ GLTFLoader4::Scanner::Scanner(GLTFLoader4 * loader, Gobj * gobj) :
     g(gobj)
 {
     nextRawDataPtr = g->rawData;
+    l->nextRawDataPtr = g->rawData;
 
     #if DEBUG
     // write pretty JSON into string buffer
@@ -163,18 +162,27 @@ bool GLTFLoader4::Scanner::Bool(bool b) {
 
 bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool copy) {
     l->push(TYPE_NUM);
+
+    // if has parent, run parent's handleChild
+    if (l->crumb(-1).handleChild) {
+        l->crumb(-1).handleChild(l, g, str, length);
+    }
+
     l->printBreadcrumbs();
     printl("%.*s", length, str);
 
+    l->pop();
+    return true;
+
     Number n{str, length};
 
-    if (l->crumb(-3).matches(TYPE_ARR, "accessors")) {
-        uint16_t accIndex = l->crumb(-2).index;
-        uint16_t minMaxIndex = l->crumb().index;
-        // printl("ACCESSOR[%d] %s[%d] = %d (int)", accIndex, l->crumb(-1).key, minMaxIndex, i);
-        if      (l->crumb(-1).matches("min")) { g->accessors[accIndex].min[minMaxIndex] = n; }
-        else if (l->crumb(-1).matches("max")) { g->accessors[accIndex].max[minMaxIndex] = n; }
-    }
+    if (false) {}
+    // if (l->crumb(-3).matches(TYPE_ARR, "accessors")) {
+    //     uint16_t accIndex = l->crumb(-2).index;
+    //     uint16_t minMaxIndex = l->crumb().index;
+    //     if      (l->crumb(-1).matches("min")) { g->accessors[accIndex].min[minMaxIndex] = n; }
+    //     else if (l->crumb(-1).matches("max")) { g->accessors[accIndex].max[minMaxIndex] = n; }
+    // }
     else if (l->crumb(-3).matches(TYPE_ARR, "cameras")) {
         uint16_t camIndex = l->crumb(-2).index;
         Gobj::Camera * c = g->cameras + camIndex;
@@ -204,21 +212,15 @@ bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool cop
         uint16_t matIndex = l->crumb(-1).index;
         g->materials[matIndex].doubleSided = n;
     }
-    else if (l->crumb(-2).matches(TYPE_ARR, "accessors")) {
-        uint16_t index = l->crumb(-1).index;
-        if      (l->crumb().matches("bufferView"))     { g->accessors[index].bufferView = g->bufferViews + n; }
-        else if (l->crumb().matches("byteOffset"))     { g->accessors[index].byteOffset = n; }
-        else if (l->crumb().matches("componentType"))  { g->accessors[index].componentType = (Gobj::Accessor::ComponentType)(int)n; }
-        else if (l->crumb().matches("normalized"))     { g->accessors[index].normalized = n; }
-        else if (l->crumb().matches("count"))          { g->accessors[index].count = n; }
+    // else if (l->crumb(-2).matches(TYPE_ARR, "accessors")) {
+    //     uint16_t index = l->crumb(-1).index;
+    //     if      (l->crumb().matches("bufferView"))     { g->accessors[index].bufferView = g->bufferViews + n; }
+    //     else if (l->crumb().matches("byteOffset"))     { g->accessors[index].byteOffset = n; }
+    //     else if (l->crumb().matches("componentType"))  { g->accessors[index].componentType = (Gobj::Accessor::ComponentType)(int)n; }
+    //     else if (l->crumb().matches("normalized"))     { g->accessors[index].normalized = n; }
+    //     else if (l->crumb().matches("count"))          { g->accessors[index].count = n; }
 
-    }
-    else if (l->crumb(-3).matches(TYPE_ARR, "accessors")) {
-        uint16_t accIndex = l->crumb(-2).index;
-        uint16_t minMaxIndex = l->crumb().index;
-        if      (l->crumb(-1).matches("min")) { g->accessors[accIndex].min[minMaxIndex] = n; }
-        else if (l->crumb(-1).matches("max")) { g->accessors[accIndex].max[minMaxIndex] = n; }
-    }
+    // }
     else if (
         l->crumb(-4).matches(TYPE_ARR, "animations") &&
         l->crumb(-2).matches(TYPE_ARR, "channels") &&
@@ -358,13 +360,24 @@ bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool cop
 
 bool GLTFLoader4::Scanner::String(char const * str, uint32_t length, bool copy) {
     l->push(TYPE_STR);
+
+    // if has parent, run parent's handleChild
+    if (l->crumb(-1).handleChild) {
+        l->crumb(-1).handleChild(l, g, str, length);
+    }
+
     l->printBreadcrumbs();
     printl("\"%s\"", str);
+
+    l->pop();
+    return true;
+
     // handle name strings
     if (l->crumb().matches("name")) {
         char const * key = l->crumb(-2).key;
         uint16_t index = l->crumb(-1).index;
-        if      (strEqu(key, "accessors"))  { g->accessors[index].name   = g->strings->writeStr(str, length); }
+        if (false) {}
+        // if      (strEqu(key, "accessors"))  { g->accessors[index].name   = g->strings->writeStr(str, length); }
         else if (strEqu(key, "animations")) { g->animations[index].name  = g->strings->writeStr(str, length); }
         else if (strEqu(key, "buffers"))    { g->buffers[index].name     = g->strings->writeStr(str, length); }
         else if (strEqu(key, "bufferViews")){ g->bufferViews[index].name = g->strings->writeStr(str, length); }
@@ -379,16 +392,16 @@ bool GLTFLoader4::Scanner::String(char const * str, uint32_t length, bool copy) 
         else if (strEqu(key, "textures"))   { g->textures[index].name    = g->strings->writeStr(str, length); }
     }
     else if (l->crumb(-1).matches(TYPE_OBJ, "asset")) {
-        if      (l->crumb().matches("copyright"))  { g->copyright   = g->strings->writeStr(str, length); }
-        else if (l->crumb().matches("generator"))  { g->generator   = g->strings->writeStr(str, length); }
-        else if (l->crumb().matches("version"))    { g->version     = g->strings->writeStr(str, length); }
-        else if (l->crumb().matches("minVersion")) { g->minVersion  = g->strings->writeStr(str, length); }
+        // if      (l->crumb().matches("copyright"))  { g->copyright   = g->strings->writeStr(str, length); }
+        // else if (l->crumb().matches("generator"))  { g->generator   = g->strings->writeStr(str, length); }
+        // else if (l->crumb().matches("version"))    { g->version     = g->strings->writeStr(str, length); }
+        // else if (l->crumb().matches("minVersion")) { g->minVersion  = g->strings->writeStr(str, length); }
     }
-    else if (l->crumb(-2).matches(TYPE_ARR, "accessors")) {
-        uint16_t index = l->crumb(-1).index;
-        if     (l->crumb().matches("type")) { g->accessors[index].type = l->accessorTypeFromStr(str); }
+    // else if (l->crumb(-2).matches(TYPE_ARR, "accessors")) {
+    //     uint16_t index = l->crumb(-1).index;
+    //     if     (l->crumb().matches("type")) { g->accessors[index].type = l->accessorTypeFromStr(str); }
 
-    }
+    // }
     else if (
         l->crumb(-5).matches(TYPE_ARR, "animations") &&
         l->crumb(-3).matches(TYPE_ARR, "channels") &&
@@ -453,8 +466,19 @@ bool GLTFLoader4::Scanner::String(char const * str, uint32_t length, bool copy) 
 
 bool GLTFLoader4::Scanner::StartObject() {
     l->push(TYPE_OBJ);
+
+    // if has parent, run parent's handleChild
+    if (l->crumb(-1).handleChild) {
+        l->crumb(-1).handleChild(l, g, nullptr, 0);
+    }
+    // set new handle child
+    if (l->depth == 1) {
+        l->crumb().handleChild = handleRoot;
+    }
+
     l->printBreadcrumbs();
     printl();
+
     if (l->crumb(-1).matches(TYPE_ARR, "animations")) {
         uint16_t index = l->crumb().index;
         g->animations[index].channels = g->animationChannels + nextAnimationChannel;
@@ -501,26 +525,30 @@ bool GLTFLoader4::Scanner::EndObject(uint32_t memberCount) {
 
 bool GLTFLoader4::Scanner::StartArray() {
     l->push(TYPE_ARR);
-    l->pushIndex();
+    if (l->crumb(-1).handleChild) {
+        l->crumb(-1).handleChild(l, g, nullptr, 0);
+    }
     l->printBreadcrumbs();
     printl();
     return true;
 }
 
 bool GLTFLoader4::Scanner::EndArray(uint32_t elementCount) {
-    if (l->crumb(-2).matches(TYPE_ARR, "animations")) {
-        uint16_t aniIndex = l->crumb(-1).index;
-        if (l->crumb().matches("channels")) {
-            g->animations[aniIndex].nChannels = elementCount;
-            nextAnimationChannel += elementCount;
-        }
-        else if (l->crumb().matches("samplers")) {
-            g->animations[aniIndex].nSamplers = elementCount;
-            nextAnimationSampler += elementCount;
-        }
+    // if (l->crumb(-2).matches(TYPE_ARR, "animations")) {
+    //     uint16_t aniIndex = l->crumb(-1).index;
+    //     if (l->crumb().matches("channels")) {
+    //         g->animations[aniIndex].nChannels = elementCount;
+    //         nextAnimationChannel += elementCount;
+    //     }
+    //     else if (l->crumb().matches("samplers")) {
+    //         g->animations[aniIndex].nSamplers = elementCount;
+    //         nextAnimationSampler += elementCount;
+    //     }
+    // }
+    if (l->crumb().handleEnd) {
+        l->crumb().handleEnd(l, g, elementCount);
     }
     l->pop();
-    l->popIndex();
     return true;
 }
 
@@ -585,15 +613,12 @@ bool GLTFLoader4::Crumb::matches(ObjType objType, char const * key) const {
 }
 
 char const * GLTFLoader4::Crumb::objTypeStr() const {
-    return
-        (objType == TYPE_OBJ)   ? "OBJ" :
-        (objType == TYPE_ARR)   ? "ARR" :
-        (objType == TYPE_STR)   ? "STR" :
-        (objType == TYPE_NUM)   ? "NUM" :
-        "UNKNOWN";
+    return GLTFLoader4::objTypeStr(objType);
 }
 
 bool GLTFLoader4::Crumb::hasKey() const { return (key[0] != '\0'); }
+
+bool GLTFLoader4::Crumb::isValid() const { return (objType != TYPE_UNKNOWN); }
 
 // -------------------------------------------------------------------------- //
 // LOADER
@@ -674,10 +699,13 @@ void GLTFLoader4::printBreadcrumbs() const {
     if (depth < 1) return;
     for (int i = 0; i < depth; ++i) {
         if (crumbs[i].index == -1) {
-            print("%s(%s) > ", crumbs[i].objTypeStr(), crumbs[i].key);
+            if (crumbs[i].key[0]) {
+                print("%s:", crumbs[i].key);
+            }
+            print("%s > ", crumbs[i].objTypeStr());
         }
         else {
-            print("%s(%d) > ", crumbs[i].objTypeStr(), crumbs[i].index);
+            print("%d:%s > ", crumbs[i].index, crumbs[i].objTypeStr());
         }
     }
 }
@@ -712,36 +740,44 @@ bool GLTFLoader4::validData() const {
     return gltfData;
 }
 
+char const * GLTFLoader4::objTypeStr(ObjType objType) {
+    return
+        (objType == TYPE_OBJ)   ? "OBJ" :
+        (objType == TYPE_ARR)   ? "ARR" :
+        (objType == TYPE_STR)   ? "STR" :
+        (objType == TYPE_NUM)   ? "NUM" :
+        "UNKNOWN";
+}
+
 void GLTFLoader4::push(ObjType objType) {
     assert(depth < MaxDepth && "Can't push crumb.");
 
+    // push new crumb
+    ++depth;
+    Crumb & newCrumb = crumb();
+    Crumb & parentCrumb = crumb(-1);
+
+    // set index
     // if parent is an array, mark the index in newly pushed child and increntment next index.
-    if (depth && crumbs[depth-1].objType == TYPE_ARR) {
-        crumbs[depth].index = arrIndices[arrDepth-1];
-        ++arrIndices[arrDepth-1];
+    if (parentCrumb.objType == TYPE_ARR) {
+        newCrumb.index = parentCrumb.childCount;
+        ++parentCrumb.childCount;
     }
     else {
-        crumbs[depth].index = -1;
+        newCrumb.index = -1;
     }
-
-    crumbs[depth].objType = objType;
-    // copy and consume key
-    crumbs[depth].setKey(key);
+    // set type
+    newCrumb.objType = objType;
+    // set key (copy and reset buffer)
+    newCrumb.setKey(key);
     key[0] = '\0';
-    ++depth;
+    // reset everthing
+    newCrumb.childCount = 0;
+    newCrumb.handleChild = nullptr;
 }
 
 void GLTFLoader4::pop() {
     --depth;
-}
-
-void GLTFLoader4::pushIndex() {
-    arrIndices[arrDepth] = 0;
-    ++arrDepth;
-}
-
-void GLTFLoader4::popIndex() {
-    --arrDepth;
 }
 
 Gobj::Accessor::Type GLTFLoader4::accessorTypeFromStr(char const * str) {
@@ -851,4 +887,322 @@ size_t GLTFLoader4::handleData(byte_t * dst, char const * str, size_t strLength)
     }
 
     return readSize;
+}
+
+bool GLTFLoader4::handleRoot(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+    auto & c = l->crumb();
+    switch(*(uint16_t *)c.key) {
+    // accessors
+    case 'a'|'c'<<8: {
+        printl("!!!!!!!! accessors");
+        c.handleChild = [](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+            l->crumb().handleChild = handleAccessor;
+        };
+        break; }
+    // asset
+    case 'a'|'s'<<8: {
+        printl("!!!!!!!! asset");
+        c.handleChild = handleAsset;
+        break; }
+    // animations
+    case 'a'|'n'<<8: {
+        printl("!!!!!!!! animations");
+        c.handleChild = [](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+            l->crumb().handleChild = handleAnimation;
+        };
+        break; }
+    // buffers|bufferViews
+    case 'b'|'u'<<8: {
+        switch(c.key[6]) {
+        // buffers
+        case 's': {
+            printl("!!!!!!!! buffers");
+            c.handleChild = [](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+                l->crumb().handleChild = handleBuffer;
+            };
+            break; }
+        // bufferViews
+        case 'V': {
+            printl("!!!!!!!! bufferViews");
+            c.handleChild = [](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+                l->crumb().handleChild = handleBufferView;
+            };
+            break; }
+        }
+        break; }
+    // cameras
+    case 'c'|'a'<<8: {
+        printl("!!!!!!!! cameras");
+        c.handleChild = [](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+            l->crumb().handleChild = handleCamera;
+        };
+        break; }
+    // images
+    case 'i'|'m'<<8: { printl("!!!!!!!! images"); break; }
+    // materials
+    case 'm'|'a'<<8: { printl("!!!!!!!! materials"); break; }
+    // meshes
+    case 'm'|'e'<<8: { printl("!!!!!!!! meshes"); break; }
+    // nodes
+    case 'n'|'o'<<8: { printl("!!!!!!!! nodes"); break; }
+    // samplers
+    case 's'|'a'<<8: { printl("!!!!!!!! samplers"); break; }
+    // scenes
+    case 's'|'c'<<8: { printl("!!!!!!!! scenes"); break; }
+    // skins
+    case 's'|'k'<<8: { printl("!!!!!!!! skins"); break; }
+    // textures
+    case 't'|'e'<<8: { printl("!!!!!!!! textures"); break; }
+    }
+    return true;
+}
+
+bool GLTFLoader4::handleAccessor(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+    auto & c = l->crumb();
+    Gobj::Accessor * a = g->accessors + l->crumb(-1).index;
+    Number n{str, len};
+
+    switch(*(uint16_t *)c.key) {
+    // bufferView
+    case 'b'|'u'<<8: {
+        a->bufferView = g->bufferViews + n;
+        break; }
+    // byteOffset
+    case 'b'|'y'<<8: {
+        a->byteOffset = n;
+        break; }
+    // componentType|count
+    case 'c'|'o'<<8: {
+        if (c.key[2]=='m') {
+            a->componentType = (Gobj::Accessor::ComponentType)(int)n;
+        }
+        else {
+            a->count = n;
+        }
+        break; }
+    // max
+    case 'm'|'a'<<8: {
+        c.handleChild = [](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+            uint16_t accIndex = l->crumb(-2).index;
+            uint16_t maxIndex = l->crumb().index;
+            g->accessors[accIndex].max[maxIndex] = Number{str, len};
+        };
+        break; }
+    // min
+    case 'm'|'i'<<8: {
+        c.handleChild = [](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+            uint16_t accIndex = l->crumb(-2).index;
+            uint16_t minIndex = l->crumb().index;
+            g->accessors[accIndex].min[minIndex] = Number{str, len};
+        };
+        break; }
+    // name
+    case 'n'|'a'<<8: {
+        a->name = g->strings->writeStr(str, len);
+        break; }
+    // normalized
+    case 'n'|'o'<<8: {
+        a->normalized = n;
+        break; }
+    // type
+    case 't'|'y'<<8: {
+        a->type = l->accessorTypeFromStr(str);
+        break; }
+    }
+    return true;
+}
+
+bool GLTFLoader4::handleAsset(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+    switch(l->crumb().key[0]) {
+    // copyright
+    case 'c': {  g->copyright  = g->strings->writeStr(str, len); break; }
+    // generator
+    case 'g': {  g->generator  = g->strings->writeStr(str, len); break; }
+    // version
+    case 'v': {  g->version    = g->strings->writeStr(str, len); break; }
+    // minVersion
+    case 'm': {  g->minVersion = g->strings->writeStr(str, len); break; }
+    }
+    return true;
+}
+
+bool GLTFLoader4::handleAnimation(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+    auto & c = l->crumb();
+    switch(*(uint16_t *)c.key) {
+    // channels
+    case 'c'|'h'<<8: {
+        uint16_t aniIndex = l->crumb(-1).index;
+        g->animations[aniIndex].channels = g->animationChannels + l->nextAnimationChannel;
+        c.handleChild = [](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+            l->crumb().handleChild = handleAnimationChannel;
+        };
+        c.handleEnd = [](GLTFLoader4 * l, Gobj * g, uint32_t count) {
+            uint16_t aniIndex = l->crumb(-1).index;
+            g->animations[aniIndex].nChannels = count;
+            l->nextAnimationChannel += count;
+        };
+        break; }
+    // samplers
+    case 's'|'a'<<8: {
+        uint16_t aniIndex = l->crumb(-1).index;
+        g->animations[aniIndex].samplers = g->animationSamplers + l->nextAnimationSampler;
+        c.handleChild = [](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+            l->crumb().handleChild = handleAnimationSampler;
+        };
+        c.handleEnd = [](GLTFLoader4 * l, Gobj * g, uint32_t count) {
+            uint16_t aniIndex = l->crumb(-1).index;
+            g->animations[aniIndex].nSamplers = count;
+            l->nextAnimationSampler += count;
+        };
+        break; }
+    // name
+    case 'n'|'a'<<8: {
+        g->animations[l->crumb(-1).index].name = g->strings->writeStr(str, len);
+        break; }
+    }
+    return true;
+}
+
+bool GLTFLoader4::handleAnimationChannel(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+    auto & c = l->crumb();
+    switch (c.key[0]) {
+    // sampler
+    case 's': {
+        uint16_t aniIndex = l->crumb(-3).index;
+        Gobj::AnimationChannel * ac = g->animations[aniIndex].channels + l->crumb(-1).index;
+        ac->sampler = g->animations[aniIndex].samplers + Number{str, len};
+        break; }
+    // target
+    case 't': {
+        // handle target object children
+        c.handleChild = [](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+            auto & c = l->crumb();
+            uint16_t aniIndex = l->crumb(-4).index;
+            Gobj::AnimationChannel * ac = g->animations[aniIndex].channels + l->crumb(-2).index;
+            switch (c.key[0]) {
+            // sampler
+            case 'n': {
+                ac->node = g->nodes + Number{str, len};
+                break; }
+            case 'p': {
+                ac->path = l->animationTargetFromStr(str);
+                break; }
+            }
+        };
+        break; }
+    }
+    return true;
+}
+
+bool GLTFLoader4::handleAnimationSampler(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+    auto & c = l->crumb();
+    uint16_t aniIndex = l->crumb(-3).index;
+    Gobj::AnimationSampler * as = g->animations[aniIndex].samplers + l->crumb(-1).index;
+    switch(*(uint32_t *)c.key) {
+    // input
+    case 'i'|'n'<<8|'p'<<16|'u'<<24: {
+        as->input  = g->accessors + Number{str, len};
+        break; }
+    // interpolation
+    case 'i'|'n'<<8|'t'<<16|'e'<<24: {
+        as->interpolation = l->interpolationFromStr(str);
+        break; }
+    // output
+    case 'o'|'u'<<8|'t'<<16|'p'<<24: {
+        as->output = g->accessors + Number{str, len};
+        break; }
+    }
+    return true;
+}
+
+bool GLTFLoader4::handleBuffer(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+    auto & c = l->crumb();
+    uint16_t bufIndex = l->crumb(-1).index;
+    Gobj::Buffer * buf = g->buffers + bufIndex;
+    switch(c.key[0]) {
+    // uri
+    case 'u': {
+        // copy data and set byteLength for non-GLB
+        if (l->isGLB) {
+            fprintf(stderr, "Unexpected buffer.uri in GLB.\n");
+            return false;
+        }
+        size_t bytesWritten = l->handleData(l->nextRawDataPtr, str, len);
+        if (bytesWritten == 0) {
+            fprintf(stderr, "No bytes written in buffer %d.\n", bufIndex);
+            return false;
+        }
+        buf->data = l->nextRawDataPtr;
+        buf->byteLength = bytesWritten;
+        l->nextRawDataPtr += bytesWritten;
+
+        break; }
+    // byteLength
+    case 'b': {
+        // copy data and set byteLength for GLB
+        if (l->isGLB && bufIndex == 0) {
+            Number n{str, len};
+            buf->byteLength = n;
+            if ((uint32_t)n != l->binDataSize()) {
+                fprintf(stderr, "Unexpected buffer size.\n");
+                return false;
+            }
+            memcpy(l->nextRawDataPtr, l->binData(), n);
+            g->buffers[bufIndex].data = l->nextRawDataPtr;
+            l->nextRawDataPtr += n;
+        }
+
+        break; }
+    // name
+    case 'n': {
+        buf->name = g->strings->writeStr(str, len);
+        break; }
+    }
+    return true;
+}
+
+bool GLTFLoader4::handleBufferView(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+    uint16_t bvIndex = l->crumb(-1).index;
+    Gobj::BufferView * bv = g->bufferViews + bvIndex;
+    auto & c = l->crumb();
+    switch (c.key[0]) {
+    case 'b': {
+        switch (c.key[4]) {
+        // buffer
+        case 'e': {
+            bv->buffer = g->buffers + Number{str, len};
+            break; }
+        // byteLength
+        case 'L': {
+            bv->byteLength = Number{str, len};
+            break; }
+        // byteOffset
+        case 'O': {
+            bv->byteOffset = Number{str, len};
+            break; }
+        // byteStride
+        case 'S': {
+            bv->byteStride = Number{str, len};
+            break; }
+        }
+        break; }
+    // target
+    case 't': {
+        bv->target = (Gobj::BufferView::Target)(int)Number{str, len};
+        break; }
+    // name
+    case 'n': {
+        bv->name = g->strings->writeStr(str, len);
+        break; }
+    }
+    return true;
+}
+
+bool GLTFLoader4::handleCamera(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+    auto & c = l->crumb();
+    switch (c.key[0]) {
+    case 'b': {
+        break; }
+    }
+    return true;
 }
