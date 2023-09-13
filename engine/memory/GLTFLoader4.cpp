@@ -163,6 +163,7 @@ static bool handleMaterial(HANDLE_CHILD_SIG);
 static bool handleMesh(HANDLE_CHILD_SIG);
 static bool handleMeshPrimitive(HANDLE_CHILD_SIG);
 static bool handleNode(HANDLE_CHILD_SIG);
+static bool handleSampler(HANDLE_CHILD_SIG);
 
 // -------------------------------------------------------------------------- //
 // SCANNER
@@ -604,7 +605,13 @@ bool handleRoot(HANDLE_CHILD_SIG) {
         };
         break; }
     // samplers
-    case 's'|'a'<<8: { printl("!!!!!!!! samplers"); break; }
+    case 's'|'a'<<8: {
+        printl("!!!!!!!! samplers");
+        c.handleChild = [](HANDLE_CHILD_SIG) {
+            l->crumb().handleChild = handleSampler;
+            return true;
+        };
+        break; }
     // scenes
     case 's'|'c'<<8: {
         switch (c.key[5]) {
@@ -1246,9 +1253,35 @@ bool handleNode(HANDLE_CHILD_SIG) {
     return true;
 }
 
+bool handleSampler(HANDLE_CHILD_SIG) {
+    Gobj::Sampler * samp = g->samplers + l->crumb(-1).index;
+    auto & c = l->crumb();
+    switch (c.key[0]) {
+    case 'm': {
+        switch (c.key[1]) {
+        // magFilter
+        case 'a': { samp->magFilter = (Gobj::Sampler::Filter)(int)Number{str, len}; break; }
+        // minFilter
+        case 'i': { samp->minFilter = (Gobj::Sampler::Filter)(int)Number{str, len}; break; }
+        }
+        break; }
+    case 'w': {
+        switch (c.key[4]) {
+        // wrapS
+        case 'S': { samp->wrapS = (Gobj::Sampler::Wrap)(int)Number{str, len}; break; }
+        // wrapT
+        case 'T': { samp->wrapT = (Gobj::Sampler::Wrap)(int)Number{str, len}; break; }
+        }
+        break; }
+    // name
+    case 'n': { samp->name = g->strings->writeStr(str, len); break; }
+    }
+    return true;
+}
+
+
 /*
 
-        else if (strEqu(key, "samplers"))   { g->samplers[index].name    = g->strings->writeStr(str, length); }
         else if (strEqu(key, "scenes"))     { g->scenes[index].name      = g->strings->writeStr(str, length); }
         else if (strEqu(key, "skins"))      { g->skins[index].name       = g->strings->writeStr(str, length); }
         else if (strEqu(key, "textures"))   { g->textures[index].name    = g->strings->writeStr(str, length); }
