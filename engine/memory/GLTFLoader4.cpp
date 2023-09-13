@@ -164,6 +164,7 @@ static bool handleMesh(HANDLE_CHILD_SIG);
 static bool handleMeshPrimitive(HANDLE_CHILD_SIG);
 static bool handleNode(HANDLE_CHILD_SIG);
 static bool handleSampler(HANDLE_CHILD_SIG);
+static bool handleScene(HANDLE_CHILD_SIG);
 
 // -------------------------------------------------------------------------- //
 // SCANNER
@@ -621,6 +622,10 @@ bool handleRoot(HANDLE_CHILD_SIG) {
             break; }
         case 's': {
             printl("!!!!!!!! scenes");
+            c.handleChild = [](HANDLE_CHILD_SIG) {
+                l->crumb().handleChild = handleScene;
+                return true;
+            };
             break; }
         }
         break; }
@@ -1279,10 +1284,33 @@ bool handleSampler(HANDLE_CHILD_SIG) {
     return true;
 }
 
+bool handleScene(HANDLE_CHILD_SIG) {
+    auto & c = l->crumb();
+    Gobj::Scene * scn = g->scenes + l->crumb(-1).index;
+    switch (*(uint16_t *)c.key) {
+    // nodes (root children)
+    case 'n'|'o'<<8: {
+        scn->nodes = g->nodeChildren + l->nextNodeChild;
+        c.handleChild = [node](HANDLE_CHILD_SIG) {
+            scn->nodes[scn->nNodes] = g->nodes + Number{str, len};
+            ++scn->nNodes;
+            ++l->nextNodeChild;
+            return true;
+        };
+        break; }
+    // name
+    case 'n'|'a'<<8: {
+        scn->name = g->strings->writeStr(str, len);
+        break; }
+    }
+
+    return true;
+}
+
+
 
 /*
 
-        else if (strEqu(key, "scenes"))     { g->scenes[index].name      = g->strings->writeStr(str, length); }
         else if (strEqu(key, "skins"))      { g->skins[index].name       = g->strings->writeStr(str, length); }
         else if (strEqu(key, "textures"))   { g->textures[index].name    = g->strings->writeStr(str, length); }
 
