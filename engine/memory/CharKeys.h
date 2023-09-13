@@ -25,17 +25,20 @@ Memory layout:
 */
 
 class CharKeys {
-    // FRINDS / STATICS
-public:
+// INIT
+private:
     friend class MemMan;
+    CharKeys(size_t size);
 
+// FRINDS / STATICS
+public:
     static constexpr size_t KEY_MAX = 16;
 
     static constexpr size_t DataSize(size_t size) {
         return sizeof(PoolT) + PoolT::DataSize(size);
     }
 
-    // SUB-TYPES
+// SUB-TYPES
 public:
     class Node {
     public:
@@ -69,10 +72,8 @@ public:
         Node * _node;
     };
 
-    // API
+// PUBLIC INTERFACE
 public:
-    // init
-    CharKeys(size_t size);
 
     // modify tree
     Status insert(char const * key, void * ptr);
@@ -94,13 +95,13 @@ public:
     void printToBuf(char * out, size_t size) const;
     #endif // DEBUG || DEV_INTERFACE
 
-    // STORAGE
+// STORAGE
 private:
     size_t _size;
     Node * _root = nullptr;
     Node * _first = nullptr; // cache "first" (inorder) node
 
-    // INTERNALS
+// INTERNALS
 private:
     // data access
     byte_t       * data()       ;

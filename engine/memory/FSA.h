@@ -30,11 +30,7 @@ storage)    ^                                          ^
 */
 
 class FSA {
-    // FRIENDS
-public:
-    friend class MemMan;
-
-    // TYPES
+// TYPES AND STATICS
 public:
     using Setup = MemManFSASetup;
     constexpr static size_t Max = Setup::Max;
@@ -54,6 +50,13 @@ public:
         return size;
     }
 
+// INIT
+private:
+    friend class MemMan;
+    FSA(Setup const & setup);
+
+// PUBLIC INTERFACE
+public:
     uint16_t subBlockCountForGroup(uint16_t groupIndex) const;
     byte_t const * freeListPtrForGroup(uint16_t groupIndex) const;
     bool isFree(uint16_t groupIndex, uint16_t subBlockIndex) const;
@@ -63,9 +66,8 @@ public:
     bool containsPtr(void * ptr) const;
     uint16_t sizeForPtr(void * ptr) const;
 
-    // INTERNALS
+// INTERNALS
 private:
-    FSA(Setup const & setup);
     void updateMap();
     byte_t * data();
     // try to claim sub-block of size. returns ptr if found.
@@ -83,7 +85,7 @@ private:
     void test();
     #endif // DEBUG
 
-    // STORAGE
+// STORAGE
 private:
     // pointers to subblock groups. _freeList[0] is pointer to 2-byte freelist, etc.
     // _groupBase[0] is pointer to first sub-block in 2-byte group, etc.
@@ -97,7 +99,7 @@ private:
     // alignment
     size_t _align = 0;
 
-    // STATIC INTERNALS
+// STATIC INTERNALS
 private:
     static uint16_t constexpr SubBlockByteSize(uint8_t groupIndex) {
         assert(groupIndex < Max && "Index out of range.");
@@ -119,7 +121,7 @@ private:
         return index;
     }
 
-    // DEV INTERFACE
+// DEV INTERFACE
 private:
     #if DEV_INTERFACE
     void editorEditBlock();

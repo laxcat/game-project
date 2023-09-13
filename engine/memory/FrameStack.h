@@ -10,14 +10,15 @@ Expects `_size` bytes of pre-allocated (safe) memory directly after its own inst
 */
 
 class FrameStack {
-public:
+private:
     friend class MemMan;
-
+    friend class Gobj;
     FrameStack(size_t size) :
         _size(size)
     {
     }
 
+public:
     size_t size() const { return _size; }
     size_t totalSize() const { return sizeof(FrameStack) + _size; }
     size_t head() const { return _head; }

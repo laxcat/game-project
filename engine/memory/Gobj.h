@@ -132,14 +132,14 @@ raw data                                // buffer data, image data, etc.
 */
 
 // forward
-class MemMan;
 class FrameStack;
 
 class Gobj {
-    // STATIC CONSTANTS
+// STATIC CONSTANTS
 public:
     static constexpr size_t Align = 16;
-    // FORWARD
+
+// FORWARD
 public:
     // sub-parts
     struct Accessor;
@@ -197,6 +197,10 @@ public:
         #endif // DEBUG || DEV_INTERFACE
     };
 
+// INIT
+private:
+    friend class MemMan;
+    Gobj(Counts const & counts);
 
     // STORAGE
 public:
@@ -244,13 +248,12 @@ public:
         return counts.totalSize();
     }
 
-    // API
+// PUBLIC INTERFACE
 public:
-    Gobj(MemMan *, Counts const & counts);
     byte_t const * data () const;
     FrameStack const * stringStack () const;
 
-    // ENUMS, TYPES
+// ENUMS, TYPES
 public:
     // matches bgfx, TODO: compare to "official" gltf supported list
     enum Attr {
@@ -281,7 +284,8 @@ public:
         ANIM_TAR_SCALE,
     };
 
-    // SUB-PARTS
+// SUB-PARTS
+public:
 
     struct Accessor {
         BufferView * bufferView = nullptr;
@@ -533,7 +537,7 @@ public:
     static Material::AlphaMode alphaModeFromStr(char const * str);
     static Attr attrFromStr(char const * str);
 
-    // DEBUG
+// DEBUG
 public:
     #if DEBUG || DEV_INTERFACE
     void print() const;

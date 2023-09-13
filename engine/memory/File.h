@@ -3,15 +3,23 @@
 #include <stdio.h>
 
 /*
+
 Designed to be used within pre-allocated memory.
 Expects `_size` bytes of pre-allocated (safe) memory directly after its own instance.
+
+Read only for now
+
 */
 
-// read only for now
 class File {
-public:
+private:
     friend class MemMan;
+    File(size_t size, char const * path) :
+        _size(size),
+        _path(path)
+    {}
 
+public:
     class Path {
     public:
         static constexpr size_t MAX = 256;
@@ -40,11 +48,6 @@ private:
     size_t _head = 0;
     Path _path = "";
     bool _loaded = false;
-
-    File(size_t size, char const * path) :
-        _size(size),
-        _path(path)
-    {}
 
     #if DEV_INTERFACE
     static void editorCreate();

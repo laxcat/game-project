@@ -10,11 +10,13 @@ Designed to be used within pre-allocated memory.
 */
 
 class FreeList {
-    // FRIENDS
-public:
+// INIT
+private:
     friend class MemMan;
+    template<typename> friend class Pool;
+    FreeList(size_t nSlots);
 
-    // API
+// PUBLIC INTERFACE
 public:
     static size_t constexpr ItemCount(size_t count) {
         // already a multiple of 64. return same number.
@@ -31,7 +33,6 @@ public:
     bool operator[](size_t index) const;
     byte_t const * data() const;
 
-    FreeList(size_t nSlots);
     bool claim(size_t * foundIndex);
     void release(size_t index);
     void claimAll();
@@ -41,7 +42,7 @@ public:
     bool isFree(size_t index) const;
     size_t size() const;
 
-    // INTERNALS
+// INTERNALS
 private:
     size_t _size;   // originally requested size
     size_t _nSlots; // _size rounded up to be divisible by 64
@@ -53,7 +54,7 @@ private:
     size_t nSlots() const;
     uint64_t const * dataChunks() const;
 
-    // DEV INTERFACE
+// DEV INTERFACE
 private:
     #if DEV_INTERFACE
     static void editorCreate();

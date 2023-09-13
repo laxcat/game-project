@@ -10,7 +10,7 @@
 #define ALIGN_SIZE(SIZE) alignSize(SIZE, Gobj::Align)
 #define ALIGN_PTR(PTR)  alignPtr(PTR, Gobj::Align)
 
-Gobj::Gobj(MemMan *, Gobj::Counts const & counts) :
+Gobj::Gobj(Gobj::Counts const & counts) :
     counts(counts)
 {
     // don't align base head, we assume Gobj has been aligned externally (MemMan)

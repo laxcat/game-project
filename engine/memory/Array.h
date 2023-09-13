@@ -16,12 +16,14 @@ Array
 
 template <typename T>
 class Array {
+private:
+    friend class MemMan;
+    Array(size_t maxSize) : _maxSize(maxSize) {}
+
 public:
     static constexpr size_t DataSize(size_t max) {
         return max * sizeof(T);
     }
-
-    Array(size_t maxSize) : _maxSize(maxSize) {}
 
     T & insert(size_t i, T const & item) {
         assert(i <= _size && "Out of range.");
