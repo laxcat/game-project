@@ -264,10 +264,11 @@ void MemMan::autoReleaseEndFrame() {
         AutoRelease & alloc = _autoReleaseBuffer->data()[i];
         // release allocation when lifetime is 0
         if (alloc.lifetime == 0) {
-            // setting lifetime = -1 here will tell request() to skip all
-            // auto-release consideration. we're handling that manually below.
-            request({.ptr = alloc.ptr, .size = 0, .lifetime = -1});
+            // free the acutal allocation
+            request({.ptr = alloc.ptr, .size = 0});
+            // remove our autoReleasae tracking object
             _autoReleaseBuffer->remove(i);
+            // keep loop on current i, since we just removed object at i
             --i;
             continue;
         }
