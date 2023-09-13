@@ -131,8 +131,10 @@ Gobj::Gobj(MemMan *, Gobj::Counts const & counts) :
         meshWeights = (float *)head;
         for (uint16_t i = 0; i < counts.meshWeights; ++i) {
             *(float *)head = 0.f;
-            head += ALIGN_SIZE(sizeof(float));
+            head += sizeof(float);
         }
+        // aligns on group, not on each ptr
+        head = (byte_t *)ALIGN_PTR(head);
     }
 
     if (counts.nodes) {
@@ -157,8 +159,10 @@ Gobj::Gobj(MemMan *, Gobj::Counts const & counts) :
         nodeWeights = (float *)head;
         for (uint16_t i = 0; i < counts.nodeWeights; ++i) {
             *(float *)head = 0.f;
-            head += ALIGN_SIZE(sizeof(float));
+            head += sizeof(float);
         }
+        // aligns on group, not on each ptr
+        head = (byte_t *)ALIGN_PTR(head);
     }
 
     if (counts.samplers) {
@@ -214,14 +218,14 @@ size_t Gobj::Counts::totalSize() const {
         ALIGN_SIZE(sizeof(Gobj::Camera))           * cameras +
         ALIGN_SIZE(sizeof(Gobj::Image))            * images +
         ALIGN_SIZE(sizeof(Gobj::Material))         * materials +
-        ALIGN_SIZE(sizeof(Gobj::Mesh) )            * meshes +
+        ALIGN_SIZE(sizeof(Gobj::Mesh))             * meshes +
         ALIGN_SIZE(sizeof(Gobj::MeshAttribute))    * meshAttributes +
         ALIGN_SIZE(sizeof(Gobj::MeshPrimitive))    * meshPrimitives +
         ALIGN_SIZE(sizeof(Gobj::MeshTarget))       * meshTargets +
-        ALIGN_SIZE(sizeof(float))                  * meshWeights +
+        ALIGN_SIZE(sizeof(float)                   * meshWeights) +  // aligns on group, not on each ptr
         ALIGN_SIZE(sizeof(Gobj::Node))             * nodes +
         ALIGN_SIZE(sizeof(Gobj::Node *)            * nodeChildren) + // aligns on group, not on each ptr
-        ALIGN_SIZE(sizeof(float))                  * nodeWeights +
+        ALIGN_SIZE(sizeof(float)                   * nodeWeights) +  // aligns on group, not on each ptr
         ALIGN_SIZE(sizeof(Gobj::Sampler))          * samplers +
         ALIGN_SIZE(sizeof(Gobj::Scene))            * scenes +
         ALIGN_SIZE(sizeof(Gobj::Skin))             * skins +
@@ -332,7 +336,7 @@ char * Gobj::printToFrameStack() const {
     fs.formatPen("MTargets    %011p (%d)\n", meshTargets,       counts.meshTargets);
     fs.formatPen("MWeights    %011p (%d)\n", meshWeights,       counts.meshWeights);
     fs.formatPen("Nodes       %011p (%d)\n", nodes,             counts.nodes);
-    fs.formatPen("Node Childs %011p (%d)\n", nodeChildren,      counts.nodeChildren);
+    fs.formatPen("Node Kids   %011p (%d)\n", nodeChildren,      counts.nodeChildren);
     fs.formatPen("Samplers    %011p (%d)\n", samplers,          counts.samplers);
     fs.formatPen("Scenes      %011p (%d)\n", scenes,            counts.scenes);
     fs.formatPen("Skins       %011p (%d)\n", skins,             counts.skins);
@@ -378,7 +382,7 @@ char * Gobj::Counts::printToFrameStack() const {
     fs.formatPen("MPrimitive:   %d\n", meshPrimitives);
     fs.formatPen("MTarget:      %d\n", meshTargets);
     fs.formatPen("Node:         %d\n", nodes);
-    fs.formatPen("Node Childs:  %d\n", nodeChildren);
+    fs.formatPen("Node Kids:    %d\n", nodeChildren);
     fs.formatPen("Sampler:      %d\n", samplers);
     fs.formatPen("Scene:        %d\n", scenes);
     fs.formatPen("Skin:         %d\n", skins);

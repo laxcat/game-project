@@ -512,7 +512,7 @@ public:
     struct Skin {
         Accessor * inverseBindMatrices = nullptr;
         Node * skeleton = nullptr;
-        Node * joints = nullptr;
+        Node ** joints = nullptr;
         int nJoints = 0;
         char const * name = nullptr;
     };

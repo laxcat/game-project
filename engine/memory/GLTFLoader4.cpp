@@ -165,6 +165,7 @@ static bool handleMeshPrimitive(HANDLE_CHILD_SIG);
 static bool handleNode(HANDLE_CHILD_SIG);
 static bool handleSampler(HANDLE_CHILD_SIG);
 static bool handleScene(HANDLE_CHILD_SIG);
+static bool handleSkin(HANDLE_CHILD_SIG);
 
 // -------------------------------------------------------------------------- //
 // SCANNER
@@ -630,7 +631,13 @@ bool handleRoot(HANDLE_CHILD_SIG) {
         }
         break; }
     // skins
-    case 's'|'k'<<8: { printl("!!!!!!!! skins"); break; }
+    case 's'|'k'<<8: {
+        printl("!!!!!!!! skins");
+        c.handleChild = [](HANDLE_CHILD_SIG) {
+            l->crumb().handleChild = handleSkin;
+            return true;
+        };
+        break; }
     // textures
     case 't'|'e'<<8: { printl("!!!!!!!! textures"); break; }
     }
@@ -1291,7 +1298,7 @@ bool handleScene(HANDLE_CHILD_SIG) {
     // nodes (root children)
     case 'n'|'o'<<8: {
         scn->nodes = g->nodeChildren + l->nextNodeChild;
-        c.handleChild = [node](HANDLE_CHILD_SIG) {
+        c.handleChild = [scn](HANDLE_CHILD_SIG) {
             scn->nodes[scn->nNodes] = g->nodes + Number{str, len};
             ++scn->nNodes;
             ++l->nextNodeChild;
@@ -1307,11 +1314,32 @@ bool handleScene(HANDLE_CHILD_SIG) {
     return true;
 }
 
-
+bool handleSkin(HANDLE_CHILD_SIG) {
+    Gobj::Skin * skin = g->skins + l->crumb(-1).index;
+    auto & c = l->crumb();
+    switch (c.key[0]) {
+    // inverseBindMatrices
+    case 'i': { skin->inverseBindMatrices = g->accessors + Number{str, len}; break; }
+    // joints
+    case 'j': {
+        skin->joints = g->nodeChildren + l->nextNodeChild;
+        c.handleChild = [skin](HANDLE_CHILD_SIG) {
+            skin->joints[skin->nJoints] = g->nodes + Number{str, len};
+            ++skin->nJoints;
+            ++l->nextNodeChild;
+            return true;
+        };
+        break; }
+    // skeleton
+    case 's': { skin->skeleton = g->nodes + Number{str, len}; break; }
+    // name
+    case 'n': { skin->name = g->strings->writeStr(str, len); break; }
+    }
+    return true;
+}
 
 /*
 
-        else if (strEqu(key, "skins"))      { g->skins[index].name       = g->strings->writeStr(str, length); }
         else if (strEqu(key, "textures"))   { g->textures[index].name    = g->strings->writeStr(str, length); }
 
 */
