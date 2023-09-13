@@ -166,6 +166,7 @@ static bool handleNode(HANDLE_CHILD_SIG);
 static bool handleSampler(HANDLE_CHILD_SIG);
 static bool handleScene(HANDLE_CHILD_SIG);
 static bool handleSkin(HANDLE_CHILD_SIG);
+static bool handleTexture(HANDLE_CHILD_SIG);
 
 // -------------------------------------------------------------------------- //
 // SCANNER
@@ -639,7 +640,13 @@ bool handleRoot(HANDLE_CHILD_SIG) {
         };
         break; }
     // textures
-    case 't'|'e'<<8: { printl("!!!!!!!! textures"); break; }
+    case 't'|'e'<<8: {
+        printl("!!!!!!!! textures");
+        c.handleChild = [](HANDLE_CHILD_SIG) {
+            l->crumb().handleChild = handleTexture;
+            return true;
+        };
+        break; }
     }
     return true;
 }
@@ -1338,8 +1345,16 @@ bool handleSkin(HANDLE_CHILD_SIG) {
     return true;
 }
 
-/*
-
-        else if (strEqu(key, "textures"))   { g->textures[index].name    = g->strings->writeStr(str, length); }
-
-*/
+bool handleTexture(HANDLE_CHILD_SIG) {
+    Gobj::Texture * tex = g->textures + l->crumb(-1).index;
+    auto & c = l->crumb();
+    switch (*(uint16_t *)c.key) {
+    // sampler
+    case 's'|'a'<<8: { tex->sampler = g->samplers + Number{str, len}; break; }
+    // source
+    case 's'|'o'<<8: { tex->source = g->images + Number{str, len}; break; }
+    // name
+    case 'n'|'a'<<8: { tex->name = g->strings->writeStr(str, len); break; }
+    }
+    return true;
+}
