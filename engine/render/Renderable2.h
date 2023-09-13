@@ -18,7 +18,7 @@ class Renderable final {
 public:
     friend class RenderSystem;
 
-    constexpr static size_t DataSize() { return 0; }
+    // constexpr static size_t DataSize() { return 0; }
 
     enum class LoadState {Loading, WaitingToFinalize, NotLoading, FailedToLoad};
 

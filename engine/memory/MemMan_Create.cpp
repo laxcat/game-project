@@ -104,18 +104,19 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     getPath(gltfPath, basePath);
 
     // LOADER 4
-    GLTFLoader4 loader4{gltf->data(), basePath};
-    if (loader4.validData() == false) {
+    GLTFLoader4 * loader4 = create<GLTFLoader4>(gltf->data(), basePath);
+    printl("GLTFLoader4 size: %zu", sizeof(GLTFLoader4));
+    if (loader4->validData() == false) {
         fprintf(stderr, "Error creating Gobj block\n");
         return nullptr;
     }
 
     // calc size
-    loader4.calculateSize();
+    size_t size = loader4->calculateSize();
 
     // create block
     BlockInfo * block = createBlock({
-        .size = loader4.counts.totalSize(),
+        .size = size,
         .align = Gobj::Align,
         .type = MEM_BLOCK_GOBJ,
     });
@@ -123,10 +124,10 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
         fprintf(stderr, "Error creating Gobj block\n");
         return nullptr;
     }
-    Gobj * gobj = new (block->data()) Gobj{this, loader4.counts};
+    Gobj * gobj = new (block->data()) Gobj{this, loader4->counts()};
 
     // load into gobj
-    bool success = loader4.load(gobj);
+    bool success = loader4->load(gobj);
 
     // early return if load failed
     if (!success) {
@@ -137,17 +138,18 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
 
     // check for exepected size
     #if DEBUG
-    if (loader4.isGLB) {
+    if (loader4->isGLB()) {
         assert(
-            gobj->rawData + alignSize(loader4.binDataSize(), Gobj::Align) ==
+            gobj->rawData + alignSize(loader4->binDataSize(), Gobj::Align) ==
             block->data() + block->dataSize() &&
             "Gobj block unexpected size."
         );
     }
     #endif // DEBUG
 
-    // free gltf file
-    // request({.ptr=gltf, .size=0});
+    // free gltf file block and loader
+    request({.ptr=gltf, .size=0});
+    request({.ptr=loader4, .size=0});
 
     // debug output
     #if DEBUG

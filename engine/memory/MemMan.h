@@ -312,7 +312,7 @@ template <typename T, typename ... TS>
 T * MemMan::create(TS && ... params) {
     guard_t guard{_mainMutex};
 
-    BlockInfo * block = createBlock({.size = sizeof(T) + T::DataSize()});
+    BlockInfo * block = createBlock({.size = sizeof(T)});
     if (!block) return nullptr;
     block->_type = MEM_BLOCK_GENERIC;
     return new (block->data()) T{static_cast<TS &&>(params)...};
