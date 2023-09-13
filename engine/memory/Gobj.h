@@ -99,16 +99,20 @@ Node
 Node
 ...
 ----------------------------------------
-Sampler
-Sampler
-...
-----------------------------------------
-Scene
-Scene
-...
-----------------------------------------
-Node *                                  // Scene root nodes
+Node *                                  // Node children
 Node *
+...
+----------------------------------------
+float                                   // Node weights
+float
+...
+----------------------------------------
+Sampler
+Sampler
+...
+----------------------------------------
+Scene
+Scene
 ...
 ----------------------------------------
 Skin
@@ -176,9 +180,10 @@ public:
         uint16_t meshTargets = 0;
         uint16_t meshWeights = 0;
         uint16_t nodes = 0;
+        uint16_t nodeChildren = 0;
+        uint16_t nodeWeights = 0;
         uint16_t samplers = 0;
         uint16_t scenes = 0;
-        uint16_t sceneNodes = 0;
         uint16_t skins = 0;
         uint16_t textures = 0;
 
@@ -211,9 +216,10 @@ public:
     MeshTarget       * meshTargets       = nullptr;
     float            * meshWeights       = nullptr;
     Node             * nodes             = nullptr;
+    Node *           * nodeChildren      = nullptr;
+    float            * nodeWeights       = nullptr;
     Sampler          * samplers          = nullptr;
     Scene            * scenes            = nullptr;
-    Node *           * sceneNodes        = nullptr;
     Skin             * skins             = nullptr;
     Texture          * textures          = nullptr;
     byte_t           * rawData           = nullptr;
@@ -458,16 +464,21 @@ public:
 
     struct Node {
         Camera * camera = nullptr;
-        Node * children = nullptr;
+        Node ** children = nullptr;
         int nChildren = 0;
         Skin * skin = nullptr;
-        float matrix[16] = {0.f};
+        float matrix[16] = {
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f
+        };
         Mesh * mesh = nullptr;
-        float rotation[4] = {0.f};
-        float scale[3] = {0.f};
-        float translation[3] = {0.f};
-        int * weights = nullptr;
-        // int nWeights; // must match mesh weights
+        float rotation[4]    = {0.f, 0.f, 0.f, 1.f};
+        float scale[3]       = {1.f, 1.f, 1.f};
+        float translation[3] = {0.f, 0.f, 0.f};
+        float * weights = nullptr;
+        int nWeights; // must match mesh weights
         char const * name = nullptr;
     };
 

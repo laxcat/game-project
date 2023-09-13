@@ -111,9 +111,14 @@ bool GLTFLoader4::Counter::EndArray(uint32_t elementCount) {
         else if (crumb.matches("skins"      )) { l->counts.skins       = elementCount; }
         else if (crumb.matches("textures"   )) { l->counts.textures    = elementCount; }
     }
-    // scene nodes
-    else if (l->depth == 4 && crumb.matches("nodes") && l->crumb(-2).matches("scenes")) {
-        l->counts.sceneNodes += elementCount;
+    // node children and scene children
+    else if (
+        l->depth == 4 &&
+        ((crumb.matches("nodes") && l->crumb(-2).matches("scenes"))
+        ||
+        (crumb.matches("children") && l->crumb(-2).matches("nodes")))
+    ) {
+        l->counts.nodeChildren += elementCount;
     }
     // animation channels and samplers
     else if (l->depth == 4 && l->crumb(-2).matches("animations")) {
@@ -130,6 +135,9 @@ bool GLTFLoader4::Counter::EndArray(uint32_t elementCount) {
         l->crumb().matches(TYPE_ARR, "targets"))
     {
         l->counts.meshTargets += elementCount;
+    }
+    else if (l->depth == 4 && l->crumb(-2).matches("nodes") && crumb.matches("weights")) {
+        l->counts.nodeWeights += elementCount;
     }
     l->pop();
     return true;
@@ -154,6 +162,7 @@ static bool handleImage(HANDLE_CHILD_SIG);
 static bool handleMaterial(HANDLE_CHILD_SIG);
 static bool handleMesh(HANDLE_CHILD_SIG);
 static bool handleMeshPrimitive(HANDLE_CHILD_SIG);
+static bool handleNode(HANDLE_CHILD_SIG);
 
 // -------------------------------------------------------------------------- //
 // SCANNER
@@ -587,7 +596,13 @@ bool handleRoot(HANDLE_CHILD_SIG) {
         };
         break; }
     // nodes
-    case 'n'|'o'<<8: { printl("!!!!!!!! nodes"); break; }
+    case 'n'|'o'<<8: {
+        printl("!!!!!!!! nodes");
+        c.handleChild = [](HANDLE_CHILD_SIG) {
+            l->crumb().handleChild = handleNode;
+            return true;
+        };
+        break; }
     // samplers
     case 's'|'a'<<8: { printl("!!!!!!!! samplers"); break; }
     // scenes
@@ -1159,9 +1174,80 @@ bool handleMeshPrimitive(HANDLE_CHILD_SIG) {
     return true;
 }
 
+bool handleNode(HANDLE_CHILD_SIG) {
+    auto & c = l->crumb();
+    Gobj::Node * node = g->nodes + l->crumb(-1).index;
+    switch (*(uint16_t *)c.key) {
+    // camera
+    case 'c'|'a'<<8: {
+        node->camera = g->cameras + Number{str, len};
+        break; }
+    // children
+    case 'c'|'h'<<8: {
+        node->children = g->nodeChildren + l->nextNodeChild;
+        c.handleChild = [node](HANDLE_CHILD_SIG) {
+            node->children[node->nChildren] = g->nodes + Number{str, len};
+            ++node->nChildren;
+            ++l->nextNodeChild;
+            return true;
+        };
+        break; }
+    // matrix
+    case 'm'|'a'<<8: {
+        c.handleChild = [node](HANDLE_CHILD_SIG) {
+            node->matrix[l->crumb().index] = Number{str, len};
+            return true;
+        };
+        break; }
+    // mesh
+    case 'm'|'e'<<8: {
+        node->mesh = g->meshes + Number{str, len};
+        break; }
+    // rotation
+    case 'r'|'o'<<8: {
+        c.handleChild = [node](HANDLE_CHILD_SIG) {
+            node->rotation[l->crumb().index] = Number{str, len};
+            return true;
+        };
+        break; }
+    // scale
+    case 's'|'c'<<8: {
+        c.handleChild = [node](HANDLE_CHILD_SIG) {
+            node->scale[l->crumb().index] = Number{str, len};
+            return true;
+        };
+        break; }
+    // skin
+    case 's'|'k'<<8: {
+        node->skin = g->skins + Number{str, len};
+        break; }
+    // translation
+    case 't'|'r'<<8: {
+        c.handleChild = [node](HANDLE_CHILD_SIG) {
+            node->translation[l->crumb().index] = Number{str, len};
+            return true;
+        };
+        break; }
+    // weights
+    case 'w'|'e'<<8: {
+        node->weights = g->nodeWeights + l->nextNodeWeight;
+        c.handleChild = [node](HANDLE_CHILD_SIG) {
+            node->weights[l->crumb().index] = Number{str, len};
+            ++node->nWeights;
+            ++l->nextNodeWeight;
+            return true;
+        };
+        break; }
+    // name
+    case 'n'|'a'<<8: {
+        node->name = g->strings->writeStr(str, len);
+        break; }
+    }
+    return true;
+}
+
 /*
 
-        else if (strEqu(key, "nodes"))      { g->nodes[index].name       = g->strings->writeStr(str, length); }
         else if (strEqu(key, "samplers"))   { g->samplers[index].name    = g->strings->writeStr(str, length); }
         else if (strEqu(key, "scenes"))     { g->scenes[index].name      = g->strings->writeStr(str, length); }
         else if (strEqu(key, "skins"))      { g->skins[index].name       = g->strings->writeStr(str, length); }

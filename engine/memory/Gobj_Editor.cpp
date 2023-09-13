@@ -28,12 +28,12 @@ void Gobj::editorCreate() {
 }
 
 void Gobj::drawNode(Node * n) {
-        if (TreeNode("Node", "Node %zu (%s)", n - nodes, n->name)) {
-            for (uint16_t i = 0; i < n->nChildren; ++i) {
-                drawNode(n->children + i);
-            }
-            TreePop();
-        }
+        // if (TreeNode("Node", "Node %zu (%s)", n - nodes, n->name)) {
+        //     for (uint16_t i = 0; i < n->nChildren; ++i) {
+        //         drawNode(n->children + i);
+        //     }
+        //     TreePop();
+        // }
 }
 
 void Gobj::editorEditBlock() {

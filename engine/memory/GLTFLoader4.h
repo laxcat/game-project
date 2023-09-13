@@ -166,6 +166,8 @@ public:
     uint16_t nextMeshTarget = 0;
     uint16_t nextMeshWeight = 0;
     uint16_t nextMeshAttribute = 0;
+    uint16_t nextNodeChild = 0;
+    uint16_t nextNodeWeight = 0;
     byte_t * nextRawDataPtr = nullptr;
 
 // INTERNALS
