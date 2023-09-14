@@ -2,6 +2,7 @@
 #include <new>
 #include "FrameStack.h"
 #include "mem_utils.h"
+#include "../common/string_utils.h"
 #if DEBUG || DEV_INTERFACE
 #include "../dev/print.h"
 #include "../MrManager.h"

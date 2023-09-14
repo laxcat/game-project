@@ -219,21 +219,21 @@ void Editor::guiCamera() {
 }
 
 void Editor::guiHelpers() {
-    if (CollapsingHeader("Helpers")) {
-        auto r = mm.rendSys.at(Renderable::OriginWidgetKey);
-        if (r != nullptr) {
-            Checkbox("Show Origin Widget", &r->instances[0].active);
-            if (r->instances[0].active) {
-                SameLine();
-                float t = OriginWidget::scale;
-                SliderFloat("scale##origin", &OriginWidget::scale, 1.0f, 20.0f, "%.3f");
-                if (t != OriginWidget::scale) {
-                    OriginWidget::updateModelFromScale();
-                }
-                ColorEdit3("base color", (float *)&r->materials[0].baseColor, ImGuiColorEditFlags_DisplayHex);
-            }
-        }
-    }    
+    // if (CollapsingHeader("Helpers")) {
+    //     auto r = mm.rendSys.at(Renderable::OriginWidgetKey);
+    //     if (r != nullptr) {
+    //         Checkbox("Show Origin Widget", &r->instances[0].active);
+    //         if (r->instances[0].active) {
+    //             SameLine();
+    //             float t = OriginWidget::scale;
+    //             SliderFloat("scale##origin", &OriginWidget::scale, 1.0f, 20.0f, "%.3f");
+    //             if (t != OriginWidget::scale) {
+    //                 OriginWidget::updateModelFromScale();
+    //             }
+    //             ColorEdit3("base color", (float *)&r->materials[0].baseColor, ImGuiColorEditFlags_DisplayHex);
+    //         }
+    //     }
+    // }
 }
 
 void Editor::guiRenderables() {
@@ -249,11 +249,11 @@ void Editor::guiRenderables() {
             bool didPressEnter = InputText("New Renderable Slot", newLabel, CharKeys::KEY_MAX, flags);
             removeKeyEnterKeyRepeat(&didPressEnter);
             PopItemWidth();
-            SameLine();
-            if ((Button("Create New") || didPressEnter) && strlen(newLabel)) {
-                didCreateNew = mm.rendSys.create(mm.rendSys.gltfProgram, newLabel);
-                fixstrcpy<CharKeys::KEY_MAX>(newLabel, "");
-            }
+            // SameLine();
+            // if ((Button("Create New") || didPressEnter) && strlen(newLabel)) {
+            //     didCreateNew = mm.rendSys.create(mm.rendSys.gltfProgram, newLabel);
+            //     fixstrcpy<CharKeys::KEY_MAX>(newLabel, "");
+            // }
             Separator();
         }
 
@@ -266,112 +266,112 @@ void Editor::guiRenderables() {
 }
 
 void Editor::guiRenderable(Renderable * r, bool defaultOpen) {
-    int flags = 0;
-    if (defaultOpen) flags |= ImGuiTreeNodeFlags_DefaultOpen;
+    // int flags = 0;
+    // if (defaultOpen) flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
-    // COLLAPSING HEADER GUARDIAN STYLE
-    if (!TreeNodeEx(r->key, flags)) {
-        Separator();
-        return;
-    }
+    // // COLLAPSING HEADER GUARDIAN STYLE
+    // if (!TreeNodeEx(r->key, flags)) {
+    //     Separator();
+    //     return;
+    // }
 
-    PushID(r);
+    // PushID(r);
 
-    bool ready = mm.rendSys.isKeySafeToDrawOrLoad(r->key);
-    bool isLoaded = r->path.isSet();
-    bool keyExistsInRender = mm.rendSys.keyExists(r->key);
+    // bool ready = mm.rendSys.isKeySafeToDrawOrLoad(r->key);
+    // bool isLoaded = r->path.isSet();
+    // bool keyExistsInRender = mm.rendSys.keyExists(r->key);
 
 
-    BeginDisabled(!ready);
+    // BeginDisabled(!ready);
 
-    char buttonLabel[100];
-    sprintf(buttonLabel, "%s GLTF###loadButton", isLoaded ? "Swap":"Load");
-    if (Button(buttonLabel)) {
-        nfdchar_t * outPath = NULL;
-        nfdresult_t result = NFD_OpenDialog(NULL, "/Users/Shared/Dev/gltf_assets", &outPath);
+    // char buttonLabel[100];
+    // sprintf(buttonLabel, "%s GLTF###loadButton", isLoaded ? "Swap":"Load");
+    // if (Button(buttonLabel)) {
+    //     nfdchar_t * outPath = NULL;
+    //     nfdresult_t result = NFD_OpenDialog(NULL, "/Users/Shared/Dev/gltf_assets", &outPath);
 
-        printl("GLTF %s FOR KEY: %s", isLoaded ? "SWAP":"LOAD", r->key);
+    //     printl("GLTF %s FOR KEY: %s", isLoaded ? "SWAP":"LOAD", r->key);
 
-        if (result == NFD_OKAY) {
-            mm.rendSys.createFromGLTF(outPath, r->key);
-            free(outPath);
-            printl("path after release %s", r->path);
-        }
-        else if (result == NFD_CANCEL) {
-        }
-        else {
-            fprintf(stderr, "Error: %s\n", NFD_GetError());
-        }
-    }
+    //     if (result == NFD_OKAY) {
+    //         mm.rendSys.createFromGLTF(outPath, r->key);
+    //         free(outPath);
+    //         printl("path after release %s", r->path);
+    //     }
+    //     else if (result == NFD_CANCEL) {
+    //     }
+    //     else {
+    //         fprintf(stderr, "Error: %s\n", NFD_GetError());
+    //     }
+    // }
     
-    if (keyExistsInRender) {
-        // printl("keyExistsInRender %s", slot.key);
-        SameLine();
-        TextUnformatted(ready ? r->path.filename : "loading");
+    // if (keyExistsInRender) {
+    //     // printl("keyExistsInRender %s", slot.key);
+    //     SameLine();
+    //     TextUnformatted(ready ? r->path.filename : "loading");
 
-        bool rotx = r->adjRotAxes[0];
-        bool roty = r->adjRotAxes[1];
-        bool rotz = r->adjRotAxes[2];
-        Checkbox("Rot.X ", &r->adjRotAxes[0]);
-        SameLine();
-        Checkbox("Rot.Y ", &r->adjRotAxes[1]);
-        SameLine();
-        Checkbox("Rot.Z ", &r->adjRotAxes[2]);
-        if (rotx != r->adjRotAxes[0] ||
-            roty != r->adjRotAxes[1] ||
-            rotz != r->adjRotAxes[2]) {
-            r->updateAdjRot();
-        }
-        if (CollapsingHeader("Instances", ImGuiTreeNodeFlags_DefaultOpen)) {
-            for (size_t i = 0; i < r->instances.size(); ++i) {
-                PushID(i);
+    //     bool rotx = r->adjRotAxes[0];
+    //     bool roty = r->adjRotAxes[1];
+    //     bool rotz = r->adjRotAxes[2];
+    //     Checkbox("Rot.X ", &r->adjRotAxes[0]);
+    //     SameLine();
+    //     Checkbox("Rot.Y ", &r->adjRotAxes[1]);
+    //     SameLine();
+    //     Checkbox("Rot.Z ", &r->adjRotAxes[2]);
+    //     if (rotx != r->adjRotAxes[0] ||
+    //         roty != r->adjRotAxes[1] ||
+    //         rotz != r->adjRotAxes[2]) {
+    //         r->updateAdjRot();
+    //     }
+    //     if (CollapsingHeader("Instances", ImGuiTreeNodeFlags_DefaultOpen)) {
+    //         for (size_t i = 0; i < r->instances.size(); ++i) {
+    //             PushID(i);
 
-                auto & inst = r->instances[i];
+    //             auto & inst = r->instances[i];
 
-                Checkbox("", &inst.active);
-                SameLine();
-                Text("Instance %zu", i);
+    //             Checkbox("", &inst.active);
+    //             SameLine();
+    //             Text("Instance %zu", i);
 
-                ColorEdit4("Override Color",
-                    (float *)&inst.overrideColor,
-                    ImGuiColorEditFlags_DisplayHex);
+    //             ColorEdit4("Override Color",
+    //                 (float *)&inst.overrideColor,
+    //                 ImGuiColorEditFlags_DisplayHex);
 
-                float * t = (float *)&inst.model[3][0];
-                InputFloat3("Pos", (float *)&inst.model[3][0], "%.2f", ImGuiInputTextFlags_None);
-                PopID();
-            }
-            if (Button("Add Instance")) {
-                r->instances.push_back({});
-            }
+    //             float * t = (float *)&inst.model[3][0];
+    //             InputFloat3("Pos", (float *)&inst.model[3][0], "%.2f", ImGuiInputTextFlags_None);
+    //             PopID();
+    //         }
+    //         if (Button("Add Instance")) {
+    //             r->instances.push_back({});
+    //         }
 
-        }
-        if (CollapsingHeader("Materials")) {
-            PushItemWidth(200);
-            for (size_t i = 0; i < r->materials.size(); ++i) {
-                PushID(i);
-                auto const & mat = r->materials[i];
-                ColorEdit3(mat.name,
-                    (float *)&mat.baseColor,
-                    ImGuiColorEditFlags_DisplayHex);
-                PopID();
-            }
-            PopItemWidth();
-        }
-    }
-    else {
-        BeginDisabled();
-        bool x, y, z;
-        Checkbox("Rot.X ", &x);
-        SameLine();
-        Checkbox("Rot.Y ", &y);
-        SameLine();
-        Checkbox("Rot.Z ", &z);
-        EndDisabled();
-    }
-    EndDisabled();
-    TreePop();
-    PopID();
-    Separator();
+    //     }
+    //     if (CollapsingHeader("Materials")) {
+    //         PushItemWidth(200);
+    //         for (size_t i = 0; i < r->materials.size(); ++i) {
+    //             PushID(i);
+    //             auto const & mat = r->materials[i];
+    //             ColorEdit3(mat.name,
+    //                 (float *)&mat.baseColor,
+    //                 ImGuiColorEditFlags_DisplayHex);
+    //             PopID();
+    //         }
+    //         PopItemWidth();
+    //     }
+    // }
+    // else {
+    //     BeginDisabled();
+    //     bool x, y, z;
+    //     Checkbox("Rot.X ", &x);
+    //     SameLine();
+    //     Checkbox("Rot.Y ", &y);
+    //     SameLine();
+    //     Checkbox("Rot.Z ", &z);
+    //     EndDisabled();
+    // }
+    // EndDisabled();
+    // TreePop();
+    // PopID();
+    // Separator();
 }
 
 void Editor::guiFog() {

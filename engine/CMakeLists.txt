@@ -89,14 +89,14 @@ target_sources(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/Pool_Editor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/render/CameraControl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/render/GLTFLoader.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/render/Mesh.cpp
+    # ${CMAKE_CURRENT_SOURCE_DIR}/render/Mesh.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/render/RenderSystem2.cpp
     ${SetupLib_sources}
 )
 if(DEV_INTERFACE)
     target_sources(${PROJECT_NAME} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/dev/Editor.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/dev/OriginWidget.cpp
+        # ${CMAKE_CURRENT_SOURCE_DIR}/dev/OriginWidget.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/dev/print.cpp
     )
 endif()

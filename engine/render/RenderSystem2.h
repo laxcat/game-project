@@ -32,17 +32,17 @@ public:
     // MANAGER LIFECYCLE
     //
     void init();
+    // void draw();
     void draw();
-    void draw2();
-    void drawMesh(Gobj::Mesh const & mesh);
+    void drawMesh(Gobj::Mesh const & mesh, size_t & submitCount);
     void shutdown();
 
     // 
     // RENDERABLE LIFECYCLE
     //
-    Renderable * create(bgfx::ProgramHandle program, char const * key);
-    Renderable * createFromGLTF(char const * filename, char const * key);
-    Renderable * at(char const * key);
+    // Renderable * create(bgfx::ProgramHandle program, char const * key);
+    // Renderable * createFromGLTF(char const * filename, char const * key);
+    // Renderable * at(char const * key);
 
     void add(char const * key, Gobj * g);
 
@@ -50,8 +50,8 @@ public:
     // RENDERABLE UTILS
     //
     bool keyExists(char const * key);
-    bool isKeySafeToDrawOrLoad(char const * key);
-    bool isRenderableLoading(Renderable const * r, Renderable::LoadState & foundLoadState);
+    // bool isKeySafeToDrawOrLoad(char const * key);
+    // bool isRenderableLoading(Renderable const * r, Renderable::LoadState & foundLoadState);
 
     #if DEBUG || DEV_INTERFACE
     void showStatus();
@@ -61,8 +61,8 @@ public:
     size_t renderableCount() const;
 
 private:
-    GLTFLoader gltfLoader;
-    std::unordered_map<Renderable const *, std::thread> loadingThreads;
+    // GLTFLoader gltfLoader;
+    // std::unordered_map<Renderable const *, std::thread> loadingThreads;
     bgfx::UniformHandle materialBaseColor;
     bgfx::UniformHandle materialPBRValues;
     bgfx::UniformHandle normModel;
@@ -71,8 +71,8 @@ private:
 
     CharKeys * pool = nullptr;
     
-    bool destroy(char const * key);
-    void reset(Renderable * r);
+    // bool destroy(char const * key);
+    // void reset(Renderable * r);
 
     #if DEV_INTERFACE
     friend class Editor;
