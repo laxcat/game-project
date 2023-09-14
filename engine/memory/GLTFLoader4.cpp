@@ -454,6 +454,7 @@ void GLTFLoader4::push(ObjType objType) {
     // reset everthing
     newCrumb.childCount = 0;
     newCrumb.handleChild = nullptr;
+    newCrumb.handleEnd = nullptr;
 }
 
 void GLTFLoader4::pop() {
@@ -1087,6 +1088,7 @@ bool GLTFLoader4::handleMesh(GLTFLoader4 * l, Gobj * g, char const * str, uint32
         };
         // on end of primitives array
         c.handleEnd = [mesh](GLTFLoader4 * l, Gobj * g, uint32_t count) {
+            printl("MESH PRIMITIVES ARRAY END");
             mesh->nPrimitives = count;
             l->_nextMeshPrimitive += count;
             return true;

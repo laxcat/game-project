@@ -199,6 +199,103 @@ void RenderSystem::draw() {
     printc(ShowRenderDbgTick, "-------------------------------------------------------------ENDING RENDER FRAME\n");
 }
 
+void RenderSystem::draw2() {
+    printc(ShowRenderDbgTick, "STARTING RENDER FRAME-----------------------------------------------------------\n");
+
+    lights.preDraw();
+    mm.camera.preDraw();
+    bgfx::setUniform(fog.handle, (float *)&fog.data);
+    bgfx::setUniform(colors.background.handle, (float *)&colors.background.data);
+
+    size_t submitCount = 0;
+
+    // for each renderable
+    for (auto node : pool) {
+        // auto r = (Renderable *)node->ptr;
+        auto g = (Gobj *)node->ptr;
+
+        printc(ShowRenderDbgTick,
+            "----------------------------------------\n"
+            "RENDERABLE %s (%p)\n"
+            "----------------------------------------\n",
+            // r->key, r->key
+            node->key, g
+        );
+
+        // each mesh
+        for (uint16_t meshIndex = 0; meshIndex < g->counts.meshes; ++meshIndex) {
+            Gobj::Mesh & mesh = g->meshes[meshIndex];
+
+        } // for each mesh
+    } // for each renderable
+
+    if (!submitCount) {
+        bgfx::touch(mm.mainView);
+    }
+
+    lights.postDraw();
+
+    printc(ShowRenderDbgTick, "-------------------------------------------------------------ENDING RENDER FRAME\n");
+}
+
+void drawMesh(Gobj::Mesh const & mesh) {
+    printc(ShowRenderDbgTick,
+        "----------\n"
+        "mesh %p (%s), %u primitives\n"
+        "----------\n",
+        &mesh, mesh.name, mesh.nPrimitives
+    );
+
+    // each primitive
+    for (int primIndex = 0; primIndex < mesh.nPrimitives; ++primIndex) {
+        Gobj::MeshPrimitive & prim = mesh.primitives[primIndex];
+        printc(ShowRenderDbgTick,
+            "-----\n"
+            "mesh primitive %p\n"
+            "-----\n",
+            &prim
+        );
+
+        // set buffers
+        for (int attrIndex = 0; attrIndex < prim.nAttributes; ++attrIndex) {
+            Gobj::Accessor & acc = *prim.attributes[attrIndex].accessor;
+            bgfx::setVertexBuffer(attrIndex, bgfx::VertexBufferHandle{acc.renderHandle});
+        }
+        bgfx::setIndexBuffer(bgfx::IndexBufferHandle{prim.indices->renderHandle});
+        bgfx::setState(settings.state);
+
+        // set textures
+        bgfx::setTexture(0, samplers.color, whiteTexture.handle);
+        Gobj::Material & material = *prim.material;
+        bgfx::setUniform(materialBaseColor, &material.baseColorFactor);
+        glm::vec4 pbrValues{
+            0.5f, // roughness. 0 smooth, 1 rough
+            0.0f, // metallic. 0 plastic, 1 metal
+            0.2f, // specular, additional specular adjustment for non-matalic materials
+            1.0f  // color intensity
+        };
+        bgfx::setUniform(materialPBRValues, &pbrValues);
+
+        // set model
+        float model[16] = {
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f
+        };
+        bgfx::setTransform(model);
+
+        // make a reduced version of the rotation for the shader normals
+        auto nm = glm::transpose(glm::inverse(glm::mat3{*(glm::mat4 *)model}));
+        bgfx::setUniform(normModel, (float *)&nm);
+
+        // submit
+        bgfx::submit(mm.mainView, gltfProgram);
+        ++submitCount;
+    } // for each primitive
+}
+
+
 void RenderSystem::shutdown() {
     for (auto node : pool) {
         mm.memMan.request({.ptr=node->ptr, .size=0});
@@ -298,6 +395,57 @@ Renderable * RenderSystem::createFromGLTF(char const * filename, char const * ke
 
 Renderable * RenderSystem::at(char const * key) {
     return (Renderable *)pool->ptrForKey(key);
+}
+
+void RenderSystem::add(char const * key, Gobj * g) {
+    if (pool->isFull()) return;
+    pool->insert(key, g);
+
+    printl("setup gobj render handles for bgfx");
+    for (uint16_t meshIndex = 0; meshIndex < g->counts.meshes; ++meshIndex) {
+        auto & mesh = g->meshes[meshIndex];
+        printl("mesh %p (%s)", &mesh, mesh.name);
+
+        for (uint16_t primIndex = 0; primIndex < mesh.nPrimitives; ++primIndex) {
+            Gobj::MeshPrimitive & prim = mesh.primitives[primIndex];
+
+            // setup vbuffers
+            for (size_t attrIndex = 0; attrIndex < prim.nAttributes; ++attrIndex) {
+                Gobj::MeshAttribute & attr = prim.attributes[attrIndex];
+
+                printl("attr %d %p", attr.type, attr.accessor);
+
+                Gobj::Accessor & acc = *attr.accessor;
+                Gobj::BufferView & bv = *acc.bufferView;
+
+                bgfx::VertexLayout layout;
+                layout.begin();
+                layout.add(
+                    (bgfx::Attrib::Enum)(int)attr.type,
+                    acc.componentCount(),
+                    bgfxAttribTypeFromAccessorComponentType(acc.componentType)
+                );
+                layout.skip(acc.byteSize() - bv.byteStride);
+                layout.end();
+
+                auto data = bv.buffer->data + acc.byteOffset + bv.byteOffset;
+                auto ref = bgfx::makeRef(data, bv.byteLength);
+
+                acc.renderHandle = bgfx::createVertexBuffer(ref, layout).idx;
+            }
+
+            // setup ibuffer
+            Gobj::Accessor & iacc = *prim.indices;
+            Gobj::BufferView & ibv = *iacc.bufferView;
+            assert(iacc.componentType == Gobj::Accessor::COMP_UNSIGNED_SHORT);
+            auto data = ibv.buffer->data + iacc.byteOffset + ibv.byteOffset;
+            auto indexRef = bgfx::makeRef(data, iacc.count * sizeof(uint16_t));
+            iacc.renderHandle = bgfx::createIndexBuffer(indexRef).idx;
+
+            printl("primative %p, index accessor name/type %s/%d, data %p, render handle: %u",
+                &prim, iacc.name, iacc.componentType, data, iacc.renderHandle);
+        }
+    }
 }
 
 bool RenderSystem::destroy(char const * key) {

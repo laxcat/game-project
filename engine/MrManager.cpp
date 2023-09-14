@@ -23,19 +23,22 @@ int MrManager::init(EngineSetup const & setup) {
     devOverlay.showKeyboardShortcuts();
     #endif // DEV_INTERFACE
 
-    #if DEV_INTERFACE
-    originWidget = OriginWidget::create();
-    originWidget->instances[0].active = false;
-    OriginWidget::setScale(5.f);
-    #endif // DEV_INTERFACE
+    // #if DEV_INTERFACE
+    // originWidget = OriginWidget::create();
+    // originWidget->instances[0].active = false;
+    // OriginWidget::setScale(5.f);
+    // #endif // DEV_INTERFACE
 
     if (setup.args.c > 1) {
     }
 
     // test();
-    Renderable * r = rendSys.createFromGLTF("../../../gltf_assets/CesiumMilkTruck.glb", "truck");
+    // Renderable * r = rendSys.createFromGLTF("../../../gltf_assets/CesiumMilkTruck.glb", "truck");
 
-    memMan.createGobj("../../../gltf_assets/CesiumMilkTruck.glb");
+    Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoxInterleaved/glTF-Binary/BoxInterleaved.glb");
+    // Gobj * g = memMan.createGobj("../../../gltf_assets/CesiumMilkTruck.glb");
+    rendSys.add("box", g);
+
     // memMan.createGobj("../../../gltf_assets/CesiumMilkTruck/CesiumMilkTruck.gltf");
     // memMan.createGobj("../../../gltf_assets/Cameras.gltf");
     // memMan.createGobj("../../glTF-Sample-Models/2.0/BoxTextured/glTF-Binary/BoxTextured.glb");
@@ -80,7 +83,7 @@ void MrManager::draw() {
     bgfx::setViewClear(mainView, BGFX_CLEAR_COLOR|BGFX_CLEAR_DEPTH, rendSys.colors.background.asRGBAInt());
     bgfx::setViewTransform(mainView, (float *)&camera.viewMat, (float *)&camera.projMat);
     bgfx::setViewRect(mainView, 0, 0, bgfx::BackbufferRatio::Equal);
-    rendSys.draw();
+    rendSys.draw2();
     bgfx::frame();
     if (setup.postDraw) setup.postDraw();
 }

@@ -33,6 +33,8 @@ public:
     //
     void init();
     void draw();
+    void draw2();
+    void drawMesh(Gobj::Mesh const & mesh);
     void shutdown();
 
     // 
@@ -41,6 +43,8 @@ public:
     Renderable * create(bgfx::ProgramHandle program, char const * key);
     Renderable * createFromGLTF(char const * filename, char const * key);
     Renderable * at(char const * key);
+
+    void add(char const * key, Gobj * g);
 
     // 
     // RENDERABLE UTILS

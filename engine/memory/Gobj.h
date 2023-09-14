@@ -315,6 +315,31 @@ public:
         float min[16] = {0.0f};
         float max[16] = {0.0f};
         char const * name = nullptr;
+
+        uint16_t renderHandle = UINT16_MAX;
+
+        uint8_t componentCount() const {
+            switch (type) {
+            case TYPE_UNDEFINED : return  0;
+            case TYPE_SCALAR    : return  1;
+            case TYPE_VEC2      : return  2;
+            case TYPE_VEC3      : return  3;
+            case TYPE_VEC4      : return  4;
+            case TYPE_MAT2      : return  4;
+            case TYPE_MAT3      : return  9;
+            case TYPE_MAT4      : return 16;
+            }
+        }
+        uint32_t byteSize() const {
+            switch (componentType) {
+            case COMP_BYTE           :
+            case COMP_UNSIGNED_BYTE  : return componentCount() * 1;
+            case COMP_SHORT          :
+            case COMP_UNSIGNED_SHORT : return componentCount() * 2;
+            case COMP_UNSIGNED_INT   :
+            case COMP_FLOAT          : return componentCount() * 4;
+            }
+        }
     };
 
     struct Animation {
