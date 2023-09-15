@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <string.h>
+#include "mem_utils.h"
 
 File::Path::Path() {
     full[0] = '\0';
@@ -32,7 +33,7 @@ bool File::Path::isSet() const {
 size_t File::size() const { return _size; }
 size_t File::head() const { return _head; }
 size_t File::fileSize() const { return _size - 1; }
-byte_t * File::data() const { return (byte_t *)this + sizeof(File); }
+byte_t * File::data() const { return (byte_t *)this + alignSize(sizeof(File), _align); }
 byte_t * File::dataHead() const { return data() + _head; }
 bool File::loaded() const { return _loaded; }
 File::Path const & File::path() const { return _path; }

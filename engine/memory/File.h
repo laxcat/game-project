@@ -14,21 +14,24 @@ Read only for now
 class File {
 private:
     friend class MemMan;
-    File(size_t size, char const * path) :
+    File(size_t size, char const * path, size_t align = 0) :
         _size(size),
-        _path(path)
+        _path(path),
+        _align(align)
     {}
 
 public:
     class Path {
     public:
         static constexpr size_t MAX = 256;
+
+        char full[MAX];
+        char const * filename;
+
         Path();
         Path(char const * str);
         Path & operator=(char const * str);
         void set(char const * str);
-        char full[MAX];
-        char const * filename;
         bool isSet() const;
     };
 
@@ -46,6 +49,7 @@ public:
 private:
     size_t _size = 0;
     size_t _head = 0;
+    size_t _align = 0; // ensure data() (aka actual file contents) are aligned to this
     Path _path = "";
     bool _loaded = false;
 

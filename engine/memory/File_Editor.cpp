@@ -17,7 +17,7 @@ void File::editorCreate() {
         nfdresult_t result = NFD_OpenDialog(NULL, "/Users/Shared/Dev/test_assets", &outPath);
 
         if (result == NFD_OKAY) {
-            File * file = mm.memMan.createFileHandle(outPath, false, loadHigh);
+            File * file = mm.memMan.createFileHandle(outPath, false, {.high=loadHigh});
             free(outPath);
             if (file) {
                 mm.memMan.addTestAlloc(file, "File: %s", file->_path.filename);

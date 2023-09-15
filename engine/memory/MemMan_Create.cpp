@@ -22,7 +22,7 @@ FrameStack * MemMan::createFrameStack(size_t size) {
     return new (block->data()) FrameStack{size};
 }
 
-File * MemMan::createFileHandle(char const * path, bool loadNow, bool high) {
+File * MemMan::createFileHandle(char const * path, bool loadNow, Request const & addlRequest) {
     guard_t guard{_mainMutex};
 
     // open to deternmine size, and also maybe load
@@ -43,12 +43,14 @@ File * MemMan::createFileHandle(char const * path, bool loadNow, bool high) {
     size_t size = (size_t)fileSize + 1;
 
     BlockInfo * block = createBlock({
-        .size = size + sizeof(File),
+        .size = size + alignSize(sizeof(File), addlRequest.align),
         .type = MEM_BLOCK_FILE,
-        .high = high
+        .high = addlRequest.high,
+        .align = addlRequest.align,
+        .lifetime = addlRequest.lifetime
     });
     if (!block) return nullptr;
-    File * f = new (block->data()) File{size, path};
+    File * f = new (block->data()) File{size, path, addlRequest.align};
 
     // load now if request. send fp to avoid opening twice
     if (loadNow) {
@@ -92,7 +94,12 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     guard_t guard{_mainMutex};
 
     // load gltf into high memory
-    File * gltf = createFileHandle(gltfPath, true, false);
+    File * gltf = createFileHandle(
+        gltfPath,
+        true, // load now
+        {
+        }
+    );
     if (gltf == nullptr) {
         fprintf(stderr, "Error creating File block\n");
         return nullptr;

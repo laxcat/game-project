@@ -156,7 +156,7 @@ public:
     // MEM_BLOCK_CHARKEYS
     CharKeys * createCharKeys(size_t max);
     // MEM_BLOCK_FILE
-    File * createFileHandle(char const * path, bool loadNow, bool high = false);
+    File * createFileHandle(char const * path, bool loadNow, Request const & addlRequest);
     // MEM_BLOCK_FRAMESTACK
     FrameStack * createFrameStack(size_t size);
     // MEM_BLOCK_FREELIST
