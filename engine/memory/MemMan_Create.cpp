@@ -98,6 +98,9 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
         gltfPath,
         true, // load now
         {
+            .align = 4,
+            .high = true,
+            .lifetime = 0
         }
     );
     if (gltf == nullptr) {
@@ -106,7 +109,11 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     }
 
     // base path of gltf
-    BlockInfo * pathBlock = createBlock({.size=strlen(gltfPath), .lifetime=0});
+    BlockInfo * pathBlock = createBlock({
+        .size = strlen(gltfPath),
+        .lifetime = 0,
+        .high = true
+    });
     char * basePath = (char *)pathBlock->data();
     getPath(gltfPath, basePath);
 
@@ -114,6 +121,7 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     BlockInfo * loaderBlock = createBlock({
         .size = sizeof(GLTFLoader4),
         .lifetime = 0,
+        .high = true
     });
     GLTFLoader4 * loader4 = new (loaderBlock->data()) GLTFLoader4{gltf->data(), basePath};
     if (loader4->validData() == false) {

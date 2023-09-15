@@ -282,6 +282,9 @@ GLTFLoader4::GLTFLoader4(byte_t const * gltfData, char const * loadingDir) :
     _gltfData(gltfData),
     _loadingDir(loadingDir)
 {
+    // ensure GLTF expected alignment
+    assert(alignPtr((void *)_gltfData, 4) == _gltfData && "GLTF data must be 4-byte aligned.");
+
     // set loader pointer to json handlers
     _scanner.l = this;
     _counter.l = this;
@@ -405,7 +408,9 @@ byte_t const * GLTFLoader4::binChunkStart() const {
     assert(_isGLB && "No binary chuck to access.");
     // aligned because GLTF spec will add space characters at end of json
     // string in order to align to 4-byte boundary
-    return (byte_t const *)alignPtr((void *)(jsonStr() + jsonStrSize()), 4);
+    auto jsonPtr = jsonStr() + jsonStrSize();
+    auto alignedPtr = (byte_t const *)alignPtr((void *)jsonPtr, 4);
+    return alignedPtr;
 }
 
 uint32_t GLTFLoader4::binDataSize() const {
