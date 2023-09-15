@@ -291,14 +291,14 @@ public:
         BufferView * bufferView = nullptr;
         uint32_t byteOffset = 0;
         enum ComponentType {
-            COMP_BYTE           = 0x1400, // 5120
-            COMP_UNSIGNED_BYTE  = 0x1401, // 5121
-            COMP_SHORT          = 0x1402, // 5122
-            COMP_UNSIGNED_SHORT = 0x1403, // 5123
-            COMP_UNSIGNED_INT   = 0x1405, // 5125
-            COMP_FLOAT          = 0x1406, // 5126
+            COMPTYPE_BYTE           = 0x1400, // 5120
+            COMPTYPE_UNSIGNED_BYTE  = 0x1401, // 5121
+            COMPTYPE_SHORT          = 0x1402, // 5122
+            COMPTYPE_UNSIGNED_SHORT = 0x1403, // 5123
+            COMPTYPE_UNSIGNED_INT   = 0x1405, // 5125
+            COMPTYPE_FLOAT          = 0x1406, // 5126
         };
-        ComponentType componentType = COMP_UNSIGNED_BYTE;
+        ComponentType componentType = COMPTYPE_UNSIGNED_BYTE;
         bool normalized = false;
         uint32_t count = 0;
         enum Type {
@@ -332,12 +332,12 @@ public:
         }
         uint32_t byteSize() const {
             switch (componentType) {
-            case COMP_BYTE           :
-            case COMP_UNSIGNED_BYTE  : return componentCount() * 1;
-            case COMP_SHORT          :
-            case COMP_UNSIGNED_SHORT : return componentCount() * 2;
-            case COMP_UNSIGNED_INT   :
-            case COMP_FLOAT          : return componentCount() * 4;
+            case COMPTYPE_BYTE           :
+            case COMPTYPE_UNSIGNED_BYTE  : return componentCount() * 1;
+            case COMPTYPE_SHORT          :
+            case COMPTYPE_UNSIGNED_SHORT : return componentCount() * 2;
+            case COMPTYPE_UNSIGNED_INT   :
+            case COMPTYPE_FLOAT          : return componentCount() * 4;
             }
         }
     };

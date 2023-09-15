@@ -104,10 +104,13 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     getPath(gltfPath, basePath);
 
     // LOADER 4
-    GLTFLoader4 * loader4 = create<GLTFLoader4>(gltf->data(), basePath);
-    printl("GLTFLoader4 size: %zu", sizeof(GLTFLoader4));
+    BlockInfo * loaderBlock = createBlock({
+        .size = sizeof(GLTFLoader4),
+        .lifetime = 0,
+    });
+    GLTFLoader4 * loader4 = new (loaderBlock->data()) GLTFLoader4{gltf->data(), basePath};
     if (loader4->validData() == false) {
-        fprintf(stderr, "Error creating Gobj block\n");
+        fprintf(stderr, "Error creating loader block\n");
         return nullptr;
     }
 
@@ -147,15 +150,11 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     }
     #endif // DEBUG
 
-    // free gltf file block and loader
-    request({.ptr=gltf, .size=0});
-    request({.ptr=loader4, .size=0});
-
     // debug output
     #if DEBUG
     printl("LOADED GOBJ:");
-    gobj->print();
     printl(gobj->jsonStr);
+    gobj->print();
     #endif // DEBUG
 
     return gobj;

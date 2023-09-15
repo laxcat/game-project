@@ -3,6 +3,7 @@
 #include "../MrManager.h"
 #include "../common/string_utils.h"
 #include "../render/bgfx_extra.h"
+#include "../memory/CharKeys.h"
 
 #if FORCE_OPENGL
     #include "../shader/shaders/gltf/vs_gltf.150.bin.geninc"
@@ -295,13 +296,28 @@ void RenderSystem::drawMesh(Gobj::Mesh const & mesh, size_t & submitCount) {
 }
 
 void RenderSystem::shutdown() {
+    // destroy
     for (auto node : pool) {
-        auto r = (Gobj *)node->ptr;
-        mm.memMan.request({.ptr=r, .size=0});
-
-        // for (uint16_t i = 0; i < )
+        auto g = (Gobj *)node->ptr;
+        // destroy buffer handles
+        for (uint16_t i = 0; i < g->counts.accessors; ++i) {
+            auto & acc = g->accessors[i];
+            if (acc.componentType == Gobj::Accessor::COMPTYPE_UNSIGNED_SHORT &&
+                isValid(bgfx::IndexBufferHandle{acc.renderHandle}))
+            {
+                bgfx::destroy(bgfx::IndexBufferHandle{acc.renderHandle});
+            }
+            else if (acc.componentType == Gobj::Accessor::COMPTYPE_FLOAT &&
+                isValid(bgfx::VertexBufferHandle{acc.renderHandle}))
+            {
+                bgfx::destroy(bgfx::VertexBufferHandle{acc.renderHandle});
+            }
+        }
+        // no need to ever dealloc memMan objects TODO: is this still true?
+        // mm.memMan.request({.ptr=g, .size=0});
     }
-    mm.memMan.request({.ptr=pool, .size=0});
+    // no need to ever dealloc memMan objects TODO: is this still true?
+    // mm.memMan.request({.ptr=pool, .size=0});
 
     bgfx::destroy(gltfProgram);
     bgfx::destroy(unlitProgram);
@@ -404,10 +420,10 @@ void RenderSystem::add(char const * key, Gobj * g) {
     if (pool->isFull()) return;
     pool->insert(key, g);
 
-    printl("setup gobj render handles for bgfx");
+    // printl("setup gobj render handles for bgfx");
     for (uint16_t meshIndex = 0; meshIndex < g->counts.meshes; ++meshIndex) {
         auto & mesh = g->meshes[meshIndex];
-        printl("mesh %p (%s)", &mesh, mesh.name);
+        // printl("mesh %p (%s)", &mesh, mesh.name);
 
         for (uint16_t primIndex = 0; primIndex < mesh.nPrimitives; ++primIndex) {
             Gobj::MeshPrimitive & prim = mesh.primitives[primIndex];
@@ -416,10 +432,12 @@ void RenderSystem::add(char const * key, Gobj * g) {
             for (size_t attrIndex = 0; attrIndex < prim.nAttributes; ++attrIndex) {
                 Gobj::MeshAttribute & attr = prim.attributes[attrIndex];
 
-                printl("attr %d %p", attr.type, attr.accessor);
+                // printl("attr %d %p", attr.type, attr.accessor);
 
                 Gobj::Accessor & acc = *attr.accessor;
                 Gobj::BufferView & bv = *acc.bufferView;
+                assert(acc.componentType == Gobj::Accessor::COMPTYPE_FLOAT &&
+                    "Unexpected accessor component type for vbuffer.");
 
                 bgfx::VertexLayout layout;
                 layout.begin();
@@ -435,18 +453,21 @@ void RenderSystem::add(char const * key, Gobj * g) {
                 auto ref = bgfx::makeRef(data, bv.byteLength);
 
                 acc.renderHandle = bgfx::createVertexBuffer(ref, layout).idx;
+                // printl("creating vbuffer handle %u", acc.renderHandle);
             }
 
             // setup ibuffer
             Gobj::Accessor & iacc = *prim.indices;
             Gobj::BufferView & ibv = *iacc.bufferView;
-            assert(iacc.componentType == Gobj::Accessor::COMP_UNSIGNED_SHORT);
+            assert(iacc.componentType == Gobj::Accessor::COMPTYPE_UNSIGNED_SHORT &&
+                "Unexpected accessor component type for ibuffer.");
             auto data = ibv.buffer->data + iacc.byteOffset + ibv.byteOffset;
             auto indexRef = bgfx::makeRef(data, iacc.count * sizeof(uint16_t));
             iacc.renderHandle = bgfx::createIndexBuffer(indexRef).idx;
+            // printl("creating ibuffer handle %u", iacc.renderHandle);
 
-            printl("primative %p, index accessor name/type %s/%d, data %p, render handle: %u",
-                &prim, iacc.name, iacc.componentType, data, iacc.renderHandle);
+            // printl("primative %p, index accessor name/type %s/%d, data %p, render handle: %u",
+            //     &prim, iacc.name, iacc.componentType, data, iacc.renderHandle);
         }
     }
 }

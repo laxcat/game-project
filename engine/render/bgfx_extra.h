@@ -26,11 +26,11 @@ inline bgfx::ProgramHandle createBGFXProgram(
 
 inline bgfx::AttribType::Enum bgfxAttribTypeFromAccessorComponentType(Gobj::Accessor::ComponentType componentType) {
     switch (componentType) {
-    case Gobj::Accessor::COMP_BYTE           : assert(false);
-    case Gobj::Accessor::COMP_UNSIGNED_BYTE  : return bgfx::AttribType::Uint8;
-    case Gobj::Accessor::COMP_SHORT          : assert(false);
-    case Gobj::Accessor::COMP_UNSIGNED_SHORT : return bgfx::AttribType::Int16;
-    case Gobj::Accessor::COMP_UNSIGNED_INT   : assert(false);
-    case Gobj::Accessor::COMP_FLOAT          : return bgfx::AttribType::Float;
+    case Gobj::Accessor::COMPTYPE_BYTE           : assert(false);
+    case Gobj::Accessor::COMPTYPE_UNSIGNED_BYTE  : return bgfx::AttribType::Uint8;
+    case Gobj::Accessor::COMPTYPE_SHORT          : assert(false);
+    case Gobj::Accessor::COMPTYPE_UNSIGNED_SHORT : return bgfx::AttribType::Int16;
+    case Gobj::Accessor::COMPTYPE_UNSIGNED_INT   : assert(false);
+    case Gobj::Accessor::COMPTYPE_FLOAT          : return bgfx::AttribType::Float;
     }
 }

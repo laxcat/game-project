@@ -79,6 +79,7 @@ void CharKeys::editorEditBlock() {
             case CharKeys::SUCCESS:         snprintf(msg, msgMax, "Inserted node");                 break;
             case CharKeys::BUFFER_FULL:     snprintf(msg, msgMax, "Buffer full; did not insert");   break;
             case CharKeys::DUPLICATE_KEY:   snprintf(msg, msgMax, "Duplicate key; did not insert"); break;
+            case CharKeys::KEY_NOT_FOUND:   assert(false && "Unexpected error."); break;
             }
         }
         if (disableInsert) EndDisabled();

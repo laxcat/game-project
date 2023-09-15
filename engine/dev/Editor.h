@@ -35,8 +35,9 @@ public:
     void guiLighting();
     void guiCamera();
     void guiHelpers();
-    void guiRenderables();
-    void guiRenderable(Renderable * r, bool defaultOpen = false);
+    // void guiRenderables();
+    // void guiRenderable(Renderable * r, bool defaultOpen = false);
+    void guiGobjs();
     void guiFog();
     void guiColors();
     void guiMem();
