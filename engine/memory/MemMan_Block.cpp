@@ -69,6 +69,10 @@ void MemMan::releaseBlock(BlockInfo * block) {
 
     // move BlockInfo back to base if padding was set
     if (block->_padding > 0) {
+        bool isFirstFree = (block == _firstFree);
+        bool isHead = (block == _head);
+        bool isTail = (block == _tail);
+
         // get block base
         byte_t * base = block->basePtr();
 
@@ -81,6 +85,9 @@ void MemMan::releaseBlock(BlockInfo * block) {
         block->_padding = 0;
         if (block->_next) block->_next->_prev = block;
         if (block->_prev) block->_prev->_next = block;
+        if (isFirstFree)  _firstFree = block;
+        if (isHead)       _head = block;
+        if (isTail)       _tail = block;
     }
 
     // update block info
@@ -93,7 +100,7 @@ void MemMan::releaseBlock(BlockInfo * block) {
     #endif // DEBUG
 
     // check to see if this newly released block changes _firstFree
-    // (it may or may not, findFirstFree will check)
+    // (it may or may not, findFirstFreeBlock will check)
     findFirstFreeBlock(block);
 }
 
