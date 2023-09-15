@@ -57,7 +57,8 @@ public:
     enum Status {
         SUCCESS = 0,
         DUPLICATE_KEY,
-        BUFFER_FULL
+        BUFFER_FULL,
+        KEY_NOT_FOUND,
     };
 
     using PoolT = Pool<Node>;
@@ -77,6 +78,7 @@ public:
 
     // modify tree
     Status insert(char const * key, void * ptr);
+    Status update(char const * key, void * ptr);
     bool remove(char const * key);
     void reset();
 

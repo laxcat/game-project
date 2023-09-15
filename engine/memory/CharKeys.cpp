@@ -80,6 +80,15 @@ CharKeys::Status CharKeys::insert(char const * key, void * ptr) {
     return SUCCESS;
 }
 
+CharKeys::Status CharKeys::update(char const * key, void * ptr) {
+    Node * d = search(key);
+    if (d == nullptr) {
+        return KEY_NOT_FOUND;
+    }
+    d->ptr = ptr;
+    return SUCCESS;
+}
+
 bool CharKeys::hasKey(char const * key) const {
     Node const * found = search(key);
     return (found != nullptr);
