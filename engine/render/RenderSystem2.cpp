@@ -225,7 +225,7 @@ void RenderSystem::draw() {
 
         // each mesh
         for (uint16_t meshIndex = 0; meshIndex < g->counts.meshes; ++meshIndex) {
-            drawMesh(g->meshes[meshIndex], submitCount);
+            submitCount += drawMesh(g->meshes[meshIndex]);
         }
     }
 
@@ -238,7 +238,9 @@ void RenderSystem::draw() {
     printc(ShowRenderDbgTick, "-------------------------------------------------------------ENDING RENDER FRAME\n");
 }
 
-void RenderSystem::drawMesh(Gobj::Mesh const & mesh, size_t & submitCount) {
+uint16_t RenderSystem::drawMesh(Gobj::Mesh const & mesh) {
+    uint16_t submitCount = 0;
+
     printc(ShowRenderDbgTick,
         "----------\n"
         "mesh %p (%s), %u primitives\n"
@@ -293,6 +295,8 @@ void RenderSystem::drawMesh(Gobj::Mesh const & mesh, size_t & submitCount) {
         bgfx::submit(mm.mainView, gltfProgram);
         ++submitCount;
     } // for each primitive
+
+    return submitCount;
 }
 
 void RenderSystem::shutdown() {

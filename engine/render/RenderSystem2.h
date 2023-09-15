@@ -34,7 +34,8 @@ public:
     void init();
     // void draw();
     void draw();
-    void drawMesh(Gobj::Mesh const & mesh, size_t & submitCount);
+    // returns submit count
+    uint16_t drawMesh(Gobj::Mesh const & mesh);
     void shutdown();
 
     // 
