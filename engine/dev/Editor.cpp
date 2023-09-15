@@ -244,7 +244,7 @@ void Editor::guiHelpers() {
 //         static void * didCreateNew = nullptr;
 
 //         // add new renderable
-//         if (mm.rendSys.pool->isFull() == false) {
+//         if (mm.rendSys.renderList->isFull() == false) {
 //             static char newLabel[CharKeys::KEY_MAX];
 //             static int flags = ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue;
 //             PushItemWidth(120);
@@ -260,7 +260,7 @@ void Editor::guiHelpers() {
 //         }
 
 //         // list current loaded renderables
-//         for (auto n : mm.rendSys.pool) {
+//         for (auto n : mm.rendSys.renderList) {
 //             guiRenderable((Renderable *)n->ptr, (n->ptr == didCreateNew));
 //         }
 //     }
@@ -387,7 +387,7 @@ void Editor::guiGobjs() {
 
     char const * keyToSwap = nullptr;
 
-    for (auto node : mm.rendSys.pool) {
+    for (auto node : mm.rendSys.renderList) {
         auto g = (Gobj *)node->ptr;
         TextUnformatted(node->key);
         Indent();
@@ -406,10 +406,10 @@ void Editor::guiGobjs() {
         nfdresult_t result = NFD_OpenDialog(NULL, "/Users/Shared/Dev/gltf_assets", &outPath);
 
         if (result == NFD_OKAY) {
-            void * oldGobjPtr = mm.rendSys.pool->ptrForKey(keyToSwap);
-            mm.memMan.request({.ptr=oldGobjPtr, .size=0});
             Gobj * newGobj = mm.memMan.createGobj(outPath);
-            mm.rendSys.pool->update(keyToSwap, newGobj);
+            Gobj * oldGobj = mm.rendSys.update(keyToSwap, newGobj);
+            mm.memMan.request({.ptr=oldGobj, .size=0});
+
             free(outPath);
         }
         else if (result == NFD_CANCEL) {}

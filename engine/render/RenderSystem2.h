@@ -46,6 +46,9 @@ public:
     // Renderable * at(char const * key);
 
     void add(char const * key, Gobj * g);
+    void remove(char const * key);
+    // returns gobj at key before update, nullptr if not found
+    Gobj * update(char const * key, Gobj * newGobj);
 
     // 
     // RENDERABLE UTILS
@@ -70,8 +73,11 @@ private:
     Texture whiteTexture;
     BXAllocator bxAllocator;
 
-    CharKeys * pool = nullptr;
+    CharKeys * renderList = nullptr;
     
+    void addHandles(Gobj * g);
+    void removeHandles(Gobj * g);
+
     // bool destroy(char const * key);
     // void reset(Renderable * r);
 

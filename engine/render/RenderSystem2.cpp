@@ -44,7 +44,7 @@ void RenderSystem::init() {
     materialPBRValues = bgfx::createUniform("u_materialPBRValues",  bgfx::UniformType::Vec4);
     normModel = bgfx::createUniform("u_normModel", bgfx::UniformType::Mat3);
 
-    pool = mm.memMan.createCharKeys(8);
+    renderList = mm.memMan.createCharKeys(8);
 
     byte_t data[] = {
         255,255,255,255,
@@ -211,7 +211,7 @@ void RenderSystem::draw() {
     size_t submitCount = 0;
 
     // for each renderable
-    for (auto node : pool) {
+    for (auto node : renderList) {
         // auto r = (Renderable *)node->ptr;
         auto g = (Gobj *)node->ptr;
 
@@ -301,27 +301,11 @@ uint16_t RenderSystem::drawMesh(Gobj::Mesh const & mesh) {
 
 void RenderSystem::shutdown() {
     // destroy
-    for (auto node : pool) {
-        auto g = (Gobj *)node->ptr;
-        // destroy buffer handles
-        for (uint16_t i = 0; i < g->counts.accessors; ++i) {
-            auto & acc = g->accessors[i];
-            if (acc.componentType == Gobj::Accessor::COMPTYPE_UNSIGNED_SHORT &&
-                isValid(bgfx::IndexBufferHandle{acc.renderHandle}))
-            {
-                bgfx::destroy(bgfx::IndexBufferHandle{acc.renderHandle});
-            }
-            else if (acc.componentType == Gobj::Accessor::COMPTYPE_FLOAT &&
-                isValid(bgfx::VertexBufferHandle{acc.renderHandle}))
-            {
-                bgfx::destroy(bgfx::VertexBufferHandle{acc.renderHandle});
-            }
-        }
-        // no need to ever dealloc memMan objects TODO: is this still true?
-        // mm.memMan.request({.ptr=g, .size=0});
+    for (auto node : renderList) {
+        removeHandles((Gobj *)node->ptr);
     }
     // no need to ever dealloc memMan objects TODO: is this still true?
-    // mm.memMan.request({.ptr=pool, .size=0});
+    // mm.memMan.request({.ptr=renderList, .size=0});
 
     bgfx::destroy(gltfProgram);
     bgfx::destroy(unlitProgram);
@@ -421,59 +405,32 @@ void RenderSystem::shutdown() {
 // }
 
 void RenderSystem::add(char const * key, Gobj * g) {
-    if (pool->isFull()) return;
-    pool->insert(key, g);
+    if (renderList->isFull()) return;
+    renderList->insert(key, g);
+    addHandles(g);
+}
 
-    // printl("setup gobj render handles for bgfx");
-    for (uint16_t meshIndex = 0; meshIndex < g->counts.meshes; ++meshIndex) {
-        auto & mesh = g->meshes[meshIndex];
-        // printl("mesh %p (%s)", &mesh, mesh.name);
-
-        for (uint16_t primIndex = 0; primIndex < mesh.nPrimitives; ++primIndex) {
-            Gobj::MeshPrimitive & prim = mesh.primitives[primIndex];
-
-            // setup vbuffers
-            for (size_t attrIndex = 0; attrIndex < prim.nAttributes; ++attrIndex) {
-                Gobj::MeshAttribute & attr = prim.attributes[attrIndex];
-
-                // printl("attr %d %p", attr.type, attr.accessor);
-
-                Gobj::Accessor & acc = *attr.accessor;
-                Gobj::BufferView & bv = *acc.bufferView;
-                assert(acc.componentType == Gobj::Accessor::COMPTYPE_FLOAT &&
-                    "Unexpected accessor component type for vbuffer.");
-
-                bgfx::VertexLayout layout;
-                layout.begin();
-                layout.add(
-                    (bgfx::Attrib::Enum)(int)attr.type,
-                    acc.componentCount(),
-                    bgfxAttribTypeFromAccessorComponentType(acc.componentType)
-                );
-                layout.skip(acc.byteSize() - bv.byteStride);
-                layout.end();
-
-                auto data = bv.buffer->data + acc.byteOffset + bv.byteOffset;
-                auto ref = bgfx::makeRef(data, bv.byteLength);
-
-                acc.renderHandle = bgfx::createVertexBuffer(ref, layout).idx;
-                // printl("creating vbuffer handle %u", acc.renderHandle);
-            }
-
-            // setup ibuffer
-            Gobj::Accessor & iacc = *prim.indices;
-            Gobj::BufferView & ibv = *iacc.bufferView;
-            assert(iacc.componentType == Gobj::Accessor::COMPTYPE_UNSIGNED_SHORT &&
-                "Unexpected accessor component type for ibuffer.");
-            auto data = ibv.buffer->data + iacc.byteOffset + ibv.byteOffset;
-            auto indexRef = bgfx::makeRef(data, iacc.count * sizeof(uint16_t));
-            iacc.renderHandle = bgfx::createIndexBuffer(indexRef).idx;
-            // printl("creating ibuffer handle %u", iacc.renderHandle);
-
-            // printl("primative %p, index accessor name/type %s/%d, data %p, render handle: %u",
-            //     &prim, iacc.name, iacc.componentType, data, iacc.renderHandle);
-        }
+void RenderSystem::remove(char const * key) {
+    auto g = (Gobj *)renderList->ptrForKey(key);
+    if (!g) {
+        fprintf(stderr, "WARNING: did not remove Gobj at key:%s. Could not find key.", key);
+        return;
     }
+    removeHandles(g);
+    renderList->remove(key);
+}
+
+Gobj * RenderSystem::update(char const * key, Gobj * newGobj) {
+    auto oldGobj = (Gobj *)renderList->ptrForKey(key);
+
+    if (!oldGobj) {
+        fprintf(stderr, "WARNING: did not update Gobj at key:%s. Could not find key.", key);
+        return nullptr;
+    }
+    removeHandles(oldGobj);
+    renderList->update(key, newGobj);
+    addHandles(newGobj);
+    return oldGobj;
 }
 
 // bool RenderSystem::destroy(char const * key) {
@@ -550,7 +507,7 @@ void RenderSystem::add(char const * key, Gobj * g) {
 //
 
 bool RenderSystem::keyExists(char const * key) {
-    return pool->hasKey(key);
+    return renderList->hasKey(key);
 }
 
 // bool RenderSystem::isKeySafeToDrawOrLoad(char const * key) {
@@ -577,7 +534,7 @@ bool RenderSystem::keyExists(char const * key) {
 #if DEBUG || DEV_INTERFACE
 
 void RenderSystem::showStatus() {
-    printc(ShowRenderDbg, "RENDERABLE COUNT: %zu\n", pool->nNodes());
+    printc(ShowRenderDbg, "RENDERABLE COUNT: %zu\n", renderList->nNodes());
 }
 
 void RenderSystem::showMoreStatus(char const * prefix) {
@@ -586,7 +543,7 @@ void RenderSystem::showMoreStatus(char const * prefix) {
     }
     if constexpr (ShowRenderDbg && DEBUG) {
         char * buf = mm.frameStr(1024);
-        pool->printToBuf(buf, 1024);
+        renderList->printToBuf(buf, 1024);
         printc(ShowRenderDbg, "RENDERABLEPOOL: \n%s\n", buf);
     }
 }
@@ -594,5 +551,74 @@ void RenderSystem::showMoreStatus(char const * prefix) {
 #endif // DEBUG || DEV_INTERFACE
 
 size_t RenderSystem::renderableCount() const {
-    return pool->nNodes();
+    return renderList->nNodes();
+}
+
+void RenderSystem::addHandles(Gobj * g) {
+    // printl("setup gobj render handles for bgfx");
+    for (uint16_t meshIndex = 0; meshIndex < g->counts.meshes; ++meshIndex) {
+        auto & mesh = g->meshes[meshIndex];
+        // printl("mesh %p (%s)", &mesh, mesh.name);
+
+        for (uint16_t primIndex = 0; primIndex < mesh.nPrimitives; ++primIndex) {
+            Gobj::MeshPrimitive & prim = mesh.primitives[primIndex];
+
+            // setup vbuffers
+            for (size_t attrIndex = 0; attrIndex < prim.nAttributes; ++attrIndex) {
+                Gobj::MeshAttribute & attr = prim.attributes[attrIndex];
+
+                // printl("attr %d %p", attr.type, attr.accessor);
+
+                Gobj::Accessor & acc = *attr.accessor;
+                Gobj::BufferView & bv = *acc.bufferView;
+                assert(acc.componentType == Gobj::Accessor::COMPTYPE_FLOAT &&
+                    "Unexpected accessor component type for vbuffer.");
+
+                bgfx::VertexLayout layout;
+                layout.begin();
+                layout.add(
+                    (bgfx::Attrib::Enum)(int)attr.type,
+                    acc.componentCount(),
+                    bgfxAttribTypeFromAccessorComponentType(acc.componentType)
+                );
+                layout.skip(acc.byteSize() - bv.byteStride);
+                layout.end();
+
+                auto data = bv.buffer->data + acc.byteOffset + bv.byteOffset;
+                auto ref = bgfx::makeRef(data, bv.byteLength);
+
+                acc.renderHandle = bgfx::createVertexBuffer(ref, layout).idx;
+                // printl("creating vbuffer handle %u", acc.renderHandle);
+            }
+
+            // setup ibuffer
+            Gobj::Accessor & iacc = *prim.indices;
+            Gobj::BufferView & ibv = *iacc.bufferView;
+            assert(iacc.componentType == Gobj::Accessor::COMPTYPE_UNSIGNED_SHORT &&
+                "Unexpected accessor component type for ibuffer.");
+            auto data = ibv.buffer->data + iacc.byteOffset + ibv.byteOffset;
+            auto indexRef = bgfx::makeRef(data, iacc.count * sizeof(uint16_t));
+            iacc.renderHandle = bgfx::createIndexBuffer(indexRef).idx;
+            // printl("creating ibuffer handle %u", iacc.renderHandle);
+
+            // printl("primative %p, index accessor name/type %s/%d, data %p, render handle: %u",
+            //     &prim, iacc.name, iacc.componentType, data, iacc.renderHandle);
+        }
+    }
+}
+
+void RenderSystem::removeHandles(Gobj * g) {
+    for (uint16_t i = 0; i < g->counts.accessors; ++i) {
+        auto & acc = g->accessors[i];
+        if (acc.componentType == Gobj::Accessor::COMPTYPE_UNSIGNED_SHORT &&
+            isValid(bgfx::IndexBufferHandle{acc.renderHandle}))
+        {
+            bgfx::destroy(bgfx::IndexBufferHandle{acc.renderHandle});
+        }
+        else if (acc.componentType == Gobj::Accessor::COMPTYPE_FLOAT &&
+            isValid(bgfx::VertexBufferHandle{acc.renderHandle}))
+        {
+            bgfx::destroy(bgfx::VertexBufferHandle{acc.renderHandle});
+        }
+    }
 }
