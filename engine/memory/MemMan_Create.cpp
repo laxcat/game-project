@@ -168,7 +168,7 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     // debug output
     #if DEBUG
     printl("LOADED GOBJ:");
-    printl(gobj->jsonStr);
+    // printl(gobj->jsonStr);
     gobj->print();
     #endif // DEBUG
 

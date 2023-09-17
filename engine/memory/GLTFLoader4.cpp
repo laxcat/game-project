@@ -8,7 +8,7 @@
 #include "../common/string_utils.h"
 #include "../MrManager.h"
 
-#define PRINT_BREADCRUMBS 0
+#define PRINT_BREADCRUMBS 1
 
 // -------------------------------------------------------------------------- //
 // COUNTER
@@ -1118,9 +1118,9 @@ bool GLTFLoader4::handleMeshPrimitive(GLTFLoader4 * l, Gobj * g, char const * st
     Gobj::Mesh * mesh = g->meshes + l->crumb(-3).index;
     Gobj::MeshPrimitive * prim = mesh->primitives + l->crumb(-1).index;
     auto & c = l->crumb();
-    switch (l->crumb().key[0]) {
+    switch (*(uint16_t *)c.key) {
     // attributes
-    case 'a': {
+    case 'a'|'t'<<8: {
         // set array location
         prim->attributes = g->meshAttributes + l->_nextMeshAttribute;
         // handle each attribute
@@ -1133,18 +1133,13 @@ bool GLTFLoader4::handleMeshPrimitive(GLTFLoader4 * l, Gobj * g, char const * st
         };
         break; }
     // indices
-    case 'i': { prim->indices = g->accessors + Number{str, len}; break; }
-    // material || mode
-    case 'm': {
-        switch (l->crumb().key[1]) {
-        // material
-        case 'a': { prim->material = g->materials + Number{str, len}; break; }
-        // mode
-        case 'o': { prim->mode = (Gobj::MeshPrimitive::Mode)(int)Number{str, len}; break; }
-        }
-        break; }
+    case 'i'|'n'<<8: { prim->indices = g->accessors + Number{str, len}; break; }
+    // material
+    case 'm'|'a'<<8: { prim->material = g->materials + Number{str, len}; break; }
+    // mode
+    case 'm'|'o'<<8: { prim->mode = (Gobj::MeshPrimitive::Mode)(int)Number{str, len}; break; }
     // targets
-    case 't': {
+    case 't'|'a'<<8: {
         // set array location
         prim->targets = g->meshTargets + l->_nextMeshTarget;
         // handle each target

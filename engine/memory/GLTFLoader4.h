@@ -99,7 +99,7 @@ public:
     };
 
     // each obj/arr shift gets a new crumb.
-    // the crumbs array (count of depth) holds a path back to root
+    // the _crumbs stack (count of _depth) holds a path back to root
     struct Crumb {
         ObjType objType = TYPE_UNKNOWN;
         char key[MaxKeyLen] = {'\0'};
