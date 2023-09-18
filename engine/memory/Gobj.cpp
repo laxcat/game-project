@@ -28,104 +28,117 @@ Gobj::Gobj(Gobj::Counts const & counts) :
         accessors = (Accessor *)head;
         for (uint16_t i = 0; i < counts.accessors; ++i) {
             new (head) Accessor{};
-            head += ALIGN_SIZE(sizeof(Accessor));
+            head += sizeof(Accessor);
         }
+        head = (byte_t *)ALIGN_PTR(head);
     }
 
     if (counts.animations) {
         animations = (Animation *)head;
         for (uint16_t i = 0; i < counts.animations; ++i) {
             new (head) Animation{};
-            head += ALIGN_SIZE(sizeof(Animation));
+            head += sizeof(Animation);
         }
+        head = (byte_t *)ALIGN_PTR(head);
     }
 
     if (counts.animationChannels) {
         animationChannels = (AnimationChannel *)head;
         for (uint16_t i = 0; i < counts.animationChannels; ++i) {
             new (head) AnimationChannel{};
-            head += ALIGN_SIZE(sizeof(AnimationChannel));
+            head += sizeof(AnimationChannel);
         }
+        head = (byte_t *)ALIGN_PTR(head);
     }
 
     if (counts.animationSamplers) {
         animationSamplers = (AnimationSampler *)head;
         for (uint16_t i = 0; i < counts.animationSamplers; ++i) {
             new (head) AnimationSampler{};
-            head += ALIGN_SIZE(sizeof(AnimationSampler));
+            head += sizeof(AnimationSampler);
         }
+        head = (byte_t *)ALIGN_PTR(head);
     }
 
     if (counts.buffers) {
         buffers = (Buffer *)head;
         for (uint16_t i = 0; i < counts.buffers; ++i) {
             new (head) Buffer{};
-            head += ALIGN_SIZE(sizeof(Buffer));
+            head += sizeof(Buffer);
         }
+        head = (byte_t *)ALIGN_PTR(head);
     }
 
     if (counts.bufferViews) {
         bufferViews = (BufferView *)head;
         for (uint16_t i = 0; i < counts.bufferViews; ++i) {
             new (head) BufferView{};
-            head += ALIGN_SIZE(sizeof(BufferView));
+            head += sizeof(BufferView);
         }
+        head = (byte_t *)ALIGN_PTR(head);
     }
 
     if (counts.cameras) {
         cameras = (Camera *)head;
         for (uint16_t i = 0; i < counts.cameras; ++i) {
             new (head) Camera{};
-            head += ALIGN_SIZE(sizeof(Camera));
+            head += sizeof(Camera);
         }
+        head = (byte_t *)ALIGN_PTR(head);
     }
 
     if (counts.images) {
         images = (Image *)head;
         for (uint16_t i = 0; i < counts.images; ++i) {
             new (head) Image{};
-            head += ALIGN_SIZE(sizeof(Image));
+            head += sizeof(Image);
         }
+        head = (byte_t *)ALIGN_PTR(head);
     }
 
     if (counts.materials) {
         materials = (Material *)head;
         for (uint16_t i = 0; i < counts.materials; ++i) {
             new (head) Material{};
-            head += ALIGN_SIZE(sizeof(Material));
+            head += sizeof(Material);
         }
+        head = (byte_t *)ALIGN_PTR(head);
     }
 
     if (counts.meshes) {
         meshes = (Mesh *)head;
         for (uint16_t i = 0; i < counts.meshes; ++i) {
             new (head) Mesh{};
-            head += ALIGN_SIZE(sizeof(Mesh));
+            head += sizeof(Mesh);
         }
+        head = (byte_t *)ALIGN_PTR(head);
     }
 
     if (counts.meshAttributes) {
         meshAttributes = (MeshAttribute *)head;
         for (uint16_t i = 0; i < counts.meshAttributes; ++i) {
             new (head) MeshAttribute{};
-            head += ALIGN_SIZE(sizeof(MeshAttribute));
+            head += sizeof(MeshAttribute);
         }
+        head = (byte_t *)ALIGN_PTR(head);
     }
 
     if (counts.meshPrimitives) {
         meshPrimitives = (MeshPrimitive *)head;
         for (uint16_t i = 0; i < counts.meshPrimitives; ++i) {
             new (head) MeshPrimitive{};
-            head += ALIGN_SIZE(sizeof(MeshPrimitive));
+            head += sizeof(MeshPrimitive);
         }
+        head = (byte_t *)ALIGN_PTR(head);
     }
 
     if (counts.meshTargets) {
         meshTargets = (MeshTarget *)head;
         for (uint16_t i = 0; i < counts.meshTargets; ++i) {
             new (head) MeshTarget{};
-            head += ALIGN_SIZE(sizeof(MeshTarget));
+            head += sizeof(MeshTarget);
         }
+        head = (byte_t *)ALIGN_PTR(head);
     }
 
     if (counts.meshWeights) {
@@ -134,7 +147,6 @@ Gobj::Gobj(Gobj::Counts const & counts) :
             *(float *)head = 0.f;
             head += sizeof(float);
         }
-        // aligns on group, not on each ptr
         head = (byte_t *)ALIGN_PTR(head);
     }
 
@@ -142,8 +154,9 @@ Gobj::Gobj(Gobj::Counts const & counts) :
         nodes = (Node *)head;
         for (uint16_t i = 0; i < counts.nodes; ++i) {
             new (head) Node{};
-            head += ALIGN_SIZE(sizeof(Node));
+            head += sizeof(Node);
         }
+        head = (byte_t *)ALIGN_PTR(head);
     }
 
     if (counts.nodeChildren) {
@@ -170,32 +183,36 @@ Gobj::Gobj(Gobj::Counts const & counts) :
         samplers = (Sampler *)head;
         for (uint16_t i = 0; i < counts.samplers; ++i) {
             new (head) Sampler{};
-            head += ALIGN_SIZE(sizeof(Sampler));
+            head += sizeof(Sampler);
         }
+        head = (byte_t *)ALIGN_PTR(head);
     }
 
     if (counts.scenes) {
         scenes = (Scene *)head;
         for (uint16_t i = 0; i < counts.scenes; ++i) {
             new (head) Scene{};
-            head += ALIGN_SIZE(sizeof(Scene));
+            head += sizeof(Scene);
         }
+        head = (byte_t *)ALIGN_PTR(head);
     }
 
     if (counts.skins) {
         skins = (Skin *)head;
         for (uint16_t i = 0; i < counts.skins; ++i) {
             new (head) Skin{};
-            head += ALIGN_SIZE(sizeof(Skin));
+            head += sizeof(Skin);
         }
+        head = (byte_t *)ALIGN_PTR(head);
     }
 
     if (counts.textures) {
         textures = (Texture *)head;
         for (uint16_t i = 0; i < counts.textures; ++i) {
             new (head) Texture{};
-            head += ALIGN_SIZE(sizeof(Texture));
+            head += sizeof(Texture);
         }
+        head = (byte_t *)ALIGN_PTR(head);
     }
 
     if (counts.buffers) {
@@ -210,27 +227,27 @@ size_t Gobj::Counts::totalSize() const {
     return
         ALIGN_SIZE(sizeof(Gobj)) +
         ALIGN_SIZE(sizeof(FrameStack) + allStrLen) +
-        ALIGN_SIZE(sizeof(Gobj::Accessor))         * accessors +
-        ALIGN_SIZE(sizeof(Gobj::Animation))        * animations +
-        ALIGN_SIZE(sizeof(Gobj::AnimationChannel)) * animationChannels +
-        ALIGN_SIZE(sizeof(Gobj::AnimationSampler)) * animationSamplers +
-        ALIGN_SIZE(sizeof(Gobj::Buffer))           * buffers +
-        ALIGN_SIZE(sizeof(Gobj::BufferView))       * bufferViews +
-        ALIGN_SIZE(sizeof(Gobj::Camera))           * cameras +
-        ALIGN_SIZE(sizeof(Gobj::Image))            * images +
-        ALIGN_SIZE(sizeof(Gobj::Material))         * materials +
-        ALIGN_SIZE(sizeof(Gobj::Mesh))             * meshes +
-        ALIGN_SIZE(sizeof(Gobj::MeshAttribute))    * meshAttributes +
-        ALIGN_SIZE(sizeof(Gobj::MeshPrimitive))    * meshPrimitives +
-        ALIGN_SIZE(sizeof(Gobj::MeshTarget))       * meshTargets +
-        ALIGN_SIZE(sizeof(float)                   * meshWeights) +  // aligns on group, not on each ptr
-        ALIGN_SIZE(sizeof(Gobj::Node))             * nodes +
-        ALIGN_SIZE(sizeof(Gobj::Node *)            * nodeChildren) + // aligns on group, not on each ptr
-        ALIGN_SIZE(sizeof(float)                   * nodeWeights) +  // aligns on group, not on each ptr
-        ALIGN_SIZE(sizeof(Gobj::Sampler))          * samplers +
-        ALIGN_SIZE(sizeof(Gobj::Scene))            * scenes +
-        ALIGN_SIZE(sizeof(Gobj::Skin))             * skins +
-        ALIGN_SIZE(sizeof(Gobj::Texture))          * textures +
+        ALIGN_SIZE(sizeof(Gobj::Accessor)          * accessors) +
+        ALIGN_SIZE(sizeof(Gobj::Animation)         * animations) +
+        ALIGN_SIZE(sizeof(Gobj::AnimationChannel)  * animationChannels) +
+        ALIGN_SIZE(sizeof(Gobj::AnimationSampler)  * animationSamplers) +
+        ALIGN_SIZE(sizeof(Gobj::Buffer)            * buffers) +
+        ALIGN_SIZE(sizeof(Gobj::BufferView)        * bufferViews) +
+        ALIGN_SIZE(sizeof(Gobj::Camera)            * cameras) +
+        ALIGN_SIZE(sizeof(Gobj::Image)             * images) +
+        ALIGN_SIZE(sizeof(Gobj::Material)          * materials) +
+        ALIGN_SIZE(sizeof(Gobj::Mesh)              * meshes) +
+        ALIGN_SIZE(sizeof(Gobj::MeshAttribute)     * meshAttributes) +
+        ALIGN_SIZE(sizeof(Gobj::MeshPrimitive)     * meshPrimitives) +
+        ALIGN_SIZE(sizeof(Gobj::MeshTarget)        * meshTargets) +
+        ALIGN_SIZE(sizeof(float)                   * meshWeights) +
+        ALIGN_SIZE(sizeof(Gobj::Node)              * nodes) +
+        ALIGN_SIZE(sizeof(Gobj::Node *)            * nodeChildren) +
+        ALIGN_SIZE(sizeof(float)                   * nodeWeights) +
+        ALIGN_SIZE(sizeof(Gobj::Sampler)           * samplers) +
+        ALIGN_SIZE(sizeof(Gobj::Scene)             * scenes) +
+        ALIGN_SIZE(sizeof(Gobj::Skin)              * skins) +
+        ALIGN_SIZE(sizeof(Gobj::Texture)           * textures) +
         ALIGN_SIZE(rawDataLen)
     ;
 }
