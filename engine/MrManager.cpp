@@ -34,8 +34,8 @@ int MrManager::init(EngineSetup const & setup) {
     // test();
     // Renderable * r = rendSys.createFromGLTF("../../../gltf_assets/CesiumMilkTruck.glb", "truck");
 
-    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoxInterleaved/glTF-Binary/BoxInterleaved.glb");
-    Gobj * g = memMan.createGobj("../../../gltf_assets/LS500.glb");
+    Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoxInterleaved/glTF-Binary/BoxInterleaved.glb");
+    // Gobj * g = memMan.createGobj("../../../gltf_assets/LS500.glb");
     // Gobj * g = memMan.createGobj("../../../gltf_assets/CesiumMilkTruck.glb");
     assert(g && "init gobj failed");
     rendSys.add("test", g);

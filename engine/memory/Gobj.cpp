@@ -220,9 +220,6 @@ Gobj::Gobj(Gobj::Counts const & counts) :
     }
 }
 
-byte_t const * Gobj::data () const { return (byte_t *)this + sizeof(Gobj); }
-FrameStack const * Gobj::stringStack () const { return (FrameStack *)data(); }
-
 size_t Gobj::Counts::totalSize() const {
     return
         ALIGN_SIZE(sizeof(Gobj)) +
@@ -263,12 +260,12 @@ Gobj::Accessor::Type Gobj::accessorTypeFromStr(char const * str) {
     return Accessor::TYPE_UNDEFINED;
 }
 
-Gobj::AnimationTarget Gobj::animationTargetFromStr(char const * str) {
-    if (strEqu(str, "weights"    )) return ANIM_TAR_WEIGHTS;
-    if (strEqu(str, "translation")) return ANIM_TAR_TRANSLATION;
-    if (strEqu(str, "rotation"   )) return ANIM_TAR_ROTATION;
-    if (strEqu(str, "scale"      )) return ANIM_TAR_SCALE;
-    return ANIM_TAR_UNDEFINED;
+Gobj::AnimationChannel::Target Gobj::animationTargetFromStr(char const * str) {
+    if (strEqu(str, "weights"    )) return AnimationChannel::TARGET_WEIGHTS;
+    if (strEqu(str, "translation")) return AnimationChannel::TARGET_TRANSLATION;
+    if (strEqu(str, "rotation"   )) return AnimationChannel::TARGET_ROTATION;
+    if (strEqu(str, "scale"      )) return AnimationChannel::TARGET_SCALE;
+    return AnimationChannel::TARGET_UNDEFINED;
 }
 
 Gobj::AnimationSampler::Interpolation Gobj::interpolationFromStr(char const * str) {

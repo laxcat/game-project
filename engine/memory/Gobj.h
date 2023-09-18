@@ -135,10 +135,12 @@ raw data                                // buffer data, image data, etc.
 class FrameStack;
 
 class Gobj {
+// -------------------------------------------------------------------------- //
 // STATIC CONSTANTS
 public:
     static constexpr size_t Align = 16;
 
+// -------------------------------------------------------------------------- //
 // FORWARD
 public:
     // sub-parts
@@ -163,32 +165,34 @@ public:
     struct Skin;
     struct Texture;
 
-    // COUNTS
+// -------------------------------------------------------------------------- //
+// ENUMS, TYPES
+public:
     struct Counts {
-        uint16_t accessors = 0;
-        uint16_t animations = 0;
-        uint16_t animationChannels = 0;
-        uint16_t animationSamplers = 0;
-        uint16_t buffers = 0;
-        uint16_t bufferViews = 0;
-        uint16_t cameras = 0;
-        uint16_t images = 0;
-        uint16_t materials = 0;
-        uint16_t meshes = 0;
-        uint16_t meshPrimitives = 0;
-        uint16_t meshAttributes = 0;
-        uint16_t meshTargets = 0;
-        uint16_t meshWeights = 0;
-        uint16_t nodes = 0;
-        uint16_t nodeChildren = 0;
-        uint16_t nodeWeights = 0;
-        uint16_t samplers = 0;
-        uint16_t scenes = 0;
-        uint16_t skins = 0;
-        uint16_t textures = 0;
+        uint16_t accessors          = 0;
+        uint16_t animations         = 0;
+        uint16_t animationChannels  = 0;
+        uint16_t animationSamplers  = 0;
+        uint16_t buffers            = 0;
+        uint16_t bufferViews        = 0;
+        uint16_t cameras            = 0;
+        uint16_t images             = 0;
+        uint16_t materials          = 0;
+        uint16_t meshes             = 0;
+        uint16_t meshPrimitives     = 0;
+        uint16_t meshAttributes     = 0;
+        uint16_t meshTargets        = 0;
+        uint16_t meshWeights        = 0;
+        uint16_t nodes              = 0;
+        uint16_t nodeChildren       = 0;
+        uint16_t nodeWeights        = 0;
+        uint16_t samplers           = 0;
+        uint16_t scenes             = 0;
+        uint16_t skins              = 0;
+        uint16_t textures           = 0;
 
-        uint32_t allStrLen = 0;
-        uint32_t rawDataLen = 0;
+        uint32_t allStrLen          = 0;
+        uint32_t rawDataLen         = 0;
 
         size_t totalSize() const;
         #if DEBUG || DEV_INTERFACE
@@ -197,12 +201,42 @@ public:
         #endif // DEBUG || DEV_INTERFACE
     };
 
+    enum Status {
+        STATUS_UNLOADED,
+        STATUS_LOADING,
+        STATUS_READY
+    };
+
+    // matches bgfx, TODO: compare to "official" gltf supported list
+    enum Attr {
+        ATTR_POSITION,
+        ATTR_NORMAL,
+        ATTR_TANGENT,
+        ATTR_BITANGENT,
+        ATTR_COLOR0,
+        ATTR_COLOR1,
+        ATTR_COLOR2,
+        ATTR_COLOR3,
+        ATTR_INDICES,
+        ATTR_WEIGHT,
+        ATTR_TEXCOORD0,
+        ATTR_TEXCOORD1,
+        ATTR_TEXCOORD2,
+        ATTR_TEXCOORD3,
+        ATTR_TEXCOORD4,
+        ATTR_TEXCOORD5,
+        ATTR_TEXCOORD6,
+        ATTR_TEXCOORD7,
+    };
+
+// -------------------------------------------------------------------------- //
 // INIT
 private:
     friend class MemMan;
     Gobj(Counts const & counts);
 
-    // STORAGE
+// -------------------------------------------------------------------------- //
+// STORAGE
 public:
     FrameStack       * strings           = nullptr;
     Accessor         * accessors         = nullptr;
@@ -242,51 +276,17 @@ public:
     char const * jsonStr = nullptr;
     #endif // DEBUG
 
+    Status status = STATUS_UNLOADED;
+
     // STATIC API
 
     constexpr size_t DataSize(Counts const & counts) {
         return counts.totalSize();
     }
 
-// PUBLIC INTERFACE
-public:
-    byte_t const * data () const;
-    FrameStack const * stringStack () const;
-
-// ENUMS, TYPES
-public:
-    // matches bgfx, TODO: compare to "official" gltf supported list
-    enum Attr {
-        ATTR_POSITION,
-        ATTR_NORMAL,
-        ATTR_TANGENT,
-        ATTR_BITANGENT,
-        ATTR_COLOR0,
-        ATTR_COLOR1,
-        ATTR_COLOR2,
-        ATTR_COLOR3,
-        ATTR_INDICES,
-        ATTR_WEIGHT,
-        ATTR_TEXCOORD0,
-        ATTR_TEXCOORD1,
-        ATTR_TEXCOORD2,
-        ATTR_TEXCOORD3,
-        ATTR_TEXCOORD4,
-        ATTR_TEXCOORD5,
-        ATTR_TEXCOORD6,
-        ATTR_TEXCOORD7,
-    };
-    enum AnimationTarget {
-        ANIM_TAR_UNDEFINED,
-        ANIM_TAR_WEIGHTS,
-        ANIM_TAR_TRANSLATION,
-        ANIM_TAR_ROTATION,
-        ANIM_TAR_SCALE,
-    };
-
+// -------------------------------------------------------------------------- //
 // SUB-PARTS
 public:
-
     struct Accessor {
         BufferView * bufferView = nullptr;
         uint32_t byteOffset = 0;
@@ -353,7 +353,14 @@ public:
     struct AnimationChannel {
         AnimationSampler * sampler = nullptr;
         Node * node = nullptr;
-        AnimationTarget path = ANIM_TAR_UNDEFINED;
+        enum Target {
+            TARGET_UNDEFINED,
+            TARGET_WEIGHTS,
+            TARGET_TRANSLATION,
+            TARGET_ROTATION,
+            TARGET_SCALE,
+        };
+        Target path = TARGET_UNDEFINED;
     };
 
     struct AnimationSampler {
@@ -552,16 +559,18 @@ public:
         char const * name = nullptr;
     };
 
+// -------------------------------------------------------------------------- //
 // STRING TO TYPE CONVERSIONS
 public:
     static Accessor::Type accessorTypeFromStr(char const * str);
-    static AnimationTarget animationTargetFromStr(char const * str);
+    static AnimationChannel::Target animationTargetFromStr(char const * str);
     static AnimationSampler::Interpolation interpolationFromStr(char const * str);
     static Camera::Type cameraTypeFromStr(char const * str);
     static Image::MIMEType imageMIMETypeFromStr(char const * str);
     static Material::AlphaMode alphaModeFromStr(char const * str);
     static Attr attrFromStr(char const * str);
 
+// -------------------------------------------------------------------------- //
 // DEBUG
 public:
     #if DEBUG || DEV_INTERFACE
