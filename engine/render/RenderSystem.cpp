@@ -581,7 +581,7 @@ void RenderSystem::addHandles(Gobj * g) {
                     acc.componentCount(),
                     bgfxAttribTypeFromAccessorComponentType(acc.componentType)
                 );
-                layout.skip(acc.byteSize() - bv.byteStride);
+                layout.skip(bv.byteStride - acc.byteSize());
                 layout.end();
 
                 auto data = bv.buffer->data + acc.byteOffset + bv.byteOffset;
