@@ -6,7 +6,7 @@
 #include "memory/FrameStack.h"
 #include "render/Camera.h"
 #include "render/CameraControl.h"
-#include "render/RenderSystem2.h"
+#include "render/RenderSystem.h"
 
 #if DEV_INTERFACE
 #include "dev/DevOverlay.h"

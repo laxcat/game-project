@@ -34,13 +34,13 @@ NOT implemented yet:
 */
 
 
-class GLTFLoader4 {
+class GLTFLoader {
 // CONSTANTS
 public:
     static constexpr size_t MaxDepth = 12;
     static constexpr size_t MaxKeyLen = 32;
 
-    using HandlerFnSig = bool (GLTFLoader4 *, Gobj *, char const *, uint32_t);
+    using HandlerFnSig = bool (GLTFLoader *, Gobj *, char const *, uint32_t);
 
 // TYPES
 public:
@@ -71,7 +71,7 @@ public:
         bool StartArray();
         bool EndArray(uint32_t elementCount);
 
-        GLTFLoader4 * l;
+        GLTFLoader * l;
     };
 
     // rapidjson handler
@@ -92,7 +92,7 @@ public:
         bool StartArray();
         bool EndArray(uint32_t elementCount);
 
-        GLTFLoader4 * l;
+        GLTFLoader * l;
         Gobj * g;
         // handles every value (Bool, String and RawNumber)
         bool Value(ObjType type, char const * str, uint32_t length);
@@ -118,13 +118,13 @@ public:
         bool hasKey() const;
         bool isValid() const;
 
-        std::function<bool(GLTFLoader4 *, Gobj * g, char const *, uint32_t)> handleChild = nullptr;
-        std::function<bool(GLTFLoader4 *, Gobj * g, uint32_t)> handleEnd = nullptr;
+        std::function<bool(GLTFLoader *, Gobj * g, char const *, uint32_t)> handleChild = nullptr;
+        std::function<bool(GLTFLoader *, Gobj * g, uint32_t)> handleEnd = nullptr;
     };
 
 // PUBLIC INTERFACE
 public:
-    GLTFLoader4(byte_t const * gltfData, char const * loadingDir = nullptr);
+    GLTFLoader(byte_t const * gltfData, char const * loadingDir = nullptr);
 
     size_t calculateSize();
     bool load(Gobj * gobj);
@@ -195,23 +195,23 @@ private:
 
 // HANDLERS
 private:
-    static bool handleRoot              (GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleAccessor          (GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleAsset             (GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleAnimation         (GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleAnimationChannel  (GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleAnimationSampler  (GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleBuffer            (GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleBufferView        (GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleCamera            (GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleImage             (GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleMaterial          (GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleMesh              (GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleMeshPrimitive     (GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleNode              (GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleSampler           (GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleScene             (GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleSkin              (GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
-    static bool handleTexture           (GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleRoot              (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleAccessor          (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleAsset             (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleAnimation         (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleAnimationChannel  (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleAnimationSampler  (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleBuffer            (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleBufferView        (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleCamera            (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleImage             (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleMaterial          (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleMesh              (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleMeshPrimitive     (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleNode              (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleSampler           (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleScene             (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleSkin              (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
+    static bool handleTexture           (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
 
 };

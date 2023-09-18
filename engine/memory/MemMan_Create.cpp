@@ -9,7 +9,7 @@
 #include "File.h"
 #include "FreeList.h"
 #include "CharKeys.h"
-#include "GLTFLoader4.h"
+#include "GLTFLoader.h"
 
 FrameStack * MemMan::createFrameStack(size_t size) {
     guard_t guard{_mainMutex};
@@ -119,11 +119,11 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
 
     // LOADER 4
     BlockInfo * loaderBlock = createBlock({
-        .size = sizeof(GLTFLoader4),
+        .size = sizeof(GLTFLoader),
         .lifetime = 0,
         .high = true
     });
-    GLTFLoader4 * loader4 = new (loaderBlock->data()) GLTFLoader4{gltf->data(), basePath};
+    GLTFLoader * loader4 = new (loaderBlock->data()) GLTFLoader{gltf->data(), basePath};
     if (loader4->validData() == false) {
         fprintf(stderr, "Error creating loader block\n");
         return nullptr;

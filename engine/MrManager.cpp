@@ -1,6 +1,5 @@
 #include "MrManager.h"
 #include "common/glfw.h"
-#include "dev/OriginWidget.h"
 
 MrManager mm;
 

@@ -4,10 +4,8 @@
 #include <imgui_memory_editor/imgui_memory_editor.h>
 #include <nfd.h>
 #include "../MrManager.h"
-#include "OriginWidget.h"
 #include "../memory/CharKeys.h"
 #include "../memory/mem_utils.h"
-#include "../render/Renderable2.h"
 #include "../common/string_utils.h"
 
 // ImGuiTreeNodeFlags_DefaultOpen

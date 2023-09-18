@@ -8,7 +8,7 @@
 Gobj (game object, "gobject")
 Main structure object for items/things/characters that exist in the game world.
 Mostly deals with visual data, but will probably hold physics/etc data as well.
-Designed to only exist in pre-allocated space (Use GLTFLoader4::calculateSize)
+Designed to only exist in pre-allocated space (Use GLTFLoader::calculateSize)
 to determine size beforehand.
 
 Visual data closely mirrors the GLTF spec.

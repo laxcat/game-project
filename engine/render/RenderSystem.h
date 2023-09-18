@@ -1,13 +1,7 @@
 #pragma once
-#include <string>
-#include <thread>
-#include <unordered_map>
-#include <vector>
 #include "Colors.h"
 #include "Fog.h"
-#include "GLTFLoader.h"
 #include "Lights.h"
-#include "Renderable2.h"
 #include "RenderSettings.h"
 #include "Samplers.h"
 #include "Texture.h"

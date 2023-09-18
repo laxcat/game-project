@@ -1,4 +1,4 @@
-#include "GLTFLoader4.h"
+#include "GLTFLoader.h"
 #include <rapidjson/prettywriter.h>
 #include <rapidjson/error/en.h>
 #include "mem_utils.h"
@@ -8,21 +8,21 @@
 #include "../common/string_utils.h"
 #include "../MrManager.h"
 
-#define PRINT_BREADCRUMBS 1
+#define PRINT_BREADCRUMBS 0
 
 // -------------------------------------------------------------------------- //
 // COUNTER
 // -------------------------------------------------------------------------- //
 
-bool GLTFLoader4::Counter::Null() { return true; }
-bool GLTFLoader4::Counter::Bool(bool b) { return true; }
-bool GLTFLoader4::Counter::Int(int i) { return true; }
-bool GLTFLoader4::Counter::Int64(int64_t i) { return true; }
-bool GLTFLoader4::Counter::Uint64(uint64_t i) { return true; }
-bool GLTFLoader4::Counter::Double(double d) { return true; }
-bool GLTFLoader4::Counter::RawNumber(char const * str, uint32_t length, bool copy) { return true; }
+bool GLTFLoader::Counter::Null() { return true; }
+bool GLTFLoader::Counter::Bool(bool b) { return true; }
+bool GLTFLoader::Counter::Int(int i) { return true; }
+bool GLTFLoader::Counter::Int64(int64_t i) { return true; }
+bool GLTFLoader::Counter::Uint64(uint64_t i) { return true; }
+bool GLTFLoader::Counter::Double(double d) { return true; }
+bool GLTFLoader::Counter::RawNumber(char const * str, uint32_t length, bool copy) { return true; }
 
-bool GLTFLoader4::Counter::Uint(unsigned i) {
+bool GLTFLoader::Counter::Uint(unsigned i) {
     if (l->crumb(-1).matches(TYPE_ARR, "buffers") &&
         strEqu(l->_key, "byteLength")
     ) {
@@ -31,7 +31,7 @@ bool GLTFLoader4::Counter::Uint(unsigned i) {
     return true;
 }
 
-bool GLTFLoader4::Counter::String(char const * str, uint32_t length, bool copy) {
+bool GLTFLoader::Counter::String(char const * str, uint32_t length, bool copy) {
     // name strings
     if (l->crumb(-1).matches(TYPE_ARR,
             "accessors|animations|buffers|bufferViews|cameras|images|materials|"
@@ -52,17 +52,17 @@ bool GLTFLoader4::Counter::String(char const * str, uint32_t length, bool copy) 
 }
 
 
-bool GLTFLoader4::Counter::StartObject() {
+bool GLTFLoader::Counter::StartObject() {
     l->push(TYPE_OBJ);
     return true;
 }
 
-bool GLTFLoader4::Counter::Key(char const * str, uint32_t length, bool copy) {
+bool GLTFLoader::Counter::Key(char const * str, uint32_t length, bool copy) {
     snprintf(l->_key, MaxKeyLen, "%.*s", length, str);
     return true;
 }
 
-bool GLTFLoader4::Counter::EndObject(uint32_t memberCount) {
+bool GLTFLoader::Counter::EndObject(uint32_t memberCount) {
     if (
         (l->crumb(-4).matches(TYPE_ARR, "meshes") &&
         l->crumb(-2).matches("primitives") &&
@@ -78,12 +78,12 @@ bool GLTFLoader4::Counter::EndObject(uint32_t memberCount) {
     return true;
 }
 
-bool GLTFLoader4::Counter::StartArray() {
+bool GLTFLoader::Counter::StartArray() {
     l->push(TYPE_ARR);
     return true;
 }
 
-bool GLTFLoader4::Counter::EndArray(uint32_t elementCount) {
+bool GLTFLoader::Counter::EndArray(uint32_t elementCount) {
     Crumb & crumb = l->crumb();
     // count the main sub-objects
     if (l->_depth == 2) {
@@ -137,24 +137,24 @@ bool GLTFLoader4::Counter::EndArray(uint32_t elementCount) {
 // SCANNER
 // -------------------------------------------------------------------------- //
 
-bool GLTFLoader4::Scanner::Null() { return false; }
-bool GLTFLoader4::Scanner::Int(int i) { return false; }
-bool GLTFLoader4::Scanner::Int64(int64_t i) { return false; }
-bool GLTFLoader4::Scanner::Uint64(uint64_t i) { return false; }
-bool GLTFLoader4::Scanner::Uint(unsigned i) { return false; }
-bool GLTFLoader4::Scanner::Double(double d) { return false; }
+bool GLTFLoader::Scanner::Null() { return false; }
+bool GLTFLoader::Scanner::Int(int i) { return false; }
+bool GLTFLoader::Scanner::Int64(int64_t i) { return false; }
+bool GLTFLoader::Scanner::Uint64(uint64_t i) { return false; }
+bool GLTFLoader::Scanner::Uint(unsigned i) { return false; }
+bool GLTFLoader::Scanner::Double(double d) { return false; }
 
-bool GLTFLoader4::Scanner::Bool(bool b) {
+bool GLTFLoader::Scanner::Bool(bool b) {
     return Value(TYPE_NUM, b?"1":"0", 1);
 }
-bool GLTFLoader4::Scanner::RawNumber(char const * str, uint32_t length, bool copy) {
+bool GLTFLoader::Scanner::RawNumber(char const * str, uint32_t length, bool copy) {
     return Value(TYPE_NUM, str, length);
 }
-bool GLTFLoader4::Scanner::String(char const * str, uint32_t length, bool copy) {
+bool GLTFLoader::Scanner::String(char const * str, uint32_t length, bool copy) {
     return Value(TYPE_STR, str, length);
 }
 
-bool GLTFLoader4::Scanner::Value(ObjType type, char const * str, uint32_t length) {
+bool GLTFLoader::Scanner::Value(ObjType type, char const * str, uint32_t length) {
     l->push(type);
 
     // if has parent, run parent's handleChild
@@ -177,7 +177,7 @@ bool GLTFLoader4::Scanner::Value(ObjType type, char const * str, uint32_t length
     return true;
 }
 
-bool GLTFLoader4::Scanner::StartObject() {
+bool GLTFLoader::Scanner::StartObject() {
     l->push(TYPE_OBJ);
 
     // if has parent, run parent's handleChild
@@ -197,17 +197,17 @@ bool GLTFLoader4::Scanner::StartObject() {
     return true;
 }
 
-bool GLTFLoader4::Scanner::Key(char const * str, uint32_t length, bool copy) {
+bool GLTFLoader::Scanner::Key(char const * str, uint32_t length, bool copy) {
     snprintf(l->_key, MaxKeyLen, "%.*s", length, str);
     return true;
 }
 
-bool GLTFLoader4::Scanner::EndObject(uint32_t memberCount) {
+bool GLTFLoader::Scanner::EndObject(uint32_t memberCount) {
     l->pop();
     return true;
 }
 
-bool GLTFLoader4::Scanner::StartArray() {
+bool GLTFLoader::Scanner::StartArray() {
     l->push(TYPE_ARR);
     if (l->crumb(-1).handleChild) {
         bool success = l->crumb(-1).handleChild(l, g, nullptr, 0);
@@ -220,7 +220,7 @@ bool GLTFLoader4::Scanner::StartArray() {
     return true;
 }
 
-bool GLTFLoader4::Scanner::EndArray(uint32_t elementCount) {
+bool GLTFLoader::Scanner::EndArray(uint32_t elementCount) {
     if (l->crumb().handleEnd) {
         bool success = l->crumb().handleEnd(l, g, elementCount);
         if (!success) return false;
@@ -233,14 +233,14 @@ bool GLTFLoader4::Scanner::EndArray(uint32_t elementCount) {
 // CRUMB
 // -------------------------------------------------------------------------- //
 
-GLTFLoader4::Crumb::Crumb(ObjType objType, char const * key) {
+GLTFLoader::Crumb::Crumb(ObjType objType, char const * key) {
     this->objType = objType;
     setKey(key);
 }
 
-GLTFLoader4::Crumb::Crumb() {}
+GLTFLoader::Crumb::Crumb() {}
 
-void GLTFLoader4::Crumb::setKey(char const * key) {
+void GLTFLoader::Crumb::setKey(char const * key) {
     if (key) {
         fixstrcpy<MaxKeyLen>(this->key, key);
     }
@@ -249,7 +249,7 @@ void GLTFLoader4::Crumb::setKey(char const * key) {
     }
 }
 
-bool GLTFLoader4::Crumb::matches(char const * key) const {
+bool GLTFLoader::Crumb::matches(char const * key) const {
     if (objType == TYPE_UNKNOWN) return false;
     // TODO: unsure of how these key rules should work... simplify this
     assert(key);
@@ -261,24 +261,24 @@ bool GLTFLoader4::Crumb::matches(char const * key) const {
     return strWithin(this->key, key, '|');
 }
 
-bool GLTFLoader4::Crumb::matches(ObjType objType, char const * key) const {
+bool GLTFLoader::Crumb::matches(ObjType objType, char const * key) const {
     if (objType != this->objType) return false;
     return matches(key);
 }
 
-char const * GLTFLoader4::Crumb::objTypeStr() const {
-    return GLTFLoader4::objTypeStr(objType);
+char const * GLTFLoader::Crumb::objTypeStr() const {
+    return GLTFLoader::objTypeStr(objType);
 }
 
-bool GLTFLoader4::Crumb::hasKey() const { return (key[0] != '\0'); }
+bool GLTFLoader::Crumb::hasKey() const { return (key[0] != '\0'); }
 
-bool GLTFLoader4::Crumb::isValid() const { return (objType != TYPE_UNKNOWN); }
+bool GLTFLoader::Crumb::isValid() const { return (objType != TYPE_UNKNOWN); }
 
 // -------------------------------------------------------------------------- //
 // LOADER
 // -------------------------------------------------------------------------- //
 
-GLTFLoader4::GLTFLoader4(byte_t const * gltfData, char const * loadingDir) :
+GLTFLoader::GLTFLoader(byte_t const * gltfData, char const * loadingDir) :
     _gltfData(gltfData),
     _loadingDir(loadingDir)
 {
@@ -308,10 +308,10 @@ GLTFLoader4::GLTFLoader4(byte_t const * gltfData, char const * loadingDir) :
     }
 }
 
-Gobj::Counts GLTFLoader4::counts() const { return _counts; }
-bool GLTFLoader4::isGLB() const { return _isGLB; }
+Gobj::Counts GLTFLoader::counts() const { return _counts; }
+bool GLTFLoader::isGLB() const { return _isGLB; }
 
-GLTFLoader4::Crumb & GLTFLoader4::crumb(int offset) {
+GLTFLoader::Crumb & GLTFLoader::crumb(int offset) {
     // out of bounds, return invalid crumb
     if (_depth <= -offset || offset > 0) {
         return _invalidCrumb;
@@ -319,7 +319,7 @@ GLTFLoader4::Crumb & GLTFLoader4::crumb(int offset) {
     return _crumbs[_depth-1+offset];
 }
 
-size_t GLTFLoader4::calculateSize() {
+size_t GLTFLoader::calculateSize() {
     assert(_gltfData && "GLTF data invalid.");
 
     #if DEBUG
@@ -332,7 +332,7 @@ size_t GLTFLoader4::calculateSize() {
     return _counts.totalSize();
 }
 
-bool GLTFLoader4::load(Gobj * gobj) {
+bool GLTFLoader::load(Gobj * gobj) {
     // using namespace rapidjson;
     assert(_gltfData && "GLTF data invalid.");
 
@@ -360,7 +360,7 @@ bool GLTFLoader4::load(Gobj * gobj) {
 }
 
 #if DEBUG
-char const * GLTFLoader4::prettyJSON(uint32_t * prettyJSONSize) {
+char const * GLTFLoader::prettyJSON(uint32_t * prettyJSONSize) {
     assert(_gltfData && "GLTF data invalid.");
 
     rapidjson::StringBuffer sb;
@@ -377,7 +377,7 @@ char const * GLTFLoader4::prettyJSON(uint32_t * prettyJSONSize) {
 #endif // DEBUG
 
 #if DEBUG
-void GLTFLoader4::printBreadcrumbs() const {
+void GLTFLoader::printBreadcrumbs() const {
     if (_depth < 1) return;
     for (int i = 0; i < _depth; ++i) {
         if (_crumbs[i].index == -1) {
@@ -393,18 +393,18 @@ void GLTFLoader4::printBreadcrumbs() const {
 }
 #endif // DEBUG
 
-uint32_t GLTFLoader4::jsonStrSize() const {
+uint32_t GLTFLoader::jsonStrSize() const {
     assert(_isGLB && "jsonStrSize() not available when _isGLB==false.");
     return *(uint32_t *)(_gltfData + 12);
 }
 
-char const * GLTFLoader4::jsonStr() const {
+char const * GLTFLoader::jsonStr() const {
     // returns _gltfData if GLTF,
     // returns _gltfData+20 if GLB
     return (char const *)(_gltfData + (_isGLB * 20));
 }
 
-byte_t const * GLTFLoader4::binChunkStart() const {
+byte_t const * GLTFLoader::binChunkStart() const {
     assert(_isGLB && "No binary chuck to access.");
     // aligned because GLTF spec will add space characters at end of json
     // string in order to align to 4-byte boundary
@@ -413,19 +413,19 @@ byte_t const * GLTFLoader4::binChunkStart() const {
     return alignedPtr;
 }
 
-uint32_t GLTFLoader4::binDataSize() const {
+uint32_t GLTFLoader::binDataSize() const {
     return *(uint32_t *)binChunkStart();
 }
 
-byte_t const * GLTFLoader4::binData() const {
+byte_t const * GLTFLoader::binData() const {
     return binChunkStart() + 8;
 }
 
-bool GLTFLoader4::validData() const {
+bool GLTFLoader::validData() const {
     return _gltfData;
 }
 
-char const * GLTFLoader4::objTypeStr(ObjType objType) {
+char const * GLTFLoader::objTypeStr(ObjType objType) {
     return
         (objType == TYPE_OBJ)   ? "OBJ" :
         (objType == TYPE_ARR)   ? "ARR" :
@@ -434,7 +434,7 @@ char const * GLTFLoader4::objTypeStr(ObjType objType) {
         "UNKNOWN";
 }
 
-void GLTFLoader4::push(ObjType objType) {
+void GLTFLoader::push(ObjType objType) {
     assert(_depth < MaxDepth && "Can't push crumb.");
 
     // push new crumb
@@ -462,11 +462,11 @@ void GLTFLoader4::push(ObjType objType) {
     newCrumb.handleEnd = nullptr;
 }
 
-void GLTFLoader4::pop() {
+void GLTFLoader::pop() {
     --_depth;
 }
 
-size_t GLTFLoader4::handleDataString(byte_t * dst, char const * str, size_t strLength) {
+size_t GLTFLoader::handleDataString(byte_t * dst, char const * str, size_t strLength) {
     // base64?
     static char const * isDataStr = "data:application/octet-stream;base64,";
     size_t isDataLen = strlen(isDataStr);
@@ -505,12 +505,12 @@ size_t GLTFLoader4::handleDataString(byte_t * dst, char const * str, size_t strL
 // HANDLERS
 // -------------------------------------------------------------------------- //
 
-bool GLTFLoader4::handleRoot(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+bool GLTFLoader::handleRoot(GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
     auto & c = l->crumb();
     switch(*(uint16_t *)c.key) {
     // accessors
     case 'a'|'c'<<8: {
-        c.handleChild = [](GLTFLoader4 * l, Gobj *, char const *, uint32_t) {
+        c.handleChild = [](GLTFLoader * l, Gobj *, char const *, uint32_t) {
             l->crumb().handleChild = handleAccessor;
             return true;
         };
@@ -521,7 +521,7 @@ bool GLTFLoader4::handleRoot(GLTFLoader4 * l, Gobj * g, char const * str, uint32
         break; }
     // animations
     case 'a'|'n'<<8: {
-        c.handleChild = [](GLTFLoader4 * l, Gobj *, char const *, uint32_t) {
+        c.handleChild = [](GLTFLoader * l, Gobj *, char const *, uint32_t) {
             l->crumb().handleChild = handleAnimation;
             return true;
         };
@@ -531,14 +531,14 @@ bool GLTFLoader4::handleRoot(GLTFLoader4 * l, Gobj * g, char const * str, uint32
         switch(c.key[6]) {
         // buffers
         case 's': {
-            c.handleChild = [](GLTFLoader4 * l, Gobj *, char const *, uint32_t) {
+            c.handleChild = [](GLTFLoader * l, Gobj *, char const *, uint32_t) {
                 l->crumb().handleChild = handleBuffer;
                 return true;
             };
             break; }
         // bufferViews
         case 'V': {
-            c.handleChild = [](GLTFLoader4 * l, Gobj *, char const *, uint32_t) {
+            c.handleChild = [](GLTFLoader * l, Gobj *, char const *, uint32_t) {
                 l->crumb().handleChild = handleBufferView;
                 return true;
             };
@@ -547,42 +547,42 @@ bool GLTFLoader4::handleRoot(GLTFLoader4 * l, Gobj * g, char const * str, uint32
         break; }
     // cameras
     case 'c'|'a'<<8: {
-        c.handleChild = [](GLTFLoader4 * l, Gobj *, char const *, uint32_t) {
+        c.handleChild = [](GLTFLoader * l, Gobj *, char const *, uint32_t) {
             l->crumb().handleChild = handleCamera;
             return true;
         };
         break; }
     // images
     case 'i'|'m'<<8: {
-        c.handleChild = [](GLTFLoader4 * l, Gobj *, char const *, uint32_t) {
+        c.handleChild = [](GLTFLoader * l, Gobj *, char const *, uint32_t) {
             l->crumb().handleChild = handleImage;
             return true;
         };
         break; }
     // materials
     case 'm'|'a'<<8: {
-        c.handleChild = [](GLTFLoader4 * l, Gobj *, char const *, uint32_t) {
+        c.handleChild = [](GLTFLoader * l, Gobj *, char const *, uint32_t) {
             l->crumb().handleChild = handleMaterial;
             return true;
         };
         break; }
     // meshes
     case 'm'|'e'<<8: {
-        c.handleChild = [](GLTFLoader4 * l, Gobj *, char const *, uint32_t) {
+        c.handleChild = [](GLTFLoader * l, Gobj *, char const *, uint32_t) {
             l->crumb().handleChild = handleMesh;
             return true;
         };
         break; }
     // nodes
     case 'n'|'o'<<8: {
-        c.handleChild = [](GLTFLoader4 * l, Gobj *, char const *, uint32_t) {
+        c.handleChild = [](GLTFLoader * l, Gobj *, char const *, uint32_t) {
             l->crumb().handleChild = handleNode;
             return true;
         };
         break; }
     // samplers
     case 's'|'a'<<8: {
-        c.handleChild = [](GLTFLoader4 * l, Gobj *, char const *, uint32_t) {
+        c.handleChild = [](GLTFLoader * l, Gobj *, char const *, uint32_t) {
             l->crumb().handleChild = handleSampler;
             return true;
         };
@@ -594,7 +594,7 @@ bool GLTFLoader4::handleRoot(GLTFLoader4 * l, Gobj * g, char const * str, uint32
             g->scene = g->scenes + Number{str, len};
             break; }
         case 's': {
-            c.handleChild = [](GLTFLoader4 * l, Gobj *, char const *, uint32_t) {
+            c.handleChild = [](GLTFLoader * l, Gobj *, char const *, uint32_t) {
                 l->crumb().handleChild = handleScene;
                 return true;
             };
@@ -603,14 +603,14 @@ bool GLTFLoader4::handleRoot(GLTFLoader4 * l, Gobj * g, char const * str, uint32
         break; }
     // skins
     case 's'|'k'<<8: {
-        c.handleChild = [](GLTFLoader4 * l, Gobj *, char const *, uint32_t) {
+        c.handleChild = [](GLTFLoader * l, Gobj *, char const *, uint32_t) {
             l->crumb().handleChild = handleSkin;
             return true;
         };
         break; }
     // textures
     case 't'|'e'<<8: {
-        c.handleChild = [](GLTFLoader4 * l, Gobj *, char const *, uint32_t) {
+        c.handleChild = [](GLTFLoader * l, Gobj *, char const *, uint32_t) {
             l->crumb().handleChild = handleTexture;
             return true;
         };
@@ -619,7 +619,7 @@ bool GLTFLoader4::handleRoot(GLTFLoader4 * l, Gobj * g, char const * str, uint32
     return true;
 }
 
-bool GLTFLoader4::handleAccessor(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+bool GLTFLoader::handleAccessor(GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
     auto & c = l->crumb();
     Gobj::Accessor * a = g->accessors + l->crumb(-1).index;
     Number n{str, len};
@@ -644,7 +644,7 @@ bool GLTFLoader4::handleAccessor(GLTFLoader4 * l, Gobj * g, char const * str, ui
         break; }
     // max
     case 'm'|'a'<<8: {
-        c.handleChild = [](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+        c.handleChild = [](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
             uint16_t accIndex = l->crumb(-2).index;
             uint16_t maxIndex = l->crumb().index;
             g->accessors[accIndex].max[maxIndex] = Number{str, len};
@@ -653,7 +653,7 @@ bool GLTFLoader4::handleAccessor(GLTFLoader4 * l, Gobj * g, char const * str, ui
         break; }
     // min
     case 'm'|'i'<<8: {
-        c.handleChild = [](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+        c.handleChild = [](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
             uint16_t accIndex = l->crumb(-2).index;
             uint16_t minIndex = l->crumb().index;
             g->accessors[accIndex].min[minIndex] = Number{str, len};
@@ -676,7 +676,7 @@ bool GLTFLoader4::handleAccessor(GLTFLoader4 * l, Gobj * g, char const * str, ui
     return true;
 }
 
-bool GLTFLoader4::handleAsset(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+bool GLTFLoader::handleAsset(GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
     switch(l->crumb().key[0]) {
     // copyright
     case 'c': {  g->copyright  = g->strings->writeStr(str, len); break; }
@@ -690,18 +690,18 @@ bool GLTFLoader4::handleAsset(GLTFLoader4 * l, Gobj * g, char const * str, uint3
     return true;
 }
 
-bool GLTFLoader4::handleAnimation(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+bool GLTFLoader::handleAnimation(GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
     auto & c = l->crumb();
     uint16_t aniIndex = l->crumb(-1).index;
     switch(*(uint16_t *)c.key) {
     // channels
     case 'c'|'h'<<8: {
         g->animations[aniIndex].channels = g->animationChannels + l->_nextAnimationChannel;
-        c.handleChild = [](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+        c.handleChild = [](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
             l->crumb().handleChild = handleAnimationChannel;
             return true;
         };
-        c.handleEnd = [aniIndex](GLTFLoader4 * l, Gobj * g, uint32_t count) {
+        c.handleEnd = [aniIndex](GLTFLoader * l, Gobj * g, uint32_t count) {
             g->animations[aniIndex].nChannels = count;
             l->_nextAnimationChannel += count;
             return true;
@@ -710,11 +710,11 @@ bool GLTFLoader4::handleAnimation(GLTFLoader4 * l, Gobj * g, char const * str, u
     // samplers
     case 's'|'a'<<8: {
         g->animations[aniIndex].samplers = g->animationSamplers + l->_nextAnimationSampler;
-        c.handleChild = [](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+        c.handleChild = [](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
             l->crumb().handleChild = handleAnimationSampler;
             return true;
         };
-        c.handleEnd = [aniIndex](GLTFLoader4 * l, Gobj * g, uint32_t count) {
+        c.handleEnd = [aniIndex](GLTFLoader * l, Gobj * g, uint32_t count) {
             g->animations[aniIndex].nSamplers = count;
             l->_nextAnimationSampler += count;
             return true;
@@ -728,7 +728,7 @@ bool GLTFLoader4::handleAnimation(GLTFLoader4 * l, Gobj * g, char const * str, u
     return true;
 }
 
-bool GLTFLoader4::handleAnimationChannel(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+bool GLTFLoader::handleAnimationChannel(GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
     auto & c = l->crumb();
     switch (c.key[0]) {
     // sampler
@@ -740,7 +740,7 @@ bool GLTFLoader4::handleAnimationChannel(GLTFLoader4 * l, Gobj * g, char const *
     // target
     case 't': {
         // handle target object children
-        c.handleChild = [](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+        c.handleChild = [](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
             auto & c = l->crumb();
             uint16_t aniIndex = l->crumb(-4).index;
             Gobj::AnimationChannel * ac = g->animations[aniIndex].channels + l->crumb(-2).index;
@@ -761,7 +761,7 @@ bool GLTFLoader4::handleAnimationChannel(GLTFLoader4 * l, Gobj * g, char const *
     return true;
 }
 
-bool GLTFLoader4::handleAnimationSampler(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+bool GLTFLoader::handleAnimationSampler(GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
     auto & c = l->crumb();
     uint16_t aniIndex = l->crumb(-3).index;
     Gobj::AnimationSampler * as = g->animations[aniIndex].samplers + l->crumb(-1).index;
@@ -782,7 +782,7 @@ bool GLTFLoader4::handleAnimationSampler(GLTFLoader4 * l, Gobj * g, char const *
     return true;
 }
 
-bool GLTFLoader4::handleBuffer(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+bool GLTFLoader::handleBuffer(GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
     auto & c = l->crumb();
     uint16_t bufIndex = l->crumb(-1).index;
     Gobj::Buffer * buf = g->buffers + bufIndex;
@@ -828,7 +828,7 @@ bool GLTFLoader4::handleBuffer(GLTFLoader4 * l, Gobj * g, char const * str, uint
     return true;
 }
 
-bool GLTFLoader4::handleBufferView(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+bool GLTFLoader::handleBufferView(GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
     uint16_t bvIndex = l->crumb(-1).index;
     Gobj::BufferView * bv = g->bufferViews + bvIndex;
     auto & c = l->crumb();
@@ -865,14 +865,14 @@ bool GLTFLoader4::handleBufferView(GLTFLoader4 * l, Gobj * g, char const * str, 
     return true;
 }
 
-bool GLTFLoader4::handleCamera(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+bool GLTFLoader::handleCamera(GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
     auto & c = l->crumb();
     Gobj::Camera * cam = g->cameras + l->crumb(-1).index;
     switch (c.key[0]) {
     // orthographic
     case 'o': {
         cam->orthographic = (Gobj::CameraOrthographic *)&cam->_data;
-        c.handleChild = [cam](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+        c.handleChild = [cam](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
             Number n{str, len};
             switch (*(uint16_t *)l->crumb().key) {
             // xmag
@@ -890,7 +890,7 @@ bool GLTFLoader4::handleCamera(GLTFLoader4 * l, Gobj * g, char const * str, uint
     // perspective
     case 'p': {
         cam->perspective = (Gobj::CameraPerspective *)&cam->_data;
-        c.handleChild = [cam](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+        c.handleChild = [cam](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
             Number n{str, len};
             switch (*(uint16_t *)l->crumb().key) {
             // aspectRatio
@@ -915,7 +915,7 @@ bool GLTFLoader4::handleCamera(GLTFLoader4 * l, Gobj * g, char const * str, uint
     return true;
 }
 
-bool GLTFLoader4::handleImage(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+bool GLTFLoader::handleImage(GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
     auto & c = l->crumb();
     Gobj::Image * img = g->images + l->crumb(-1).index;
     switch (c.key[0]) {
@@ -942,7 +942,7 @@ bool GLTFLoader4::handleImage(GLTFLoader4 * l, Gobj * g, char const * str, uint3
     return true;
 }
 
-bool GLTFLoader4::handleMaterial(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+bool GLTFLoader::handleMaterial(GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
     Gobj::Material * mat = g->materials + l->crumb(-1).index;
     auto & c = l->crumb();
     switch (c.key[0]) {
@@ -958,7 +958,7 @@ bool GLTFLoader4::handleMaterial(GLTFLoader4 * l, Gobj * g, char const * str, ui
         switch (c.key[8]) {
         // emissiveTexture
         case 'T': {
-            c.handleChild = [mat](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+            c.handleChild = [mat](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
                 Number n{str, len};
                 switch (l->crumb().key[0]) {
                 // index
@@ -971,7 +971,7 @@ bool GLTFLoader4::handleMaterial(GLTFLoader4 * l, Gobj * g, char const * str, ui
             break; }
         // emissiveFactor
         case 'F': {
-            c.handleChild = [mat](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+            c.handleChild = [mat](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
                 mat->emissiveFactor[l->crumb().index] = Number{str, len};
                 return true;
             };
@@ -987,7 +987,7 @@ bool GLTFLoader4::handleMaterial(GLTFLoader4 * l, Gobj * g, char const * str, ui
         switch (c.key[1]) {
         // normalTexture
         case 'o': {
-            c.handleChild = [mat](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+            c.handleChild = [mat](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
                 Number n{str, len};
                 switch (l->crumb().key[0]) {
                 // index
@@ -1006,7 +1006,7 @@ bool GLTFLoader4::handleMaterial(GLTFLoader4 * l, Gobj * g, char const * str, ui
         break; }
     // occlusionTexture
     case 'o': {
-        c.handleChild = [mat](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+        c.handleChild = [mat](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
             Number n{str, len};
             switch (l->crumb().key[0]) {
             // index
@@ -1021,21 +1021,21 @@ bool GLTFLoader4::handleMaterial(GLTFLoader4 * l, Gobj * g, char const * str, ui
         break; }
     // pbrMetallicRoughness
     case 'p': {
-        c.handleChild = [mat](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+        c.handleChild = [mat](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
             switch (l->crumb().key[0]) {
             // baseColorFactor || baseColorTexture
             case 'b': {
                 switch (l->crumb().key[9]) {
                 // baseColorFactor
                 case 'F': {
-                    l->crumb().handleChild = [mat](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+                    l->crumb().handleChild = [mat](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
                         mat->baseColorFactor[l->crumb().index] = Number{str, len};
                         return true;
                     };
                     break; }
                 // baseColorTexture
                 case 'T': {
-                    l->crumb().handleChild = [mat](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+                    l->crumb().handleChild = [mat](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
                         Number n{str, len};
                         switch (l->crumb().key[0]) {
                         // index
@@ -1055,7 +1055,7 @@ bool GLTFLoader4::handleMaterial(GLTFLoader4 * l, Gobj * g, char const * str, ui
                 case 'F': { mat->metallicFactor = Number{str, len}; break; }
                 // metallicRoughnessTexture
                 case 'R': {
-                    l->crumb().handleChild = [mat](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+                    l->crumb().handleChild = [mat](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
                         Number n{str, len};
                         switch (l->crumb().key[0]) {
                         // index
@@ -1078,7 +1078,7 @@ bool GLTFLoader4::handleMaterial(GLTFLoader4 * l, Gobj * g, char const * str, ui
     return true;
 }
 
-bool GLTFLoader4::handleMesh(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+bool GLTFLoader::handleMesh(GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
     auto & c = l->crumb();
     Gobj::Mesh * mesh = g->meshes + l->crumb(-1).index;
     switch (c.key[0]) {
@@ -1087,12 +1087,12 @@ bool GLTFLoader4::handleMesh(GLTFLoader4 * l, Gobj * g, char const * str, uint32
         // primitives array
         mesh->primitives = g->meshPrimitives + l->_nextMeshPrimitive;
         // handle each primitive
-        c.handleChild = [mesh](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+        c.handleChild = [mesh](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
             l->crumb().handleChild = handleMeshPrimitive;
             return true;
         };
         // on end of primitives array
-        c.handleEnd = [mesh](GLTFLoader4 * l, Gobj * g, uint32_t count) {
+        c.handleEnd = [mesh](GLTFLoader * l, Gobj * g, uint32_t count) {
             mesh->nPrimitives = count;
             l->_nextMeshPrimitive += count;
             return true;
@@ -1101,7 +1101,7 @@ bool GLTFLoader4::handleMesh(GLTFLoader4 * l, Gobj * g, char const * str, uint32
     // weights
     case 'w': {
         mesh->weights = g->meshWeights + l->_nextMeshWeight;
-        c.handleChild = [mesh](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+        c.handleChild = [mesh](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
             mesh->weights[mesh->nWeights] = Number{str, len};
             ++mesh->nWeights;
             ++l->_nextMeshWeight;
@@ -1114,7 +1114,7 @@ bool GLTFLoader4::handleMesh(GLTFLoader4 * l, Gobj * g, char const * str, uint32
     return true;
 }
 
-bool GLTFLoader4::handleMeshPrimitive(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+bool GLTFLoader::handleMeshPrimitive(GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
     Gobj::Mesh * mesh = g->meshes + l->crumb(-3).index;
     Gobj::MeshPrimitive * prim = mesh->primitives + l->crumb(-1).index;
     auto & c = l->crumb();
@@ -1124,7 +1124,7 @@ bool GLTFLoader4::handleMeshPrimitive(GLTFLoader4 * l, Gobj * g, char const * st
         // set array location
         prim->attributes = g->meshAttributes + l->_nextMeshAttribute;
         // handle each attribute
-        c.handleChild = [prim](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+        c.handleChild = [prim](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
             Gobj::MeshAttribute * ma = prim->attributes + prim->nAttributes;
             ma->type = Gobj::attrFromStr(l->crumb().key);
             ma->accessor = g->accessors + Number{str, len};
@@ -1144,11 +1144,11 @@ bool GLTFLoader4::handleMeshPrimitive(GLTFLoader4 * l, Gobj * g, char const * st
         // set array location
         prim->targets = g->meshTargets + l->_nextMeshTarget;
         // handle each target
-        c.handleChild = [prim](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+        c.handleChild = [prim](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
             Gobj::MeshTarget * targ = prim->targets + prim->nTargets;
             targ->attributes = g->meshAttributes + l->_nextMeshAttribute;
             // handle each attribute of the target
-            l->crumb().handleChild = [targ](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+            l->crumb().handleChild = [targ](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
                 targ->attributes[targ->nAttributes].type = Gobj::attrFromStr(l->crumb().key);
                 targ->attributes[targ->nAttributes].accessor = g->accessors + Number{str, len};
                 ++targ->nAttributes;
@@ -1164,7 +1164,7 @@ bool GLTFLoader4::handleMeshPrimitive(GLTFLoader4 * l, Gobj * g, char const * st
     return true;
 }
 
-bool GLTFLoader4::handleNode(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+bool GLTFLoader::handleNode(GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
     auto & c = l->crumb();
     Gobj::Node * node = g->nodes + l->crumb(-1).index;
     switch (*(uint16_t *)c.key) {
@@ -1175,7 +1175,7 @@ bool GLTFLoader4::handleNode(GLTFLoader4 * l, Gobj * g, char const * str, uint32
     // children
     case 'c'|'h'<<8: {
         node->children = g->nodeChildren + l->_nextNodeChild;
-        c.handleChild = [node](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+        c.handleChild = [node](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
             node->children[node->nChildren] = g->nodes + Number{str, len};
             ++node->nChildren;
             ++l->_nextNodeChild;
@@ -1184,7 +1184,7 @@ bool GLTFLoader4::handleNode(GLTFLoader4 * l, Gobj * g, char const * str, uint32
         break; }
     // matrix
     case 'm'|'a'<<8: {
-        c.handleChild = [node](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+        c.handleChild = [node](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
             node->matrix[l->crumb().index] = Number{str, len};
             return true;
         };
@@ -1195,14 +1195,14 @@ bool GLTFLoader4::handleNode(GLTFLoader4 * l, Gobj * g, char const * str, uint32
         break; }
     // rotation
     case 'r'|'o'<<8: {
-        c.handleChild = [node](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+        c.handleChild = [node](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
             node->rotation[l->crumb().index] = Number{str, len};
             return true;
         };
         break; }
     // scale
     case 's'|'c'<<8: {
-        c.handleChild = [node](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+        c.handleChild = [node](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
             node->scale[l->crumb().index] = Number{str, len};
             return true;
         };
@@ -1213,7 +1213,7 @@ bool GLTFLoader4::handleNode(GLTFLoader4 * l, Gobj * g, char const * str, uint32
         break; }
     // translation
     case 't'|'r'<<8: {
-        c.handleChild = [node](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+        c.handleChild = [node](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
             node->translation[l->crumb().index] = Number{str, len};
             return true;
         };
@@ -1221,7 +1221,7 @@ bool GLTFLoader4::handleNode(GLTFLoader4 * l, Gobj * g, char const * str, uint32
     // weights
     case 'w'|'e'<<8: {
         node->weights = g->nodeWeights + l->_nextNodeWeight;
-        c.handleChild = [node](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+        c.handleChild = [node](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
             node->weights[l->crumb().index] = Number{str, len};
             ++node->nWeights;
             ++l->_nextNodeWeight;
@@ -1236,7 +1236,7 @@ bool GLTFLoader4::handleNode(GLTFLoader4 * l, Gobj * g, char const * str, uint32
     return true;
 }
 
-bool GLTFLoader4::handleSampler(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+bool GLTFLoader::handleSampler(GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
     Gobj::Sampler * samp = g->samplers + l->crumb(-1).index;
     auto & c = l->crumb();
     switch (c.key[0]) {
@@ -1262,14 +1262,14 @@ bool GLTFLoader4::handleSampler(GLTFLoader4 * l, Gobj * g, char const * str, uin
     return true;
 }
 
-bool GLTFLoader4::handleScene(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+bool GLTFLoader::handleScene(GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
     auto & c = l->crumb();
     Gobj::Scene * scn = g->scenes + l->crumb(-1).index;
     switch (*(uint16_t *)c.key) {
     // nodes (root children)
     case 'n'|'o'<<8: {
         scn->nodes = g->nodeChildren + l->_nextNodeChild;
-        c.handleChild = [scn](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+        c.handleChild = [scn](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
             scn->nodes[scn->nNodes] = g->nodes + Number{str, len};
             ++scn->nNodes;
             ++l->_nextNodeChild;
@@ -1285,7 +1285,7 @@ bool GLTFLoader4::handleScene(GLTFLoader4 * l, Gobj * g, char const * str, uint3
     return true;
 }
 
-bool GLTFLoader4::handleSkin(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+bool GLTFLoader::handleSkin(GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
     Gobj::Skin * skin = g->skins + l->crumb(-1).index;
     auto & c = l->crumb();
     switch (c.key[0]) {
@@ -1294,7 +1294,7 @@ bool GLTFLoader4::handleSkin(GLTFLoader4 * l, Gobj * g, char const * str, uint32
     // joints
     case 'j': {
         skin->joints = g->nodeChildren + l->_nextNodeChild;
-        c.handleChild = [skin](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+        c.handleChild = [skin](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
             skin->joints[skin->nJoints] = g->nodes + Number{str, len};
             ++skin->nJoints;
             ++l->_nextNodeChild;
@@ -1309,7 +1309,7 @@ bool GLTFLoader4::handleSkin(GLTFLoader4 * l, Gobj * g, char const * str, uint32
     return true;
 }
 
-bool GLTFLoader4::handleTexture(GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
+bool GLTFLoader::handleTexture(GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
     Gobj::Texture * tex = g->textures + l->crumb(-1).index;
     auto & c = l->crumb();
     switch (*(uint16_t *)c.key) {
