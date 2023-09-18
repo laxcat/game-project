@@ -10,6 +10,9 @@
 #include "FreeList.h"
 #include "CharKeys.h"
 #include "GLTFLoader.h"
+#if DEBUG
+#include "../common/codetimer.h"
+#endif // DEBUG
 
 FrameStack * MemMan::createFrameStack(size_t size) {
     guard_t guard{_mainMutex};
@@ -93,6 +96,10 @@ CharKeys * MemMan::createCharKeys(size_t max) {
 Gobj * MemMan::createGobj(char const * gltfPath) {
     guard_t guard{_mainMutex};
 
+    #if DEBUG
+    codetimer::start();
+    #endif // DEBUG
+
     // load gltf into high memory
     File * gltf = createFileHandle(
         gltfPath,
@@ -170,6 +177,7 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     printl("LOADED GOBJ:");
     // printl(gobj->jsonStr);
     gobj->print();
+    printl("Time to load from disk: %ldµs", codetimer::delta());
     #endif // DEBUG
 
     return gobj;
