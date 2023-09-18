@@ -1,4 +1,5 @@
 #include "GLTFLoader.h"
+#include <glm/gtc/type_ptr.hpp>
 #include <rapidjson/prettywriter.h>
 #include <rapidjson/error/en.h>
 #include "mem_utils.h"
@@ -365,6 +366,7 @@ bool GLTFLoader::load(Gobj * gobj) {
 }
 
 void GLTFLoader::postLoad(Gobj * g) {
+    // set byte stride on all mesh primitive attributes
     for (uint16_t meshIndex = 0; meshIndex < g->counts.meshes; ++meshIndex) {
         auto & mesh = g->meshes[meshIndex];
         for (uint16_t primIndex = 0; primIndex < mesh.nPrimitives; ++primIndex) {
@@ -378,6 +380,16 @@ void GLTFLoader::postLoad(Gobj * g) {
                 }
             }
         }
+    }
+
+    // set scene if scenes are present but no default set
+    if (g->scene == nullptr && g->counts.scenes > 0 && g->scenes) {
+        g->scene = g->scenes;
+    }
+
+    // set matrix <-> TRS on all nodes with meshes
+    for (uint16_t nodeIndex = 0; nodeIndex < g->scene->nNodes; ++nodeIndex) {
+        g->scene->nodes[nodeIndex]->syncMatrixTRS(true);
     }
 }
 
@@ -1207,7 +1219,7 @@ bool GLTFLoader::handleNode(GLTFLoader * l, Gobj * g, char const * str, uint32_t
     // matrix
     case 'm'|'a'<<8: {
         c.handleChild = [node](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
-            node->matrix[l->crumb().index] = Number{str, len};
+            glm::value_ptr(node->matrix)[l->crumb().index] = Number{str, len};
             return true;
         };
         break; }

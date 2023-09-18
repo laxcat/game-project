@@ -1,6 +1,9 @@
 #pragma once
 
 #include <stddef.h>
+#include <glm/mat4x4.hpp>
+#include <glm/vec3.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include "../common/debug_defines.h"
 #include "../common/types.h"
 
@@ -493,19 +496,21 @@ public:
         Node ** children = nullptr;
         int nChildren = 0;
         Skin * skin = nullptr;
-        float matrix[16] = {
+        glm::mat4 matrix{
             1.f, 0.f, 0.f, 0.f,
             0.f, 1.f, 0.f, 0.f,
             0.f, 0.f, 1.f, 0.f,
             0.f, 0.f, 0.f, 1.f
         };
         Mesh * mesh = nullptr;
-        float rotation[4]    = {0.f, 0.f, 0.f, 1.f};
-        float scale[3]       = {1.f, 1.f, 1.f};
-        float translation[3] = {0.f, 0.f, 0.f};
+        glm::quat rotation    = {0.f, 0.f, 0.f, 1.f};
+        glm::vec3 scale       = {1.f, 1.f, 1.f};
+        glm::vec3 translation = {0.f, 0.f, 0.f};
         float * weights = nullptr;
         int nWeights; // must match mesh weights
         char const * name = nullptr;
+
+        void syncMatrixTRS(bool syncChildren = true);
     };
 
     struct Sampler {

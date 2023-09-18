@@ -173,6 +173,8 @@ void MemMan::editor() {
 
     // filter block types
     SameLine();
+    TextUnformatted("Filter:");
+    SameLine();
     static MemBlockType filterType = MEM_BLOCK_GOBJ;
     if (BeginCombo("###MemBlockFilterType", memBlockTypeStr(filterType))) {
         for (int i = MEM_BLOCK_FREE; i <= MEM_BLOCK_FILTER_ALL; ++i) {

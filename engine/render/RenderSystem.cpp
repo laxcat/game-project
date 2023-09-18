@@ -223,9 +223,19 @@ void RenderSystem::draw() {
             node->key, g
         );
 
-        // each mesh
-        for (uint16_t meshIndex = 0; meshIndex < g->counts.meshes; ++meshIndex) {
-            submitCount += drawMesh(g->meshes[meshIndex]);
+        // if scene present, draw through node structure
+        if (g->scene) {
+            // each root node
+            for (uint16_t nodeIndex = 0; nodeIndex < g->scene->nNodes; ++nodeIndex) {
+                drawNode(g->scene->nodes[nodeIndex]);
+            }
+        }
+        // otherwise draw all meshes
+        else {
+            // each mesh
+            for (uint16_t meshIndex = 0; meshIndex < g->counts.meshes; ++meshIndex) {
+                submitCount += drawMesh(g->meshes[meshIndex]);
+            }
         }
     }
 
@@ -238,7 +248,17 @@ void RenderSystem::draw() {
     printc(ShowRenderDbgTick, "-------------------------------------------------------------ENDING RENDER FRAME\n");
 }
 
-uint16_t RenderSystem::drawMesh(Gobj::Mesh const & mesh) {
+void RenderSystem::drawNode(Gobj::Node * node) {
+    // draw self if present
+    if (node->mesh) {
+        drawMesh(*node->mesh, node->matrix);
+    }
+    for (uint16_t nodeIndex = 0; nodeIndex < node->nChildren; ++nodeIndex) {
+        drawNode(node->children[nodeIndex]);
+    }
+}
+
+uint16_t RenderSystem::drawMesh(Gobj::Mesh const & mesh, glm::mat4 const & model) {
     uint16_t submitCount = 0;
 
     printc(ShowRenderDbgTick,
@@ -279,16 +299,10 @@ uint16_t RenderSystem::drawMesh(Gobj::Mesh const & mesh) {
         bgfx::setUniform(materialPBRValues, &pbrValues);
 
         // set model
-        float model[16] = {
-            1.f, 0.f, 0.f, 0.f,
-            0.f, 1.f, 0.f, 0.f,
-            0.f, 0.f, 1.f, 0.f,
-            0.f, 0.f, 0.f, 1.f
-        };
-        bgfx::setTransform(model);
+        bgfx::setTransform(&model);
 
         // make a reduced version of the rotation for the shader normals
-        auto nm = glm::transpose(glm::inverse(glm::mat3{*(glm::mat4 *)model}));
+        auto nm = glm::transpose(glm::inverse(glm::mat3{model}));
         bgfx::setUniform(normModel, (float *)&nm);
 
         // submit

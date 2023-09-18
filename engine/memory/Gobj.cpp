@@ -1,5 +1,6 @@
 #include "Gobj.h"
 #include <new>
+#include <glm/gtx/matrix_decompose.hpp>
 #include "FrameStack.h"
 #include "mem_utils.h"
 #include "../common/string_utils.h"
@@ -220,6 +221,35 @@ Gobj::Gobj(Gobj::Counts const & counts) :
     }
 }
 
+size_t Gobj::Counts::totalSize() const {
+    return
+        ALIGN_SIZE(sizeof(Gobj)) +
+        ALIGN_SIZE(sizeof(FrameStack) + allStrLen) +
+        ALIGN_SIZE(sizeof(Gobj::Accessor)          * accessors) +
+        ALIGN_SIZE(sizeof(Gobj::Animation)         * animations) +
+        ALIGN_SIZE(sizeof(Gobj::AnimationChannel)  * animationChannels) +
+        ALIGN_SIZE(sizeof(Gobj::AnimationSampler)  * animationSamplers) +
+        ALIGN_SIZE(sizeof(Gobj::Buffer)            * buffers) +
+        ALIGN_SIZE(sizeof(Gobj::BufferView)        * bufferViews) +
+        ALIGN_SIZE(sizeof(Gobj::Camera)            * cameras) +
+        ALIGN_SIZE(sizeof(Gobj::Image)             * images) +
+        ALIGN_SIZE(sizeof(Gobj::Material)          * materials) +
+        ALIGN_SIZE(sizeof(Gobj::Mesh)              * meshes) +
+        ALIGN_SIZE(sizeof(Gobj::MeshAttribute)     * meshAttributes) +
+        ALIGN_SIZE(sizeof(Gobj::MeshPrimitive)     * meshPrimitives) +
+        ALIGN_SIZE(sizeof(Gobj::MeshTarget)        * meshTargets) +
+        ALIGN_SIZE(sizeof(float)                   * meshWeights) +
+        ALIGN_SIZE(sizeof(Gobj::Node)              * nodes) +
+        ALIGN_SIZE(sizeof(Gobj::Node *)            * nodeChildren) +
+        ALIGN_SIZE(sizeof(float)                   * nodeWeights) +
+        ALIGN_SIZE(sizeof(Gobj::Sampler)           * samplers) +
+        ALIGN_SIZE(sizeof(Gobj::Scene)             * scenes) +
+        ALIGN_SIZE(sizeof(Gobj::Skin)              * skins) +
+        ALIGN_SIZE(sizeof(Gobj::Texture)           * textures) +
+        ALIGN_SIZE(rawDataLen)
+    ;
+}
+
 uint8_t Gobj::Accessor::componentCount() const {
     switch (type) {
     case TYPE_UNDEFINED : return  0;
@@ -293,33 +323,31 @@ char * Gobj::MeshAttribute::printToFrameStack(int indent) const {
 }
 #endif // DEBUG
 
-size_t Gobj::Counts::totalSize() const {
-    return
-        ALIGN_SIZE(sizeof(Gobj)) +
-        ALIGN_SIZE(sizeof(FrameStack) + allStrLen) +
-        ALIGN_SIZE(sizeof(Gobj::Accessor)          * accessors) +
-        ALIGN_SIZE(sizeof(Gobj::Animation)         * animations) +
-        ALIGN_SIZE(sizeof(Gobj::AnimationChannel)  * animationChannels) +
-        ALIGN_SIZE(sizeof(Gobj::AnimationSampler)  * animationSamplers) +
-        ALIGN_SIZE(sizeof(Gobj::Buffer)            * buffers) +
-        ALIGN_SIZE(sizeof(Gobj::BufferView)        * bufferViews) +
-        ALIGN_SIZE(sizeof(Gobj::Camera)            * cameras) +
-        ALIGN_SIZE(sizeof(Gobj::Image)             * images) +
-        ALIGN_SIZE(sizeof(Gobj::Material)          * materials) +
-        ALIGN_SIZE(sizeof(Gobj::Mesh)              * meshes) +
-        ALIGN_SIZE(sizeof(Gobj::MeshAttribute)     * meshAttributes) +
-        ALIGN_SIZE(sizeof(Gobj::MeshPrimitive)     * meshPrimitives) +
-        ALIGN_SIZE(sizeof(Gobj::MeshTarget)        * meshTargets) +
-        ALIGN_SIZE(sizeof(float)                   * meshWeights) +
-        ALIGN_SIZE(sizeof(Gobj::Node)              * nodes) +
-        ALIGN_SIZE(sizeof(Gobj::Node *)            * nodeChildren) +
-        ALIGN_SIZE(sizeof(float)                   * nodeWeights) +
-        ALIGN_SIZE(sizeof(Gobj::Sampler)           * samplers) +
-        ALIGN_SIZE(sizeof(Gobj::Scene)             * scenes) +
-        ALIGN_SIZE(sizeof(Gobj::Skin)              * skins) +
-        ALIGN_SIZE(sizeof(Gobj::Texture)           * textures) +
-        ALIGN_SIZE(rawDataLen)
-    ;
+
+void Gobj::Node::syncMatrixTRS(bool syncChildren) {
+    // is identity?
+    if (matrix == glm::mat4{1.f}) {
+        // TRS -> matrix
+        printl("is identity");
+        matrix = glm::mat4{1.f};
+        matrix = glm::translate(matrix, translation);
+        matrix *= glm::mat4_cast(rotation);
+        matrix = glm::scale(matrix, scale);
+    }
+    else {
+        // matrix -> TRS
+        printl("is not identity");
+        glm::vec3 skew;
+        glm::vec4 perspective;
+        glm::decompose(matrix, scale, rotation, translation, skew, perspective);
+    }
+
+    // process children too?
+    if (syncChildren) {
+        for (uint16_t nodeIndex = 0; nodeIndex < nChildren; ++nodeIndex) {
+            children[nodeIndex]->syncMatrixTRS(syncChildren);
+        }
+    }
 }
 
 Gobj::Accessor::Type Gobj::accessorTypeFromStr(char const * str) {

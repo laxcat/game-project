@@ -28,8 +28,9 @@ public:
     void init();
     // void draw();
     void draw();
+    void drawNode(Gobj::Node * node);
     // returns submit count
-    uint16_t drawMesh(Gobj::Mesh const & mesh);
+    uint16_t drawMesh(Gobj::Mesh const & mesh, glm::mat4 const & model = Identity);
     void shutdown();
 
     // 
@@ -78,4 +79,11 @@ private:
     #if DEV_INTERFACE
     friend class Editor;
     #endif // DEV_INTERFACE
+
+    static constexpr glm::mat4 const Identity = glm::mat4{
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f
+    };
 };
