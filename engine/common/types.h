@@ -82,7 +82,10 @@ enum MemBlockType {
     MEM_BLOCK_BGFX,
 
     // unspecified request of any type
-    MEM_BLOCK_GENERIC
+    MEM_BLOCK_GENERIC,
+
+    // filtering and admin
+    MEM_BLOCK_FILTER_ALL,
 };
 
 struct MemManFSASetup {

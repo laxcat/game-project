@@ -48,123 +48,140 @@ void MemMan::editor() {
     // MEMMAN GENERAL INFO
     Text("MemMan Initialized [%s]", mm.frameByteSizeStr(size()));
     Text("%p - %p", data(), data() + size());
-    if (Button("Shutdown")) {
-        removeAllAllocs();
-        shutdown();
+    // don't show shutdown if is main memory manager
+    if (&mm.memMan != this) {
+        if (Button("Shutdown")) {
+            removeAllAllocs();
+            shutdown();
+        }
+        Dummy(ImVec2(0.0f, 10.0f));
     }
-    Dummy(ImVec2(0.0f, 10.0f));
-    Separator();
 
     // TEST ALLOCATIONS ----------------------------------------------------- //
-    if (nTestAllocs < MaxTestAllocs) {
-        // ALLOCATE GENERIC
-        PushItemWidth(90);
-        TextUnformatted("Allocate Generic:");
-        {
-            static int sizeAlign[] = {4, 0};
+    if (CollapsingHeader("Test Allocations")) {
+        if (nTestAllocs < MaxTestAllocs) {
+            // ALLOCATE GENERIC
+            PushItemWidth(90);
+            TextUnformatted("Allocate Generic:");
+            {
+                static int sizeAlign[] = {4, 0};
 
-            // create a test allocation
-            if (nTestAllocs < MaxTestAllocs) {
-                InputInt2("Size/align##alloc", sizeAlign);
-                SameLine();
-                if (Button("Allocate")) {
-                    void * ptr = request({.size=(size_t)sizeAlign[0], .align=(size_t)sizeAlign[1]});
-                    if (ptr) {
-                        addTestAlloc(ptr, "%d-byte generic", sizeAlign[0]);
+                // create a test allocation
+                if (nTestAllocs < MaxTestAllocs) {
+                    InputInt2("Size/align##alloc", sizeAlign);
+                    SameLine();
+                    if (Button("Allocate")) {
+                        void * ptr = request({.size=(size_t)sizeAlign[0], .align=(size_t)sizeAlign[1]});
+                        if (ptr) {
+                            addTestAlloc(ptr, "%d-byte generic", sizeAlign[0]);
+                        }
                     }
                 }
             }
-        }
-        PopItemWidth();
-        Dummy(ImVec2(0.0f, 10.0f));
-
-        // ALLOCATE BLOCK
-        PushItemWidth(90);
-        TextUnformatted("Manually Create Block Object:");
-        static MemBlockType selectedType = MEM_BLOCK_GOBJ;
-        if (BeginCombo("###MemBlockType", memBlockTypeStr(selectedType))) {
-            for (int i = MEM_BLOCK_CLAIMED; i <= MEM_BLOCK_POOL; ++i) {
-                if (Selectable(memBlockTypeStr((MemBlockType)i))) {
-                    selectedType = (MemBlockType)i;
-                }
-            }
-            EndCombo();
-        }
-        PopItemWidth();
-
-        // INPUT PARAMETERS FOR EACH BLOCK TYPE
-        switch (selectedType) {
-        case MEM_BLOCK_ARRAY: {
-            Array_editorCreate();
-            break;
-        }
-        case MEM_BLOCK_CHARKEYS: {
-            CharKeys::editorCreate();
-            break;
-        }
-        case MEM_BLOCK_FILE: {
-            File::editorCreate();
-            break;
-        }
-        case MEM_BLOCK_FREELIST: {
-            FreeList::editorCreate();
-            break;
-        }
-        case MEM_BLOCK_GOBJ: {
-            Gobj::editorCreate();
-            break;
-        }
-        case MEM_BLOCK_POOL: {
-            Pool_editorCreate();
-            break;
-        }
-        case MEM_BLOCK_GENERIC: {
-            static int sizeAlign[] = {1024, 0};
-            SameLine();
-            PushItemWidth(120);
-            InputInt2("Size/align##GenericBlock", sizeAlign);
             PopItemWidth();
-            SameLine();
-            if (Button("Create")) {
-                mm.editor.clearMemEditWindow();
-                BlockInfo * block = createBlock({
-                    .size = (size_t)sizeAlign[0],
-                    .align = (size_t)sizeAlign[1]
-                });
-                if (block) {
-                    addTestAlloc(block->data(), "Generic block (%zu bytes)", block->dataSize());
+            Dummy(ImVec2(0.0f, 10.0f));
+
+            // ALLOCATE BLOCK
+            PushItemWidth(90);
+            TextUnformatted("Manually Create Block Object:");
+            static MemBlockType selectedType = MEM_BLOCK_GOBJ;
+            if (BeginCombo("###MemBlockType", memBlockTypeStr(selectedType))) {
+                for (int i = MEM_BLOCK_CLAIMED; i <= MEM_BLOCK_POOL; ++i) {
+                    if (Selectable(memBlockTypeStr((MemBlockType)i))) {
+                        selectedType = (MemBlockType)i;
+                    }
                 }
+                EndCombo();
             }
-            break;
-        }
-        default: {}
-        }
-    }
+            PopItemWidth();
 
-    // LIST TEST ALLOCS ----------------------------------------------------- //
-    if (nTestAllocs) {
+            // INPUT PARAMETERS FOR EACH BLOCK TYPE
+            switch (selectedType) {
+            case MEM_BLOCK_ARRAY: {
+                Array_editorCreate();
+                break;
+            }
+            case MEM_BLOCK_CHARKEYS: {
+                CharKeys::editorCreate();
+                break;
+            }
+            case MEM_BLOCK_FILE: {
+                File::editorCreate();
+                break;
+            }
+            case MEM_BLOCK_FREELIST: {
+                FreeList::editorCreate();
+                break;
+            }
+            case MEM_BLOCK_GOBJ: {
+                Gobj::editorCreate();
+                break;
+            }
+            case MEM_BLOCK_POOL: {
+                Pool_editorCreate();
+                break;
+            }
+            case MEM_BLOCK_GENERIC: {
+                static int sizeAlign[] = {1024, 0};
+                SameLine();
+                PushItemWidth(120);
+                InputInt2("Size/align##GenericBlock", sizeAlign);
+                PopItemWidth();
+                SameLine();
+                if (Button("Create")) {
+                    mm.editor.clearMemEditWindow();
+                    BlockInfo * block = createBlock({
+                        .size = (size_t)sizeAlign[0],
+                        .align = (size_t)sizeAlign[1]
+                    });
+                    if (block) {
+                        addTestAlloc(block->data(), "Generic block (%zu bytes)", block->dataSize());
+                    }
+                }
+                break;
+            }
+            default: {}
+            }
+        }
+
+        // LIST TEST ALLOCS ------------------------------------------------- //
+        if (nTestAllocs) {
+            Dummy(ImVec2(0.0f, 10.0f));
+            TextUnformatted("Test Allocs:");
+
+            for (int i = 0; i < nTestAllocs; ++i) {
+                PushID(i);
+                Text("%p (%s)", testAllocs[i].ptr, testAllocs[i].desc);
+                SameLine();
+                if (Button("Release")) {
+                    removeAlloc(i);
+                }
+                PopID();
+            }
+
+            if (Button("Release All")) {
+                removeAllAllocs();
+            }
+        }
+
         Dummy(ImVec2(0.0f, 10.0f));
-        TextUnformatted("Test Allocs:");
-
-        for (int i = 0; i < nTestAllocs; ++i) {
-            PushID(i);
-            Text("%p (%s)", testAllocs[i].ptr, testAllocs[i].desc);
-            SameLine();
-            if (Button("Release")) {
-                removeAlloc(i);
-            }
-            PopID();
-        }
-
-        if (Button("Release All")) {
-            removeAllAllocs();
-        }
+        Separator();
     }
 
-    Dummy(ImVec2(0.0f, 10.0f));
-
-    Separator();
+    // list of blocks count
     Text("%zu Blocks", blockCountForDisplayOnly());
+
+    // filter block types
+    SameLine();
+    static MemBlockType filterType = MEM_BLOCK_GOBJ;
+    if (BeginCombo("###MemBlockFilterType", memBlockTypeStr(filterType))) {
+        for (int i = MEM_BLOCK_FREE; i <= MEM_BLOCK_FILTER_ALL; ++i) {
+            if (Selectable(memBlockTypeStr((MemBlockType)i))) {
+                filterType = (MemBlockType)i;
+            }
+        }
+        EndCombo();
+    }
     Separator();
 
     // LIST BLOCKS ---------------------------------------------------------- //
@@ -172,6 +189,12 @@ void MemMan::editor() {
     ImVec4 defaultTextColor = style->Colors[ImGuiCol_Text];
     int blockIndex = 0;
     for (MemMan::BlockInfo * b = firstBlock(); b; b = nextBlock(b)) {
+        if (filterType != MEM_BLOCK_FILTER_ALL &&
+            b->_type != filterType) {
+            continue;
+        }
+
+
         PushID(b);
 
         void * basePtr = (void *)((MemMan::BlockInfo const *)b)->basePtr();
