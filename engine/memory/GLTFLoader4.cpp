@@ -1125,8 +1125,9 @@ bool GLTFLoader4::handleMeshPrimitive(GLTFLoader4 * l, Gobj * g, char const * st
         prim->attributes = g->meshAttributes + l->_nextMeshAttribute;
         // handle each attribute
         c.handleChild = [prim](GLTFLoader4 * l, Gobj * g, char const * str, uint32_t len) {
-            prim->attributes[prim->nAttributes].type = Gobj::attrFromStr(l->crumb().key);
-            prim->attributes[prim->nAttributes].accessor = g->accessors + Number{str, len};
+            Gobj::MeshAttribute * ma = prim->attributes + prim->nAttributes;
+            ma->type = Gobj::attrFromStr(l->crumb().key);
+            ma->accessor = g->accessors + Number{str, len};
             ++prim->nAttributes;
             ++l->_nextMeshAttribute;
             return true;
