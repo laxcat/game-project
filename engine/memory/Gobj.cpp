@@ -220,6 +220,79 @@ Gobj::Gobj(Gobj::Counts const & counts) :
     }
 }
 
+uint8_t Gobj::Accessor::componentCount() const {
+    switch (type) {
+    case TYPE_UNDEFINED : return  0;
+    case TYPE_SCALAR    : return  1;
+    case TYPE_VEC2      : return  2;
+    case TYPE_VEC3      : return  3;
+    case TYPE_VEC4      : return  4;
+    case TYPE_MAT2      : return  4;
+    case TYPE_MAT3      : return  9;
+    case TYPE_MAT4      : return 16;
+    }
+}
+uint32_t Gobj::Accessor::byteSize() const {
+    switch (componentType) {
+    case COMPTYPE_BYTE           :
+    case COMPTYPE_UNSIGNED_BYTE  : return componentCount() * 1;
+    case COMPTYPE_SHORT          :
+    case COMPTYPE_UNSIGNED_SHORT : return componentCount() * 2;
+    case COMPTYPE_UNSIGNED_INT   :
+    case COMPTYPE_FLOAT          : return componentCount() * 4;
+    }
+}
+
+#if DEBUG || DEV_INTERFACE
+void Gobj::Accessor::print(int indent) const { ::print(printToFrameStack(indent)); }
+char * Gobj::Accessor::printToFrameStack(int indent) const {
+    assert(mm.frameStack && "Frame stack not initialized.");
+
+    auto data = bufferView->buffer->data + byteOffset + bufferView->byteOffset;
+    auto dataEnd = bufferView->buffer->data + bufferView->byteLength;
+    assert(componentType == Gobj::Accessor::COMPTYPE_FLOAT);
+
+    FrameStack & fs = *mm.frameStack;
+    char * str = (char *)fs.dataHead();
+
+    fs.formatPen("%*sAccessor: %s (%p)\n", indent,"", name, this);
+    fs.formatPen("%*s    count: %u\n", indent,"", count);
+    fs.formatPen("%*s    bufferView byteLength: %u\n", indent,"", bufferView->byteLength);
+    fs.formatPen("%*s    data:\n", indent,"");
+
+    uint8_t cc = componentCount();
+    for (uint32_t i = 0; i < count; ++i) {
+        float * f = (float *)data;
+        fs.formatPen("%*s%03u: ", indent+4,"", i);
+        for (uint8_t c = 0; c < cc; ++c) {
+            fs.formatPen("%+f ", f[c]);
+        }
+        fs.formatPen("   (%p)\n", data);
+        data += bufferView->byteStride;
+    }
+
+    fs.terminatePen();
+    return str;
+}
+#endif // DEBUG || DEV_INTERFACE
+
+#if DEBUG
+void Gobj::MeshAttribute::print(int indent) const { ::print(printToFrameStack(indent)); }
+char * Gobj::MeshAttribute::printToFrameStack(int indent) const {
+    assert(mm.frameStack && "Frame stack not initialized.");
+
+    FrameStack & fs = *mm.frameStack;
+    char * str = (char *)fs.dataHead();
+
+    fs.formatPen("%*sMeshAttribute: (%p)\n", indent,"", this);
+    fs.formatPen("%*s    type: %s\n", indent,"", attrStr(type));
+    accessor->printToFrameStack(4);
+    fs.terminatePen();
+
+    return str;
+}
+#endif // DEBUG
+
 size_t Gobj::Counts::totalSize() const {
     return
         ALIGN_SIZE(sizeof(Gobj)) +
@@ -321,6 +394,30 @@ Gobj::Attr Gobj::attrFromStr(char const * str) {
     if (strEqu(str, "TEXCOORD6"))  return ATTR_TEXCOORD6;
     if (strEqu(str, "TEXCOORD7"))  return ATTR_TEXCOORD7;
     return ATTR_POSITION;
+}
+
+char const * Gobj::attrStr(Gobj::Attr attr) {
+    switch(attr) {
+    case ATTR_POSITION:     return "POSITION";
+    case ATTR_NORMAL:       return "NORMAL";
+    case ATTR_TANGENT:      return "TANGENT";
+    case ATTR_BITANGENT:    return "BITANGENT";
+    case ATTR_COLOR0:       return "COLOR0";
+    case ATTR_COLOR1:       return "COLOR1";
+    case ATTR_COLOR2:       return "COLOR2";
+    case ATTR_COLOR3:       return "COLOR3";
+    case ATTR_INDICES:      return "INDICES";
+    case ATTR_WEIGHT:       return "WEIGHT";
+    case ATTR_TEXCOORD0:    return "TEXCOORD0";
+    case ATTR_TEXCOORD1:    return "TEXCOORD1";
+    case ATTR_TEXCOORD2:    return "TEXCOORD2";
+    case ATTR_TEXCOORD3:    return "TEXCOORD3";
+    case ATTR_TEXCOORD4:    return "TEXCOORD4";
+    case ATTR_TEXCOORD5:    return "TEXCOORD5";
+    case ATTR_TEXCOORD6:    return "TEXCOORD6";
+    case ATTR_TEXCOORD7:    return "TEXCOORD7";
+    default:                return "UNKNOWN";
+    }
 }
 
 

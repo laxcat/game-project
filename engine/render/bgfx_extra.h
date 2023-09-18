@@ -16,14 +16,6 @@ inline bgfx::ProgramHandle createBGFXProgram(
     vs_##_shader_name##_bin, vs_##_shader_name##_bin_len, \
     fs_##_shader_name##_bin, fs_##_shader_name##_bin_len)
 
-// template<class Archive>
-// void serialize(Archive & archive, bgfx::VertexBufferHandle & m) { archive(m.idx); }
-// template<class Archive>
-// void serialize(Archive & archive, bgfx::DynamicVertexBufferHandle & m) { archive(m.idx); }
-// template<class Archive>
-// void serialize(Archive & archive, bgfx::IndexBufferHandle & m) { archive(m.idx); }
-
-
 inline bgfx::AttribType::Enum bgfxAttribTypeFromAccessorComponentType(Gobj::Accessor::ComponentType componentType) {
     switch (componentType) {
     case Gobj::Accessor::COMPTYPE_BYTE           : assert(false);

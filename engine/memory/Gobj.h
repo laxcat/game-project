@@ -318,28 +318,13 @@ public:
 
         uint16_t renderHandle = UINT16_MAX;
 
-        uint8_t componentCount() const {
-            switch (type) {
-            case TYPE_UNDEFINED : return  0;
-            case TYPE_SCALAR    : return  1;
-            case TYPE_VEC2      : return  2;
-            case TYPE_VEC3      : return  3;
-            case TYPE_VEC4      : return  4;
-            case TYPE_MAT2      : return  4;
-            case TYPE_MAT3      : return  9;
-            case TYPE_MAT4      : return 16;
-            }
-        }
-        uint32_t byteSize() const {
-            switch (componentType) {
-            case COMPTYPE_BYTE           :
-            case COMPTYPE_UNSIGNED_BYTE  : return componentCount() * 1;
-            case COMPTYPE_SHORT          :
-            case COMPTYPE_UNSIGNED_SHORT : return componentCount() * 2;
-            case COMPTYPE_UNSIGNED_INT   :
-            case COMPTYPE_FLOAT          : return componentCount() * 4;
-            }
-        }
+        uint8_t componentCount() const;
+        uint32_t byteSize() const;
+
+        #if DEBUG || DEV_INTERFACE
+        void print(int indent = 0) const;
+        char * printToFrameStack(int indent = 0) const;
+        #endif // DEBUG || DEV_INTERFACE
     };
 
     struct Animation {
@@ -472,6 +457,11 @@ public:
     struct MeshAttribute {
         Attr type = ATTR_POSITION;
         Accessor * accessor = nullptr;
+
+        #if DEBUG || DEV_INTERFACE
+        void print(int indent = 0) const;
+        char * printToFrameStack(int indent = 0) const;
+        #endif // DEBUG || DEV_INTERFACE
     };
 
     struct MeshPrimitive {
@@ -560,8 +550,9 @@ public:
     };
 
 // -------------------------------------------------------------------------- //
-// STRING TO TYPE CONVERSIONS
+// STRING CONVERSIONS
 public:
+    // from string
     static Accessor::Type accessorTypeFromStr(char const * str);
     static AnimationChannel::Target animationTargetFromStr(char const * str);
     static AnimationSampler::Interpolation interpolationFromStr(char const * str);
@@ -569,6 +560,8 @@ public:
     static Image::MIMEType imageMIMETypeFromStr(char const * str);
     static Material::AlphaMode alphaModeFromStr(char const * str);
     static Attr attrFromStr(char const * str);
+    // to string
+    static char const * attrStr(Gobj::Attr attr);
 
 // -------------------------------------------------------------------------- //
 // DEBUG

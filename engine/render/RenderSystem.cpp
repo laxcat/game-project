@@ -581,6 +581,8 @@ void RenderSystem::addHandles(Gobj * g) {
                     acc.componentCount(),
                     bgfxAttribTypeFromAccessorComponentType(acc.componentType)
                 );
+                // printl("skipping... %u - %u (=%u)", bv.byteStride, acc.byteSize(), (bv.byteStride-acc.byteSize()));
+                assert(bv.byteStride);
                 layout.skip(bv.byteStride - acc.byteSize());
                 layout.end();
 
@@ -588,6 +590,8 @@ void RenderSystem::addHandles(Gobj * g) {
                 auto ref = bgfx::makeRef(data, bv.byteLength);
 
                 acc.renderHandle = bgfx::createVertexBuffer(ref, layout).idx;
+
+                // attr.print();
                 // printl("creating vbuffer handle %u", acc.renderHandle);
             }
 
