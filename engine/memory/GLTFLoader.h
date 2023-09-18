@@ -180,6 +180,8 @@ private:
     Crumb & crumb(int offset = 0);
     // handles string that might be a uri OR data-stream
     size_t handleDataString(byte_t * dst, char const * str, size_t strLength);
+    // do additional work after load
+    void postLoad(Gobj * g);
 
     // data access
     uint32_t jsonStrSize() const;

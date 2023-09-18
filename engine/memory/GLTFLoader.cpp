@@ -203,6 +203,10 @@ bool GLTFLoader::Scanner::Key(char const * str, uint32_t length, bool copy) {
 }
 
 bool GLTFLoader::Scanner::EndObject(uint32_t memberCount) {
+    if (l->crumb().handleEnd) {
+        bool success = l->crumb().handleEnd(l, g, memberCount);
+        if (!success) return false;
+    }
     l->pop();
     return true;
 }
@@ -356,7 +360,25 @@ bool GLTFLoader::load(Gobj * gobj) {
         fprintf(stderr, "JSON parse error: %s (%zu)\n",
             rapidjson::GetParseError_En(result.Code()), result.Offset());
     }
+    postLoad(gobj);
     return result;
+}
+
+void GLTFLoader::postLoad(Gobj * g) {
+    for (uint16_t meshIndex = 0; meshIndex < g->counts.meshes; ++meshIndex) {
+        auto & mesh = g->meshes[meshIndex];
+        for (uint16_t primIndex = 0; primIndex < mesh.nPrimitives; ++primIndex) {
+            Gobj::MeshPrimitive & prim = mesh.primitives[primIndex];
+            for (size_t attrIndex = 0; attrIndex < prim.nAttributes; ++attrIndex) {
+                Gobj::MeshAttribute & attr = prim.attributes[attrIndex];
+                Gobj::Accessor & acc = *attr.accessor;
+                Gobj::BufferView & bv = *acc.bufferView;
+                if (bv.byteStride == 0) {
+                    bv.byteStride = acc.byteSize();
+                }
+            }
+        }
+    }
 }
 
 #if DEBUG
