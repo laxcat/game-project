@@ -37,16 +37,16 @@ void Gobj::drawNode(Node * n) {
 }
 
 void Gobj::editorEditBlock() {
-    // if (scenes) {
-    //     if (BeginCombo("Scene", scene->name)) {
-    //         for (uint16_t i = 0; i <= counts.scenes; ++i) {
-    //             if (Selectable(scenes[i].name)) {
-    //                 scene = scenes + i;
-    //             }
-    //         }
-    //         EndCombo();
-    //     }
-    // }
+    if (scenes) {
+        if (BeginCombo("Scene", scene->name)) {
+            for (uint16_t i = 0; i < counts.scenes; ++i) {
+                if (Selectable(scenes[i].name)) {
+                    scene = scenes + i;
+                }
+            }
+            EndCombo();
+        }
+    }
 
     if (CollapsingHeader("Info")) {
         TextUnformatted(printToFrameStack());

@@ -537,7 +537,8 @@ public:
     struct Scene {
         Node ** nodes = nullptr; // roots nodes (spec supports multiple roots)
         int nNodes = 0;
-        char const * name = nullptr;
+        static constexpr size_t NameSize = 8;
+        char name[NameSize] = "";
     };
 
     struct Skin {

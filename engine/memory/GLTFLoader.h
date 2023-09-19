@@ -12,7 +12,7 @@ Loads GLTF files into Gobj.
 
 Implemented:
     • opening/reading .glb files
-    • opening/reading .gltf files
+    • opening/reading EMBEDED .gltf files
     • Calculating size
     • loading strings
     • loading accessors

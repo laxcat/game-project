@@ -288,8 +288,13 @@ uint16_t RenderSystem::drawMesh(Gobj::Mesh const & mesh, glm::mat4 const & model
 
         // set textures
         bgfx::setTexture(0, samplers.color, whiteTexture.handle);
-        Gobj::Material & material = *prim.material;
-        bgfx::setUniform(materialBaseColor, &material.baseColorFactor);
+        if (prim.material) {
+            bgfx::setUniform(materialBaseColor, &prim.material->baseColorFactor);
+        }
+        else {
+            static float temp[4] = {1.f, 1.f, 1.f, 1.f};
+            bgfx::setUniform(materialBaseColor, temp);
+        }
         glm::vec4 pbrValues{
             0.5f, // roughness. 0 smooth, 1 rough
             0.0f, // metallic. 0 plastic, 1 metal

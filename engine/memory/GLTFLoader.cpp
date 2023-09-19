@@ -33,11 +33,12 @@ bool GLTFLoader::Counter::Uint(unsigned i) {
 }
 
 bool GLTFLoader::Counter::String(char const * str, uint32_t length, bool copy) {
-    // name strings
-    if (l->crumb(-1).matches(TYPE_ARR,
+    // name strings (except scene, which requires name, so has char array)
+    if (strEqu(l->_key, "name") &&
+        l->crumb(-1).matches(TYPE_ARR,
             "accessors|animations|buffers|bufferViews|cameras|images|materials|"
-            "meshes|nodes|samplers|scenes|skins|textures") &&
-        strEqu(l->_key, "name")
+            "meshes|nodes|samplers|skins|textures")
+
     ) {
         l->_counts.allStrLen += length + 1;
     }
@@ -294,6 +295,7 @@ GLTFLoader::GLTFLoader(byte_t const * gltfData, char const * loadingDir) :
     _scanner.l = this;
     _counter.l = this;
 
+    // binary
     if (strEqu((char const *)_gltfData, "glTF", 4)) {
         _isGLB = true;
 
@@ -308,8 +310,8 @@ GLTFLoader::GLTFLoader(byte_t const * gltfData, char const * loadingDir) :
             return;
         }
     }
+    // not binary
     else {
-        _gltfData = nullptr;
     }
 }
 
@@ -385,6 +387,14 @@ void GLTFLoader::postLoad(Gobj * g) {
     // set scene if scenes are present but no default set
     if (g->scene == nullptr && g->counts.scenes > 0 && g->scenes) {
         g->scene = g->scenes;
+    }
+
+    // fill in generic name for scenes without names
+    for (uint16_t scnIndex = 0; scnIndex < g->counts.scenes && scnIndex < 100; ++scnIndex) {
+        Gobj::Scene & s = g->scenes[scnIndex];
+        if (s.name[0] == '\0') {
+            snprintf(s.name, Gobj::Scene::NameSize, "Scene%02u", scnIndex);
+        }
     }
 
     // set matrix <-> TRS on all nodes with meshes
@@ -1312,7 +1322,7 @@ bool GLTFLoader::handleScene(GLTFLoader * l, Gobj * g, char const * str, uint32_
         break; }
     // name
     case 'n'|'a'<<8: {
-        scn->name = g->strings->writeStr(str, len);
+        snprintf(scn->name, Gobj::Scene::NameSize, "%.*s", len, str);
         break; }
     }
 
