@@ -68,6 +68,10 @@ void RenderSystem::draw() {
         // auto r = (Renderable *)node->ptr;
         auto g = (Gobj *)node->ptr;
 
+        if (!g->isReadyToDraw()) {
+            continue;
+        }
+
         printc(ShowRenderDbgTick,
             "----------------------------------------\n"
             "RENDERABLE %s (%p)\n"
@@ -213,6 +217,7 @@ void RenderSystem::remove(char const * key) {
         fprintf(stderr, "WARNING: did not remove Gobj at key:%s. Could not find key.", key);
         return;
     }
+    g->setStatus(Gobj::STATUS_LOADED);
     removeHandles(g);
     renderList->remove(key);
 }
@@ -259,6 +264,8 @@ size_t RenderSystem::renderableCount() const {
 }
 
 void RenderSystem::addHandles(Gobj * g) {
+    g->setStatus(Gobj::STATUS_DECODING);
+
     // setup mesh buffers
     for (uint16_t meshIndex = 0; meshIndex < g->counts.meshes; ++meshIndex) {
         auto & mesh = g->meshes[meshIndex];
@@ -331,6 +338,8 @@ void RenderSystem::addHandles(Gobj * g) {
             bgfx::makeRef(imgc->m_data, imgc->m_size)
         ).idx;
     }
+
+    g->setStatus(Gobj::STATUS_READY_TO_DRAW);
 }
 
 bimg::ImageContainer * RenderSystem::decodeImage(Gobj::Image * img) {
@@ -365,6 +374,8 @@ bimg::ImageContainer * RenderSystem::decodeImage(Gobj::Image * img) {
 
 
 void RenderSystem::removeHandles(Gobj * g) {
+    g->setStatus(Gobj::STATUS_LOADED);
+
     // remove buffers
     for (uint16_t i = 0; i < g->counts.accessors; ++i) {
         auto & acc = g->accessors[i];

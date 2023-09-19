@@ -221,6 +221,17 @@ Gobj::Gobj(Gobj::Counts const & counts) :
     }
 }
 
+void Gobj::setStatus(Status status) {
+    _mutex.lock();
+    _status = status;
+    _mutex.unlock();
+}
+
+bool Gobj::isReadyToDraw() const {
+    std::lock_guard<std::mutex> guard{_mutex};
+    return (_status == STATUS_READY_TO_DRAW);
+}
+
 size_t Gobj::Counts::totalSize() const {
     return
         ALIGN_SIZE(sizeof(Gobj)) +

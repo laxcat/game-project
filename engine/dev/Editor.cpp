@@ -404,11 +404,12 @@ void Editor::guiGobjs() {
         nfdresult_t result = NFD_OpenDialog(NULL, "/Users/Shared/Dev/gltf_assets", &outPath);
 
         if (result == NFD_OKAY) {
-            Gobj * newGobj = mm.memMan.createGobj(outPath);
-            Gobj * oldGobj = mm.rendSys.update(keyToSwap, newGobj);
-            mm.memMan.request({.ptr=oldGobj, .size=0});
-
-            free(outPath);
+            mm.createWorker([keyToSwap, outPath]{
+                Gobj * newGobj = mm.memMan.createGobj(outPath);
+                Gobj * oldGobj = mm.rendSys.update(keyToSwap, newGobj);
+                mm.memMan.request({.ptr=oldGobj, .size=0});
+                free(outPath);
+            });
         }
         else if (result == NFD_CANCEL) {}
         else {

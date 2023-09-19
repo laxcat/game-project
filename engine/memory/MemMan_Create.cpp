@@ -152,14 +152,18 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     Gobj * gobj = new (block->data()) Gobj{loader4->counts()};
 
     // load into gobj
+    gobj->setStatus(Gobj::STATUS_LOADING);
     bool success = loader4->load(gobj);
 
     // early return if load failed
     if (!success) {
+        gobj->setStatus(Gobj::STATUS_ERROR);
         fprintf(stderr, "Error loading GLTF data into game object.\n");
         releaseBlock(block);
         return nullptr;
     }
+
+    gobj->setStatus(Gobj::STATUS_LOADED);
 
     // check for exepected size
     #if DEBUG

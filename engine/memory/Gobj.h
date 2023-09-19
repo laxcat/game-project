@@ -1,5 +1,5 @@
 #pragma once
-
+#include <mutex>
 #include <stddef.h>
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
@@ -205,9 +205,12 @@ public:
     };
 
     enum Status {
-        STATUS_UNLOADED,
+        STATUS_UNINITIALIZED,
+        STATUS_ERROR,
         STATUS_LOADING,
-        STATUS_READY
+        STATUS_LOADED,
+        STATUS_DECODING,
+        STATUS_READY_TO_DRAW,
     };
 
     // matches bgfx, TODO: compare to "official" gltf supported list
@@ -279,11 +282,20 @@ public:
     char const * jsonStr = nullptr;
     #endif // DEBUG
 
-    // STATIC API
+// INTERFACE
+    void setStatus(Status status);
+    bool isReadyToDraw() const;
+
+// STATIC INTERFACE
 
     constexpr size_t DataSize(Counts const & counts) {
         return counts.totalSize();
     }
+
+// PRIVATE STORAGE
+private:
+    Status _status = STATUS_UNINITIALIZED;
+    mutable std::mutex _mutex;
 
 // -------------------------------------------------------------------------- //
 // SUB-PARTS
