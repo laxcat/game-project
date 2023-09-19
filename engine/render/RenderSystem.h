@@ -12,9 +12,6 @@
 
 class RenderSystem {
 public:
-    //
-    // SHARED RESOURCES
-    //
     Samplers samplers;
     bgfx::ProgramHandle unlitProgram;
     bgfx::ProgramHandle gltfProgram;
@@ -23,35 +20,19 @@ public:
     Colors colors;
     RenderSettings settings;
 
-    // 
-    // MANAGER LIFECYCLE
-    //
     void init();
-    // void draw();
     void draw();
     void drawNode(Gobj::Node * node, glm::mat4 const & parentTransform = Identity);
     // returns submit count
     uint16_t drawMesh(Gobj::Mesh const & mesh, glm::mat4 const & transform = Identity);
     void shutdown();
 
-    // 
-    // RENDERABLE LIFECYCLE
-    //
-    // Renderable * create(bgfx::ProgramHandle program, char const * key);
-    // Renderable * createFromGLTF(char const * filename, char const * key);
-    // Renderable * at(char const * key);
-
     void add(char const * key, Gobj * g);
     void remove(char const * key);
     // returns gobj at key before update, nullptr if not found
     Gobj * update(char const * key, Gobj * newGobj);
 
-    // 
-    // RENDERABLE UTILS
-    //
     bool keyExists(char const * key);
-    // bool isKeySafeToDrawOrLoad(char const * key);
-    // bool isRenderableLoading(Renderable const * r, Renderable::LoadState & foundLoadState);
 
     #if DEBUG || DEV_INTERFACE
     void showStatus();
@@ -61,8 +42,6 @@ public:
     size_t renderableCount() const;
 
 private:
-    // GLTFLoader gltfLoader;
-    // std::unordered_map<Renderable const *, std::thread> loadingThreads;
     bgfx::UniformHandle materialBaseColor;
     bgfx::UniformHandle materialPBRValues;
     bgfx::UniformHandle normModel;
@@ -75,9 +54,6 @@ private:
     bimg::ImageContainer * decodeImage(Gobj::Image * img);
     void removeHandles(Gobj * g);
 
-    // bool destroy(char const * key);
-    // void reset(Renderable * r);
-
     #if DEV_INTERFACE
     friend class Editor;
     #endif // DEV_INTERFACE
@@ -89,3 +65,20 @@ private:
         0.f, 0.f, 0.f, 1.f
     };
 };
+
+    // bool destroy(char const * key);
+    // void reset(Renderable * r);
+
+    // GLTFLoader gltfLoader;
+    // std::unordered_map<Renderable const *, std::thread> loadingThreads;
+
+    // bool isKeySafeToDrawOrLoad(char const * key);
+    // bool isRenderableLoading(Renderable const * r, Renderable::LoadState & foundLoadState);
+
+    //
+    // RENDERABLE LIFECYCLE
+    //
+    // Renderable * create(bgfx::ProgramHandle program, char const * key);
+    // Renderable * createFromGLTF(char const * filename, char const * key);
+    // Renderable * at(char const * key);
+
