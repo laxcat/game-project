@@ -439,7 +439,7 @@ public:
             Attr occlusionTexCoord = ATTR_TEXCOORD0;
             float occlusionStrength = 1.f;
         // pbrMetallicRoughness
-            float baseColorFactor[4] = {1.f};
+            float baseColorFactor[4] = {1.f, 1.f, 1.f, 1.f};
             Texture * baseColorTexture = nullptr;
             Attr baseColorTexCoord = ATTR_TEXCOORD0;
             float metallicFactor = 1.f;
