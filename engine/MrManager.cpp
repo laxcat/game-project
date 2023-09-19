@@ -16,6 +16,8 @@ int MrManager::init(EngineSetup const & setup) {
     camera.init(windowSize);
     editor.init();
 
+    workers = memMan.createArray<Worker *>(64);
+
     #if DEV_INTERFACE
     devOverlay.init(windowSize);
     devOverlay.setState(DevOverlay::DearImGUI);
@@ -33,24 +35,28 @@ int MrManager::init(EngineSetup const & setup) {
 
     // test();
 
-    // Gobj * g = memMan.createGobj("../../../gltf_assets/Cameras.gltf");
-    Gobj * g = memMan.createGobj("../../../gltf_assets/CesiumMilkTruck.glb");
-    // Gobj * g = memMan.createGobj("../../../gltf_assets/CesiumMilkTruck/CesiumMilkTruck.gltf");
-    // Gobj * g = memMan.createGobj("../../../gltf_assets/LS500.glb");
-    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoomBox/glTF-Binary/BoomBox.glb");
-    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/Box/glTF-Binary/Box.glb");
-    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoxInterleaved/glTF-Binary/BoxInterleaved.glb");
-    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoxTextured/glTF-Binary/BoxTextured.glb");
-    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/ClearCoatCarPaint/glTF-Binary/ClearCoatCarPaint.glb");
-    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MaterialsVariantsShoe/glTF-Binary/MaterialsVariantsShoe.glb");
-    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb");
-    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MorphStressTest/glTF-Binary/MorphStressTest.glb");
-    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MultipleScenes/glTF-Embedded/MultipleScenes.gltf");
-    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/TextureCoordinateTest/glTF-Binary/TextureCoordinateTest.glb");
-    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/TwoSidedPlane/glTF/TwoSidedPlane.gltf");
-    assert(g && "init gobj failed");
-    rendSys.add("test", g);
-
+    createWorker([this]{
+        // printl("fart");
+        Gobj * g = memMan.createGobj("../../../gltf_assets/CesiumMilkTruck.glb");
+        // Gobj * g = memMan.createGobj("../../../gltf_assets/Cameras.gltf");
+        // Gobj * g = memMan.createGobj("../../../gltf_assets/CesiumMilkTruck.glb");
+        // Gobj * g = memMan.createGobj("../../../gltf_assets/CesiumMilkTruck/CesiumMilkTruck.gltf");
+        // Gobj * g = memMan.createGobj("../../../gltf_assets/LS500.glb");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoomBox/glTF-Binary/BoomBox.glb");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/Box/glTF-Binary/Box.glb");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoxInterleaved/glTF-Binary/BoxInterleaved.glb");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoxTextured/glTF-Binary/BoxTextured.glb");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/ClearCoatCarPaint/glTF-Binary/ClearCoatCarPaint.glb");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MaterialsVariantsShoe/glTF-Binary/MaterialsVariantsShoe.glb");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MorphStressTest/glTF-Binary/MorphStressTest.glb");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MultipleScenes/glTF-Embedded/MultipleScenes.gltf");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/TextureCoordinateTest/glTF-Binary/TextureCoordinateTest.glb");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/TwoSidedPlane/glTF/TwoSidedPlane.gltf");
+        assert(g && "init gobj failed");
+        rendSys.add("test", g);
+        // rendSys.remove("test");
+    });
 
     return 0;
 }
@@ -78,6 +84,7 @@ void MrManager::endFrame() {
 }
 
 void MrManager::tick() {
+    joinWorkers();
 }
 
 void MrManager::draw() {
@@ -101,6 +108,28 @@ void MrManager::updateSize(size2 windowSize) {
 
     if (setup.postResize) setup.postResize();
 }
+
+// -------------------------------------------------------------------------- //
+// WORKERS
+// -------------------------------------------------------------------------- //
+    void MrManager::createWorker(Worker::Fn const & task) {
+        Worker * w = memMan.create<Worker>(task);
+        workers->append(w);
+    }
+
+    void MrManager::joinWorkers() {
+        size_t size = workers->size();
+        for (size_t i = 0; i < size; ++i) {
+            Worker * w = workers->data()[i];
+            if (w->isComplete()) {
+                w->join();
+                memMan.request({.ptr=w, .size=0});
+                workers->remove(i);
+                --i;
+                --size;
+            }
+        }
+    }
 
 // -------------------------------------------------------------------------- //
 // FRAME STACK UTILS

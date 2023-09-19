@@ -2,11 +2,13 @@
 #include <bgfx/bgfx.h>
 #include "engine.h"
 #include "common/EventQueue.h"
+#include "memory/Array.h"
 #include "memory/MemMan.h"
 #include "memory/FrameStack.h"
 #include "render/Camera.h"
 #include "render/CameraControl.h"
 #include "render/RenderSystem.h"
+#include "worker/Worker.h"
 
 #if DEV_INTERFACE
 #include "dev/DevOverlay.h"
@@ -42,6 +44,8 @@ public:
     FrameStack * frameStack = nullptr; // TODO: consider moving this into MemMan
     RenderSystem rendSys;
 
+    Array<Worker *> * workers = nullptr;
+
     bool mouseIsDown = false;
     glm::vec2 mousePos;
     glm::vec2 mousePrevPos;
@@ -57,7 +61,6 @@ public:
     DevOverlay devOverlay;
     #endif // DEV_INTERFACE
 
-
 // -------------------------------------------------------------------------- //
 // LIFECYCLE
 // -------------------------------------------------------------------------- //
@@ -71,12 +74,17 @@ public:
     void updateSize(size2 windowSize);
 
 // -------------------------------------------------------------------------- //
+// WORKERS
+// -------------------------------------------------------------------------- //
+    void createWorker(Worker::Fn const & task);
+    void joinWorkers();
+
+// -------------------------------------------------------------------------- //
 // FRAME STACK UTILS
 // -------------------------------------------------------------------------- //
     char * frameStr(size_t size);
     char * frameByteSizeStr(size_t byteSize);
     char * frameFormatStr(char const * format, ...);
-
 
 // -------------------------------------------------------------------------- //
 // EVENT
