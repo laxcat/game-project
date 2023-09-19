@@ -1,4 +1,5 @@
 #pragma once
+#include <bimg/bimg.h>
 #include "Colors.h"
 #include "Fog.h"
 #include "Lights.h"
@@ -71,6 +72,7 @@ private:
     CharKeys * renderList = nullptr;
     
     void addHandles(Gobj * g);
+    bimg::ImageContainer * decodeImage(Gobj::Image * img);
     void removeHandles(Gobj * g);
 
     // bool destroy(char const * key);

@@ -1,5 +1,7 @@
 #include "RenderSystem.h"
 #include <bgfx/platform.h>
+#include <bimg/decode.h>
+#include <bx/error.h>
 #include "../MrManager.h"
 #include "../common/string_utils.h"
 #include "../render/bgfx_extra.h"
@@ -287,7 +289,12 @@ uint16_t RenderSystem::drawMesh(Gobj::Mesh const & mesh, glm::mat4 const & trans
         bgfx::setState(settings.state);
 
         // set textures
-        bgfx::setTexture(0, samplers.color, whiteTexture.handle);
+        if (prim.material && prim.material->baseColorTexture) {
+            bgfx::setTexture(0, samplers.color, bgfx::TextureHandle{prim.material->baseColorTexture->renderHandle});
+        }
+        else {
+            bgfx::setTexture(0, samplers.color, whiteTexture.handle);
+        }
         if (prim.material) {
             bgfx::setUniform(materialBaseColor, &prim.material->baseColorFactor);
         }
@@ -574,7 +581,7 @@ size_t RenderSystem::renderableCount() const {
 }
 
 void RenderSystem::addHandles(Gobj * g) {
-    // printl("setup gobj render handles for bgfx");
+    // setup mesh buffers
     for (uint16_t meshIndex = 0; meshIndex < g->counts.meshes; ++meshIndex) {
         auto & mesh = g->meshes[meshIndex];
         // printl("mesh %p (%s)", &mesh, mesh.name);
@@ -628,7 +635,57 @@ void RenderSystem::addHandles(Gobj * g) {
             //     &prim, iacc.name, iacc.componentType, data, iacc.renderHandle);
         }
     }
+
+    // setup textures
+    for (uint16_t texIndex = 0; texIndex < g->counts.textures; ++texIndex) {
+        Gobj::Texture & tex = g->textures[texIndex];
+        if (tex.renderHandle != UINT16_MAX) {
+            continue;
+        }
+        bimg::ImageContainer * imgc = decodeImage(tex.source);
+        tex.renderHandle = bgfx::createTexture2D(
+            (uint16_t)imgc->m_width,
+            (uint16_t)imgc->m_height,
+            false,
+            1,
+            (bgfx::TextureFormat::Enum)imgc->m_format,
+            BGFX_TEXTURE_NONE|BGFX_SAMPLER_NONE,
+            bgfx::makeRef(imgc->m_data, imgc->m_size)
+        ).idx;
+    }
 }
+
+bimg::ImageContainer * RenderSystem::decodeImage(Gobj::Image * img) {
+    if (!img) return nullptr;
+    if (img->decoded) return (bimg::ImageContainer *)img->decoded;
+
+    assert(img->bufferView && "bufferView required");
+
+    Gobj::BufferView & bv = *img->bufferView;
+    byte_t * data = bv.buffer->data + bv.byteOffset;
+
+    // printl("Loading image at %p for %u bytes", data, bv.byteLength);
+    bx::Error err;
+    bimg::ImageContainer * imgc = imageParse(
+        &bxAllocator,
+        data,
+        bv.byteLength,
+        bimg::TextureFormat::Count,
+        &err
+    );
+    if (imgc && err.isOk()) {
+        printl("loaded image %s, data at: %p, w: %u, h: %u, d: %u",
+            img->name, imgc->m_data, imgc->m_width, imgc->m_height, imgc->m_depth);
+    }
+    else {
+        fprintf(stderr, "error loading image: %s (%p, %u)", err.getMessage().getPtr(), data, bv.byteLength);
+        return nullptr;
+    }
+    printl("image container %p", imgc);
+    img->decoded = imgc;
+    return imgc;
+}
+
 
 void RenderSystem::removeHandles(Gobj * g) {
     for (uint16_t i = 0; i < g->counts.accessors; ++i) {

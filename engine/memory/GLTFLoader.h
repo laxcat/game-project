@@ -25,7 +25,7 @@ Implemented:
     • loading meshes and related sub-objects
 
 NOT implemented yet:
-    • external images
+    • images without BufferView (URI, both data-stream and external)
     • accessor.sparce
     • any extensions
     • any extras

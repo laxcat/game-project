@@ -279,8 +279,6 @@ public:
     char const * jsonStr = nullptr;
     #endif // DEBUG
 
-    Status status = STATUS_UNLOADED;
-
     // STATIC API
 
     constexpr size_t DataSize(Counts const & counts) {
@@ -409,6 +407,7 @@ public:
     };
 
     struct Image {
+        // TODO: add URI
         enum MIMEType {
             TYPE_JPEG,
             TYPE_PNG,
@@ -416,6 +415,8 @@ public:
         MIMEType mimeType = TYPE_PNG;
         BufferView * bufferView = nullptr;
         char const * name = nullptr;
+
+        void * decoded = nullptr;
     };
 
     struct Material {
@@ -553,6 +554,8 @@ public:
         Sampler * sampler = nullptr;
         Image * source = nullptr;
         char const * name = nullptr;
+
+        uint16_t renderHandle = UINT16_MAX;
     };
 
 // -------------------------------------------------------------------------- //

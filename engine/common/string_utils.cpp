@@ -1,5 +1,5 @@
 #include "string_utils.h"
-#include <stb_image.h>
+// #include <stb_image.h>
 #include "../MrManager.h"
 #include "modp_b64.h"
 
@@ -61,37 +61,37 @@ bool strWithin(char const * str, char const * strGroup, char sep) {
     return false;
 }
 
-ImageData loadImageBase64(char const * data, size_t length) {
-    if (strEqu("data:image/jpeg;base64,", data, 23)) {
-        data   += 23;
-        length -= 23;
-    }
-    if (strEqu("data:image/png;base64,", data, 22)) {
-        data   += 22;
-        length -= 22;
-    }
+// ImageData loadImageBase64(char const * data, size_t length) {
+//     if (strEqu("data:image/jpeg;base64,", data, 23)) {
+//         data   += 23;
+//         length -= 23;
+//     }
+//     if (strEqu("data:image/png;base64,", data, 22)) {
+//         data   += 22;
+//         length -= 22;
+//     }
 
-    size_t decodedLength = modp_b64_decode_len(length);
-    // printl("length %zu", length);
-    // printl("modp_b64_decode_len %zu", decodedLength);
+//     size_t decodedLength = modp_b64_decode_len(length);
+//     // printl("length %zu", length);
+//     // printl("modp_b64_decode_len %zu", decodedLength);
 
-    byte_t * decodedData = (byte_t *)malloc(decodedLength);
-    modp_b64_decode((char *)decodedData, data, length);
+//     byte_t * decodedData = (byte_t *)malloc(decodedLength);
+//     modp_b64_decode((char *)decodedData, data, length);
 
-    ImageData id;
-    byte_t * imgData = stbi_load_from_memory(decodedData, decodedLength, &id.width, &id.height, &id.nChannels, 0);
-    if (!imgData) return id;
+//     ImageData id;
+//     byte_t * imgData = stbi_load_from_memory(decodedData, decodedLength, &id.width, &id.height, &id.nChannels, 0);
+//     if (!imgData) return id;
 
-    id.data = mm.frameStack->alloc(id.dataSize());
-    if (!id.data) {
-        fprintf(stderr, "Frame stack alloc failed.\n");
-        id = {};
-        stbi_image_free(imgData);
-        return id;
-    }
-    memcpy(id.data, imgData, id.dataSize());
+//     id.data = mm.frameStack->alloc(id.dataSize());
+//     if (!id.data) {
+//         fprintf(stderr, "Frame stack alloc failed.\n");
+//         id = {};
+//         stbi_image_free(imgData);
+//         return id;
+//     }
+//     memcpy(id.data, imgData, id.dataSize());
 
-    stbi_image_free(imgData);
+//     stbi_image_free(imgData);
 
-    return id;
-}
+//     return id;
+// }

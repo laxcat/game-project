@@ -15,14 +15,14 @@ bool strEqu(char const * strA, char const * strB, size_t length);
 // strWithin("hell", "hello,goodbye") // return false
 bool strWithin(char const * str, char const * strGroup, char sep = ',');
 
-struct ImageData {
-    byte_t * data;
-    int width = 0;
-    int height = 0;
-    int nChannels = 0;
-    size_t dataSize() const { return width * height * nChannels; };
-};
-ImageData loadImageBase64(char const * data, size_t length);
+// struct ImageData {
+//     byte_t * data;
+//     int width = 0;
+//     int height = 0;
+//     int nChannels = 0;
+//     size_t dataSize() const { return width * height * nChannels; };
+// };
+// ImageData loadImageBase64(char const * data, size_t length);
 
 template <size_t MAX>
 void fixstrcpy(char * dst, char const * src) {

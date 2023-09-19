@@ -229,3 +229,19 @@ macro(SetupLib_rapidjson)
 endmacro()
 
 
+# ---------------------------------------------------------------------------- #
+# STB
+# ---------------------------------------------------------------------------- #
+macro(SetupLib_stb)
+    message(STATUS "SETUP STB")
+    FetchContent_Declare(
+        stb_content
+        GIT_REPOSITORY https://github.com/nothings/stb
+        GIT_TAG        5736b15f7ea0ffb08dd38af21067c314d6a3aae9 # arbitrary, captured Sept.2023, https://github.com/nothings/stb/commit/5736b15f7ea0ffb08dd38af21067c314d6a3aae9
+    )
+    FetchContent_MakeAvailable(stb_content)
+    include_directories(${stb_content_SOURCE_DIR})
+    list(APPEND SetupLib_include_dirs "${stb_content_SOURCE_DIR}")
+endmacro()
+
+
