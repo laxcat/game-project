@@ -1240,7 +1240,18 @@ bool GLTFLoader::handleNode(GLTFLoader * l, Gobj * g, char const * str, uint32_t
     // rotation
     case 'r'|'o'<<8: {
         c.handleChild = [node](GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
-            node->rotation[l->crumb().index] = Number{str, len};
+            uint32_t i = l->crumb().index;
+            // mind the order! glm quat can be wxyz or xyzw
+            // see GLM_FORCE_QUAT_DATA_WXYZ
+            // the `glm::quat` constructor ALWAYS takes:
+            // w, x, y, z! w first!!!
+            // https://stackoverflow.com/a/49416643/560384
+            // (but we're not using the constructor here)
+            #ifdef GLM_FORCE_QUAT_DATA_WXYZ
+            node->rotation[(i+1)%4] = Number{str, len};
+            #else
+            node->rotation[i] = Number{str, len};
+            #endif
             return true;
         };
         break; }

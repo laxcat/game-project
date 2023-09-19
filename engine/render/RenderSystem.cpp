@@ -248,17 +248,17 @@ void RenderSystem::draw() {
     printc(ShowRenderDbgTick, "-------------------------------------------------------------ENDING RENDER FRAME\n");
 }
 
-void RenderSystem::drawNode(Gobj::Node * node) {
+void RenderSystem::drawNode(Gobj::Node * node, glm::mat4 const & parentTransform) {
     // draw self if present
     if (node->mesh) {
-        drawMesh(*node->mesh, node->matrix);
+        drawMesh(*node->mesh, parentTransform * node->matrix);
     }
     for (uint16_t nodeIndex = 0; nodeIndex < node->nChildren; ++nodeIndex) {
-        drawNode(node->children[nodeIndex]);
+        drawNode(node->children[nodeIndex], parentTransform * node->matrix);
     }
 }
 
-uint16_t RenderSystem::drawMesh(Gobj::Mesh const & mesh, glm::mat4 const & model) {
+uint16_t RenderSystem::drawMesh(Gobj::Mesh const & mesh, glm::mat4 const & transform) {
     uint16_t submitCount = 0;
 
     printc(ShowRenderDbgTick,
@@ -292,7 +292,7 @@ uint16_t RenderSystem::drawMesh(Gobj::Mesh const & mesh, glm::mat4 const & model
             bgfx::setUniform(materialBaseColor, &prim.material->baseColorFactor);
         }
         else {
-            static float temp[4] = {1.f, 1.f, 1.f, 1.f};
+            static float temp[4] = {0.5f, 0.5f, 0.5f, 1.0f};
             bgfx::setUniform(materialBaseColor, temp);
         }
         glm::vec4 pbrValues{
@@ -303,11 +303,11 @@ uint16_t RenderSystem::drawMesh(Gobj::Mesh const & mesh, glm::mat4 const & model
         };
         bgfx::setUniform(materialPBRValues, &pbrValues);
 
-        // set model
-        bgfx::setTransform(&model);
+        // set transform
+        bgfx::setTransform(&transform);
 
         // make a reduced version of the rotation for the shader normals
-        auto nm = glm::transpose(glm::inverse(glm::mat3{model}));
+        auto nm = glm::transpose(glm::inverse(glm::mat3{transform}));
         bgfx::setUniform(normModel, (float *)&nm);
 
         // submit

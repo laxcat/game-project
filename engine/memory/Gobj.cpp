@@ -328,7 +328,6 @@ void Gobj::Node::syncMatrixTRS(bool syncChildren) {
     // is identity?
     if (matrix == glm::mat4{1.f}) {
         // TRS -> matrix
-        printl("is identity");
         matrix = glm::mat4{1.f};
         matrix = glm::translate(matrix, translation);
         matrix *= glm::mat4_cast(rotation);
@@ -336,7 +335,6 @@ void Gobj::Node::syncMatrixTRS(bool syncChildren) {
     }
     else {
         // matrix -> TRS
-        printl("is not identity");
         glm::vec3 skew;
         glm::vec4 perspective;
         glm::decompose(matrix, scale, rotation, translation, skew, perspective);
