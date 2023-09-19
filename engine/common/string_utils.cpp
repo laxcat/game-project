@@ -8,18 +8,24 @@ void setName(char * dest, char const * name, int size) {
     snprintf(dest, size, "%s", name);
 }
 
-bool strEqu(char const * strA, char const * strB, size_t size) {
-    if (size) {
-        return (strncmp(strA, strB, size) == 0);
-    }
+bool strEqu(char const * strA, char const * strB) {
     return (strcmp(strA, strB) == 0);
 }
 
-// TODO: remove this, use strEqu with optional size
-bool strEqualForLength(char const * strA, char const * strB, size_t length) {
+bool strEqu(char const * strA, char const * strB, size_t length) {
+    // compare the string as 8 byte chunks
+    char * a = (char *)strA;
+    char * b = (char *)strB;
+    while (length >= 8) {
+        if (*(uint64_t *)a != *(uint64_t *)b) return false;
+        a += 8;
+        b += 8;
+        length -= 8;
+    }
+    // finish off the last few bytes
     for (size_t i = 0; i < length; ++i) {
         // one (but not both) is null or chars don't match
-        if (!strA[i] != !strB[i] || strA[i] != strB[i]) return false;
+        if (a[i] != b[i]) return false;
     }
     return true;
 }
@@ -56,11 +62,11 @@ bool strWithin(char const * str, char const * strGroup, char sep) {
 }
 
 ImageData loadImageBase64(char const * data, size_t length) {
-    if (strEqualForLength("data:image/jpeg;base64,", data, 23)) {
+    if (strEqu("data:image/jpeg;base64,", data, 23)) {
         data   += 23;
         length -= 23;
     }
-    if (strEqualForLength("data:image/png;base64,", data, 22)) {
+    if (strEqu("data:image/png;base64,", data, 22)) {
         data   += 22;
         length -= 22;
     }
