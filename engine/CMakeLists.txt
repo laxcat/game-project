@@ -31,7 +31,7 @@ project (game_project_engine
         LANGUAGES CXX C OBJCXX OBJC  
         )
 
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
 
 # ---------------------------------------------------------------------------- #
 # LIBRARIES
