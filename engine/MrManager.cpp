@@ -32,25 +32,25 @@ int MrManager::init(EngineSetup const & setup) {
     }
 
     // test();
-    // Renderable * r = rendSys.createFromGLTF("../../../gltf_assets/CesiumMilkTruck.glb", "truck");
 
-    Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/Box/glTF-Binary/Box.glb");
-    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoxInterleaved/glTF-Binary/BoxInterleaved.glb");
+    // Gobj * g = memMan.createGobj("../../../gltf_assets/Cameras.gltf");
+    Gobj * g = memMan.createGobj("../../../gltf_assets/CesiumMilkTruck.glb");
+    // Gobj * g = memMan.createGobj("../../../gltf_assets/CesiumMilkTruck/CesiumMilkTruck.gltf");
     // Gobj * g = memMan.createGobj("../../../gltf_assets/LS500.glb");
-    // Gobj * g = memMan.createGobj("../../../gltf_assets/CesiumMilkTruck.glb");
+    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoomBox/glTF-Binary/BoomBox.glb");
+    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/Box/glTF-Binary/Box.glb");
+    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoxInterleaved/glTF-Binary/BoxInterleaved.glb");
+    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoxTextured/glTF-Binary/BoxTextured.glb");
+    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/ClearCoatCarPaint/glTF-Binary/ClearCoatCarPaint.glb");
+    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MaterialsVariantsShoe/glTF-Binary/MaterialsVariantsShoe.glb");
+    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb");
+    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MorphStressTest/glTF-Binary/MorphStressTest.glb");
+    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MultipleScenes/glTF-Embedded/MultipleScenes.gltf");
+    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/TextureCoordinateTest/glTF-Binary/TextureCoordinateTest.glb");
+    // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/TwoSidedPlane/glTF/TwoSidedPlane.gltf");
     assert(g && "init gobj failed");
     rendSys.add("test", g);
 
-    // memMan.createGobj("../../../gltf_assets/CesiumMilkTruck/CesiumMilkTruck.gltf");
-    // memMan.createGobj("../../../gltf_assets/Cameras.gltf");
-    // memMan.createGobj("../../glTF-Sample-Models/2.0/BoxTextured/glTF-Binary/BoxTextured.glb");
-    // memMan.createGobj("../../glTF-Sample-Models/2.0/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb");
-    // memMan.createGobj("../../glTF-Sample-Models/2.0/TwoSidedPlane/glTF/TwoSidedPlane.gltf");
-    // memMan.createGobj("../../glTF-Sample-Models/2.0/BoomBox/glTF-Binary/BoomBox.glb");
-    // memMan.createGobj("../../glTF-Sample-Models/2.0/TextureCoordinateTest/glTF-Binary/TextureCoordinateTest.glb");
-    // memMan.createGobj("../../glTF-Sample-Models/2.0/MorphStressTest/glTF-Binary/MorphStressTest.glb");
-    // memMan.createGobj("../../glTF-Sample-Models/2.0/ClearCoatCarPaint/glTF-Binary/ClearCoatCarPaint.glb");
-    // memMan.createGobj("../../glTF-Sample-Models/2.0/MaterialsVariantsShoe/glTF-Binary/MaterialsVariantsShoe.glb");
 
     return 0;
 }
