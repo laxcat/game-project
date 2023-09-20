@@ -44,7 +44,7 @@ void RenderSystem::init() {
 
     renderList = mm.memMan.createCharKeys(8);
 
-    byte_t data[] = {
+    byte_t temp[] = {
         255,255,255,255,
         255,255,255,255,
         255,255,255,255,
@@ -57,7 +57,7 @@ void RenderSystem::init() {
         1,
         bgfx::TextureFormat::Enum::RGBA8,
         BGFX_TEXTURE_NONE|BGFX_SAMPLER_NONE,
-        bgfx::makeRef(data, 16)
+        bgfx::copy(temp, 16)
     );
 
 }
