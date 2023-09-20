@@ -397,9 +397,9 @@ Gobj::Image::MIMEType Gobj::imageMIMETypeFromStr(char const * str) {
 }
 
 Gobj::Material::AlphaMode Gobj::alphaModeFromStr(char const * str) {
-    if (strEqu(str, "ALPHA_OPAQUE"))    return Material::ALPHA_OPAQUE;
-    if (strEqu(str, "ALPHA_MASK" ))     return Material::ALPHA_MASK;
-    if (strEqu(str, "ALPHA_BLEND" ))    return Material::ALPHA_BLEND;
+    if (strEqu(str, "OPAQUE"))    return Material::ALPHA_OPAQUE;
+    if (strEqu(str, "MASK" ))     return Material::ALPHA_MASK;
+    if (strEqu(str, "BLEND" ))    return Material::ALPHA_BLEND;
     return Material::ALPHA_OPAQUE;
 }
 
