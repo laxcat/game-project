@@ -140,7 +140,7 @@ void CharKeys::editorEditBlock() {
 
         float colSize = 20.f;
         int nCols = 16;
-        int nRows = pool._size / nCols + (pool._size % nCols != 0);
+        int nRows = (int)pool._size / nCols + ((int)pool._size % nCols != 0);
         int index = 0;
         BeginTable("Pool", nCols);
         for (int row = 0; row < nRows; ++row) {

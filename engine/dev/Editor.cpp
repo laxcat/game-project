@@ -102,10 +102,10 @@ void Editor::guiLighting() {
 
         // DIRECTIONAL
 
-        for (size_t i = 0; i < lights.directionalCount; ++i) {
+        for (int i = 0; i < lights.directionalCount; ++i) {
             PushID(i);
 
-            Text("Directional %zu", i);
+            Text("Directional %d", i);
             Text("Direction");
             PushItemWidth(GetWindowWidth() * 0.4f);
             auto euler = lights.dirDataDirAsEuler[i];
@@ -143,7 +143,7 @@ void Editor::guiLighting() {
             size_t id = idIndexPair.first;
             size_t i = idIndexPair.second;
 
-            PushID(id);
+            PushID((int)id);
 
             Text("Point %zu", id);
             SliderFloat3("Pos", (float *)&lights.pointPosAt(i), -10.0f, 10.0f, "%.3f");

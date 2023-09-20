@@ -67,7 +67,7 @@ void FreeList::editorEditBlock() {
 
     int nCols = 16;
     float colSize = 20.f;
-    int rowCount = _nSlots / nCols + (_nSlots % nCols != 0);
+    int rowCount = (int)_nSlots / nCols + ((int)_nSlots % nCols != 0);
     int index = 0;
     BeginTable("FreeList", nCols);
     for (int row = 0; row < rowCount; ++row) {

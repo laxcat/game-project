@@ -414,7 +414,7 @@ char const * GLTFLoader::prettyJSON(uint32_t * prettyJSONSize) {
     _reader.Parse(ss, writer);
 
     if (prettyJSONSize) {
-        *prettyJSONSize = sb.GetSize() + 1;
+        *prettyJSONSize = (uint32_t)sb.GetSize() + 1;
     }
     return mm.frameFormatStr("%s", sb.GetString());
 }
@@ -844,7 +844,7 @@ bool GLTFLoader::handleBuffer(GLTFLoader * l, Gobj * g, char const * str, uint32
             return false;
         }
         buf->data = l->_nextRawDataPtr;
-        buf->byteLength = bytesWritten;
+        buf->byteLength = (uint32_t)bytesWritten;
         l->_nextRawDataPtr += bytesWritten;
 
         break; }

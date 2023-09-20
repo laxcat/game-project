@@ -98,7 +98,7 @@ void Array_editorEditBlock(Array<int> & arr) {
     // display array contents
     Text("Array, (%zu/%zu):", arr.size(), arr.maxSize());
     int cols = 16;
-    int rows = arr.maxSize() / cols + (arr.maxSize() % cols != 0);
+    int rows = (int)arr.maxSize() / cols + ((int)arr.maxSize() % cols != 0);
     int i = 0;
     BeginTable("SubBlocks", cols, ImGuiTableFlags_Borders);
     for (int i = 0; i < arr.maxSize(); ++i) {

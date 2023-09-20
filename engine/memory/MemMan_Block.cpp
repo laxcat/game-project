@@ -137,7 +137,7 @@ MemMan::BlockInfo * MemMan::claimBlock(BlockInfo * block) {
         bool isTail = (block == _tail);
         block = (BlockInfo *)newBlockInfoPtr;
         block->_dataSize = blockSize - padding - BlockInfoSize;
-        block->_padding = padding;
+        block->_padding = (uint32_t)padding;
         // next and prev pointers need to point to new memory location of BlockInfo
         if (block->_next) {
             block->_next->_prev = block;
@@ -206,7 +206,7 @@ MemMan::BlockInfo * MemMan::claimBlockBack(BlockInfo * block) {
 
     // set new block info
     BlockInfo * newBlock = new (newBlockAlignedPtr) BlockInfo{};
-    newBlock->_padding = newBlockPadding;
+    newBlock->_padding = (uint32_t)newBlockPadding;
     newBlock->_prev = block;
     newBlock->_next = block->_next;
     newBlock->_type = MEM_BLOCK_CLAIMED;
