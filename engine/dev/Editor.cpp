@@ -82,7 +82,13 @@ void Editor::guiRendering() {
         Checkbox("V-Sync", &mm.rendSys.settings.user.vsync);
         Checkbox("Max Anisotropy", &mm.rendSys.settings.user.maxAnisotropy);
         
-        if (user != mm.rendSys.settings.user) mm.rendSys.settings.reinit();
+        if (user != mm.rendSys.settings.user) {
+            mm.rendSys.settings.reinit();
+        }
+
+        if (Button("Force Reset")) {
+            mm.rendSys.settings.reinit();
+        }
 
         Dummy(ImVec2(0.0f, 20.0f));
     }    

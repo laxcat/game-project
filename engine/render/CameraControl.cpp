@@ -6,6 +6,14 @@ void CameraControl::mousePosEvent(Event const & e) {
         if (mm.camera.projType == Camera::ProjType::Persp) {
             mm.camera.yaw -= (e.x - mm.mousePrevPos.x) * 0.01;
             mm.camera.pitch -= (e.y - mm.mousePrevPos.y) * 0.01;
+
+            if (mm.camera.pitch < pitchMin) {
+                mm.camera.pitch = pitchMin;
+            }
+            else if (mm.camera.pitch > pitchMax) {
+                mm.camera.pitch = pitchMax;
+            }
+
             mm.camera.updatePosFromDistancePitchYaw();
         }
         else if (mm.camera.projType == Camera::ProjType::Ortho) {

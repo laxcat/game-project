@@ -11,7 +11,7 @@
 class RenderSettings {
 public:
     struct User {
-        int msaa = 4;
+        int msaa = 0;
         bool vsync = true;
         bool maxAnisotropy = false;
 
@@ -60,7 +60,7 @@ public:
         Generally expect to handle backing buffer resolution MANUALLY, OUTSIDE bgfx.
         ! ! ! ! ! ! !
 
-        Unaddressed for now, and always create
+        Unaddressed for now.
 
         */
 
@@ -77,7 +77,9 @@ public:
             | BGFX_STATE_BLEND_ALPHA
             // | BGFX_STATE_CULL_CW
         ;
-        if (user.msaa) state |= BGFX_STATE_MSAA;
+        if (user.msaa) {
+            state |= BGFX_STATE_MSAA;
+        }
 
         // print("UPDATED!!!! msaa=%d, vsync=%s, state=%d, reset=%d\n", 
             // user.msaa, user.vsync?"true":"false", state, bgfxInit.resolution.reset);
