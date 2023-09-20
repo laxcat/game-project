@@ -75,9 +75,9 @@ void RenderSystem::draw() {
     // for each renderable
     for (auto node : renderList) {
         // auto r = (Renderable *)node->ptr;
-        auto g = (Gobj *)node->ptr;
+        auto gobj = (Gobj *)node->ptr;
 
-        if (!g->isReadyToDraw()) {
+        if (!gobj->isReadyToDraw()) {
             continue;
         }
 
@@ -86,21 +86,21 @@ void RenderSystem::draw() {
             "RENDERABLE %s (%p)\n"
             "----------------------------------------\n",
             // r->key, r->key
-            node->key, g
+            node->key, gobj
         );
 
         // if scene present, draw through node structure
-        if (g->scene) {
+        if (gobj->scene) {
             // each root node
-            for (uint16_t nodeIndex = 0; nodeIndex < g->scene->nNodes; ++nodeIndex) {
-                drawNode(g->scene->nodes[nodeIndex]);
+            for (uint16_t nodeIndex = 0; nodeIndex < gobj->scene->nNodes; ++nodeIndex) {
+                drawNode(gobj, gobj->scene->nodes[nodeIndex]);
             }
         }
         // otherwise draw all meshes
         else {
             // each mesh
-            for (uint16_t meshIndex = 0; meshIndex < g->counts.meshes; ++meshIndex) {
-                submitCount += drawMesh(g->meshes[meshIndex]);
+            for (uint16_t meshIndex = 0; meshIndex < gobj->counts.meshes; ++meshIndex) {
+                submitCount += drawMesh(gobj, gobj->meshes[meshIndex]);
             }
         }
     }
@@ -114,20 +114,20 @@ void RenderSystem::draw() {
     printc(ShowRenderDbgTick, "-------------------------------------------------------------ENDING RENDER FRAME\n");
 }
 
-void RenderSystem::drawNode(Gobj::Node * node, glm::mat4 const & parentTransform) {
+void RenderSystem::drawNode(Gobj * gobj, Gobj::Node * node, glm::mat4 const & parentTransform) {
     // calc global transform
     glm::mat4 global = parentTransform * node->matrix;
     // draw self if present
     if (node->mesh) {
-        drawMesh(*node->mesh, global);
+        drawMesh(gobj, *node->mesh, global);
     }
     // draw children
     for (uint16_t nodeIndex = 0; nodeIndex < node->nChildren; ++nodeIndex) {
-        drawNode(node->children[nodeIndex], global);
+        drawNode(gobj, node->children[nodeIndex], global);
     }
 }
 
-uint16_t RenderSystem::drawMesh(Gobj::Mesh const & mesh, glm::mat4 const & transform) {
+uint16_t RenderSystem::drawMesh(Gobj * gobj, Gobj::Mesh const & mesh, glm::mat4 const & transform) {
     uint16_t submitCount = 0;
 
     printc(ShowRenderDbgTick,
@@ -139,33 +139,40 @@ uint16_t RenderSystem::drawMesh(Gobj::Mesh const & mesh, glm::mat4 const & trans
 
     // each primitive
     for (int primIndex = 0; primIndex < mesh.nPrimitives; ++primIndex) {
-        Gobj::MeshPrimitive & prim = mesh.primitives[primIndex];
+        Gobj::MeshPrimitive * prim = mesh.primitives + primIndex;
         printc(ShowRenderDbgTick,
             "-----\n"
             "mesh primitive %p\n"
             "-----\n",
-            &prim
+            prim
         );
 
         // set buffers
-        for (int attrIndex = 0; attrIndex < prim.nAttributes; ++attrIndex) {
-            Gobj::Accessor & acc = *prim.attributes[attrIndex].accessor;
-            bgfx::setVertexBuffer(attrIndex, bgfx::VertexBufferHandle{acc.renderHandle});
+        for (int attrIndex = 0; attrIndex < prim->nAttributes; ++attrIndex) {
+            Gobj::Accessor * acc = prim->attributes[attrIndex].accessor;
+            bgfx::setVertexBuffer(attrIndex, bgfx::VertexBufferHandle{acc->renderHandle});
         }
-        bgfx::setIndexBuffer(bgfx::IndexBufferHandle{prim.indices->renderHandle});
-        bgfx::setState(settings.state);
+        bgfx::setIndexBuffer(bgfx::IndexBufferHandle{prim->indices->renderHandle});
+
+        uint64_t state = settings.state;
+        uint32_t stateRGBA = 0;
 
         // set textures
-        if (prim.material && prim.material->baseColorTexture) {
-            bgfx::setTexture(0, samplers.color, bgfx::TextureHandle{prim.material->baseColorTexture->renderHandle});
+        if (prim->material) {
+            if (prim->material->baseColorTexture) {
+                bgfx::setTexture(0, samplers.color, bgfx::TextureHandle{prim->material->baseColorTexture->renderHandle});
+            }
+            else {
+                bgfx::setTexture(0, samplers.color, whiteTexture);
+            }
+            bgfx::setUniform(materialBaseColor, prim->material->baseColorFactor);
+
+            if (prim->material->alphaMode == Gobj::Material::ALPHA_BLEND) {
+                state |= BGFX_STATE_BLEND_ALPHA;
+            }
         }
         else {
             bgfx::setTexture(0, samplers.color, whiteTexture);
-        }
-        if (prim.material) {
-            bgfx::setUniform(materialBaseColor, &prim.material->baseColorFactor);
-        }
-        else {
             static float temp[4] = {0.5f, 0.5f, 0.5f, 1.0f};
             bgfx::setUniform(materialBaseColor, temp);
         }
@@ -183,6 +190,9 @@ uint16_t RenderSystem::drawMesh(Gobj::Mesh const & mesh, glm::mat4 const & trans
         // make a reduced version of the rotation for the shader normals
         auto nm = glm::transpose(glm::inverse(glm::mat3{transform}));
         bgfx::setUniform(normModel, (float *)&nm);
+
+        // set modified state
+        bgfx::setState(state, stateRGBA);
 
         // submit
         bgfx::submit(mm.mainView, standardProgram);
@@ -217,20 +227,20 @@ void RenderSystem::shutdown() {
     bgfx::destroy(normModel);
 }
 
-void RenderSystem::add(char const * key, Gobj * g) {
+void RenderSystem::add(char const * key, Gobj * gobj) {
     if (renderList->isFull()) return;
-    renderList->insert(key, g);
-    addHandles(g);
+    renderList->insert(key, gobj);
+    addHandles(gobj);
 }
 
 void RenderSystem::remove(char const * key) {
-    auto g = (Gobj *)renderList->ptrForKey(key);
-    if (!g) {
+    auto gobj = (Gobj *)renderList->ptrForKey(key);
+    if (!gobj) {
         fprintf(stderr, "WARNING: did not remove Gobj at key:%s. Could not find key.", key);
         return;
     }
-    g->setStatus(Gobj::STATUS_LOADED);
-    removeHandles(g);
+    gobj->setStatus(Gobj::STATUS_LOADED);
+    removeHandles(gobj);
     renderList->remove(key);
 }
 
@@ -275,12 +285,12 @@ size_t RenderSystem::renderableCount() const {
     return renderList->nNodes();
 }
 
-void RenderSystem::addHandles(Gobj * g) {
-    g->setStatus(Gobj::STATUS_DECODING);
+void RenderSystem::addHandles(Gobj * gobj) {
+    gobj->setStatus(Gobj::STATUS_DECODING);
 
     // setup mesh buffers
-    for (uint16_t meshIndex = 0; meshIndex < g->counts.meshes; ++meshIndex) {
-        auto & mesh = g->meshes[meshIndex];
+    for (uint16_t meshIndex = 0; meshIndex < gobj->counts.meshes; ++meshIndex) {
+        auto & mesh = gobj->meshes[meshIndex];
         // printl("mesh %p (%s)", &mesh, mesh.name);
 
         for (uint16_t primIndex = 0; primIndex < mesh.nPrimitives; ++primIndex) {
@@ -334,8 +344,8 @@ void RenderSystem::addHandles(Gobj * g) {
     }
 
     // setup textures
-    for (uint16_t texIndex = 0; texIndex < g->counts.textures; ++texIndex) {
-        Gobj::Texture & tex = g->textures[texIndex];
+    for (uint16_t texIndex = 0; texIndex < gobj->counts.textures; ++texIndex) {
+        Gobj::Texture & tex = gobj->textures[texIndex];
         if (tex.renderHandle != UINT16_MAX) {
             continue;
         }
@@ -351,7 +361,7 @@ void RenderSystem::addHandles(Gobj * g) {
         ).idx;
     }
 
-    g->setStatus(Gobj::STATUS_READY_TO_DRAW);
+    gobj->setStatus(Gobj::STATUS_READY_TO_DRAW);
 }
 
 bimg::ImageContainer * RenderSystem::decodeImage(Gobj::Image * img) {
@@ -385,12 +395,12 @@ bimg::ImageContainer * RenderSystem::decodeImage(Gobj::Image * img) {
 }
 
 
-void RenderSystem::removeHandles(Gobj * g) {
-    g->setStatus(Gobj::STATUS_LOADED);
+void RenderSystem::removeHandles(Gobj * gobj) {
+    gobj->setStatus(Gobj::STATUS_LOADED);
 
     // remove buffers
-    for (uint16_t i = 0; i < g->counts.accessors; ++i) {
-        auto & acc = g->accessors[i];
+    for (uint16_t i = 0; i < gobj->counts.accessors; ++i) {
+        auto & acc = gobj->accessors[i];
         if (acc.componentType == Gobj::Accessor::COMPTYPE_UNSIGNED_SHORT &&
             isValid(bgfx::IndexBufferHandle{acc.renderHandle}))
         {
@@ -404,8 +414,8 @@ void RenderSystem::removeHandles(Gobj * g) {
     }
 
     // remove textures
-    for (uint16_t texIndex = 0; texIndex < g->counts.textures; ++texIndex) {
-        Gobj::Texture & tex = g->textures[texIndex];
+    for (uint16_t texIndex = 0; texIndex < gobj->counts.textures; ++texIndex) {
+        Gobj::Texture & tex = gobj->textures[texIndex];
         if (isValid(bgfx::TextureHandle{tex.renderHandle})) {
             bgfx::destroy(bgfx::TextureHandle{tex.renderHandle});
         }

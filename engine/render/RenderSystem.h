@@ -21,12 +21,12 @@ public:
 
     void init();
     void draw();
-    void drawNode(Gobj::Node * node, glm::mat4 const & parentTransform = Identity);
+    void drawNode(Gobj * gobj, Gobj::Node * node, glm::mat4 const & parentTransform = Identity);
     // returns submit count
-    uint16_t drawMesh(Gobj::Mesh const & mesh, glm::mat4 const & transform = Identity);
+    uint16_t drawMesh(Gobj * gobj, Gobj::Mesh const & mesh, glm::mat4 const & transform = Identity);
     void shutdown();
 
-    void add(char const * key, Gobj * g);
+    void add(char const * key, Gobj * gobj);
     void remove(char const * key);
     // returns gobj at key before update, nullptr if not found
     Gobj * update(char const * key, Gobj * newGobj);
@@ -49,9 +49,9 @@ private:
 
     CharKeys * renderList = nullptr;
     
-    void addHandles(Gobj * g);
+    void addHandles(Gobj * gobj);
     bimg::ImageContainer * decodeImage(Gobj::Image * img);
-    void removeHandles(Gobj * g);
+    void removeHandles(Gobj * gobj);
 
     #if DEV_INTERFACE
     friend class Editor;

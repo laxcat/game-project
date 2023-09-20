@@ -74,7 +74,6 @@ public:
         state = 0
             | BGFX_STATE_WRITE_MASK
             | BGFX_STATE_DEPTH_TEST_LESS
-            | BGFX_STATE_BLEND_ALPHA
             // | BGFX_STATE_CULL_CW
         ;
         if (user.msaa) {
