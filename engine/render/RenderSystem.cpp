@@ -8,13 +8,13 @@
 #include "../memory/CharKeys.h"
 
 #if FORCE_OPENGL
-    #include "../shader/shaders/gltf/vs_gltf.150.bin.geninc"
-    #include "../shader/shaders/gltf/fs_gltf.150.bin.geninc"
+    #include "../shader/shaders/standard/vs_standard.150.bin.geninc"
+    #include "../shader/shaders/standard/fs_standard.150.bin.geninc"
     #include "../shader/shaders/unlit/vs_unlit.150.bin.geninc"
     #include "../shader/shaders/unlit/fs_unlit.150.bin.geninc"
 #else
-    #include "../shader/shaders/gltf/vs_gltf.metal.bin.geninc"
-    #include "../shader/shaders/gltf/fs_gltf.metal.bin.geninc"
+    #include "../shader/shaders/standard/vs_standard.metal.bin.geninc"
+    #include "../shader/shaders/standard/fs_standard.metal.bin.geninc"
     #include "../shader/shaders/unlit/vs_unlit.metal.bin.geninc"
     #include "../shader/shaders/unlit/fs_unlit.metal.bin.geninc"
 #endif
@@ -32,7 +32,7 @@ void RenderSystem::init() {
     if (!bgfx::init(settings.bgfxInit))
         return;
 
-    gltfProgram = CREATE_BGFX_PROGRAM(gltf);
+    standardProgram = CREATE_BGFX_PROGRAM(standard);
     unlitProgram = CREATE_BGFX_PROGRAM(unlit);
     samplers.init();
     lights.init();
@@ -182,7 +182,7 @@ uint16_t RenderSystem::drawMesh(Gobj::Mesh const & mesh, glm::mat4 const & trans
         bgfx::setUniform(normModel, (float *)&nm);
 
         // submit
-        bgfx::submit(mm.mainView, gltfProgram);
+        bgfx::submit(mm.mainView, standardProgram);
         ++submitCount;
     } // for each primitive
 
@@ -197,7 +197,7 @@ void RenderSystem::shutdown() {
     // no need to ever dealloc memMan objects TODO: is this still true?
     // mm.memMan.request({.ptr=renderList, .size=0});
 
-    bgfx::destroy(gltfProgram);
+    bgfx::destroy(standardProgram);
     bgfx::destroy(unlitProgram);
     // for (auto & t : loadingThreads) {
     //     t.second.join();
@@ -608,7 +608,7 @@ void RenderSystem::removeHandles(Gobj * g) {
 //         reset(r);
 //     }
 //     else {
-//         r = create(gltfProgram, key);
+//         r = create(standardProgram, key);
 //         if (!r) {
 //             printc(ShowRenderDbg, "WARNING Renderable not created.\n");
 //             return nullptr;

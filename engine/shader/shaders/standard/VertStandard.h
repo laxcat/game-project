@@ -1,7 +1,7 @@
 #pragma once
 
 
-struct VertGLTF {
+struct VertStandard {
     float x;
     float y;
     float z;

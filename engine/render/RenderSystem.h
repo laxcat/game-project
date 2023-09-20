@@ -13,7 +13,7 @@ class RenderSystem {
 public:
     Samplers samplers;
     bgfx::ProgramHandle unlitProgram;
-    bgfx::ProgramHandle gltfProgram;
+    bgfx::ProgramHandle standardProgram;
     Lights lights;
     Fog fog;
     Colors colors;

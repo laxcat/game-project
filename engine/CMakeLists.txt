@@ -107,7 +107,7 @@ if(FORCE_OPENGL)
 endif()
 BGFXCompileShaders(
     embed
-    shader_dirs     "${CMAKE_CURRENT_SOURCE_DIR}/shader/shaders/gltf"
+    shader_dirs     "${CMAKE_CURRENT_SOURCE_DIR}/shader/shaders/standard"
                     "${CMAKE_CURRENT_SOURCE_DIR}/shader/shaders/unlit"
     profile_list    "${BGFXCompileShaders_OuputProfiles}"
     target          BGFXShader_engine_target
