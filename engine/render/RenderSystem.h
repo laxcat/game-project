@@ -5,7 +5,6 @@
 #include "Lights.h"
 #include "RenderSettings.h"
 #include "Samplers.h"
-#include "Texture.h"
 #include "../common/debug_defines.h"
 #include "../memory/MemMan.h"
 #include "../memory/Gobj.h"
@@ -45,7 +44,7 @@ private:
     bgfx::UniformHandle materialBaseColor;
     bgfx::UniformHandle materialPBRValues;
     bgfx::UniformHandle normModel;
-    Texture whiteTexture;
+    bgfx::TextureHandle whiteTexture;
     BXAllocator bxAllocator;
 
     CharKeys * renderList = nullptr;

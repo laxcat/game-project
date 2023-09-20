@@ -130,30 +130,26 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
         .lifetime = 0,
         .high = true
     });
-    GLTFLoader * loader4 = new (loaderBlock->data()) GLTFLoader{gltf->data(), basePath};
-    if (loader4->validData() == false) {
+    GLTFLoader * loader = new (loaderBlock->data()) GLTFLoader{gltf->data(), basePath};
+    if (loader->validData() == false) {
         fprintf(stderr, "Error creating loader block\n");
         return nullptr;
     }
 
     // calc size
-    size_t size = loader4->calculateSize();
+    loader->calculateSize();
 
-    // create block
-    BlockInfo * block = createBlock({
-        .size = size,
-        .align = Gobj::Align,
-        .type = MEM_BLOCK_GOBJ,
-    });
+    // create gobj block
+    Gobj * gobj = createGobj(loader->counts());
+    BlockInfo * block = blockForPtr(gobj);
     if (block == nullptr) {
-        fprintf(stderr, "Error creating Gobj block\n");
+        fprintf(stderr, "Error getting Gobj block.\n");
         return nullptr;
     }
-    Gobj * gobj = new (block->data()) Gobj{loader4->counts()};
 
     // load into gobj
     gobj->setStatus(Gobj::STATUS_LOADING);
-    bool success = loader4->load(gobj);
+    bool success = loader->load(gobj);
 
     // early return if load failed
     if (!success) {
@@ -167,9 +163,9 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
 
     // check for exepected size
     #if DEBUG
-    if (loader4->isGLB()) {
+    if (loader->isGLB()) {
         assert(
-            gobj->rawData + alignSize(loader4->binDataSize(), Gobj::Align) ==
+            gobj->rawData + alignSize(loader->binDataSize(), Gobj::Align) ==
             block->data() + block->dataSize() &&
             "Gobj block unexpected size."
         );
@@ -185,6 +181,20 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     #endif // DEBUG
 
     return gobj;
+}
+
+Gobj * MemMan::createGobj(Gobj::Counts const & counts) {
+    // create block
+    BlockInfo * block = createBlock({
+        .size = counts.totalSize(),
+        .align = Gobj::Align,
+        .type = MEM_BLOCK_GOBJ,
+    });
+    if (block == nullptr) {
+        fprintf(stderr, "Error creating Gobj block\n");
+        return nullptr;
+    }
+    return new (block->data()) Gobj{counts};
 }
 
 void MemMan::createRequestResult() {

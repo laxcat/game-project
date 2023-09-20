@@ -50,7 +50,16 @@ void RenderSystem::init() {
         255,255,255,255,
         255,255,255,255
     };
-    whiteTexture.createImmutable(2, 2, 4, data);
+    whiteTexture = bgfx::createTexture2D(
+        (uint16_t)2,
+        (uint16_t)2,
+        false,
+        1,
+        bgfx::TextureFormat::Enum::RGBA8,
+        BGFX_TEXTURE_NONE|BGFX_SAMPLER_NONE,
+        bgfx::makeRef(data, 16)
+    );
+
 }
 
 void RenderSystem::draw() {
@@ -148,7 +157,7 @@ uint16_t RenderSystem::drawMesh(Gobj::Mesh const & mesh, glm::mat4 const & trans
             bgfx::setTexture(0, samplers.color, bgfx::TextureHandle{prim.material->baseColorTexture->renderHandle});
         }
         else {
-            bgfx::setTexture(0, samplers.color, whiteTexture.handle);
+            bgfx::setTexture(0, samplers.color, whiteTexture);
         }
         if (prim.material) {
             bgfx::setUniform(materialBaseColor, &prim.material->baseColorFactor);
@@ -198,7 +207,7 @@ void RenderSystem::shutdown() {
     lights.shutdown();
     fog.shutdown();
     colors.shutdown();
-    whiteTexture.destroy();
+    bgfx::destroy(whiteTexture);
 
     bgfx::destroy(materialBaseColor);
     bgfx::destroy(materialPBRValues);
