@@ -58,11 +58,6 @@ private:
     #endif // DEV_INTERFACE
 
     static constexpr glm::mat4 const Identity = glm::mat4{1.f};
-    //     1.f, 0.f, 0.f, 0.f,
-    //     0.f, 1.f, 0.f, 0.f,
-    //     0.f, 0.f, 1.f, 0.f,
-    //     0.f, 0.f, 0.f, 1.f
-    // };
 };
 
     // bool destroy(char const * key);
