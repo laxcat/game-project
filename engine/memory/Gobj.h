@@ -516,9 +516,9 @@ public:
             0.f, 0.f, 0.f, 1.f
         };
         Mesh * mesh = nullptr;
-        glm::quat rotation    = {0.f, 0.f, 0.f, 1.f};
-        glm::vec3 scale       = {1.f, 1.f, 1.f};
-        glm::vec3 translation = {0.f, 0.f, 0.f};
+        glm::quat rotation    {1.f, 0.f, 0.f, 0.f}; // glm::quat constructor takes wxyz!
+        glm::vec3 scale       {1.f, 1.f, 1.f};
+        glm::vec3 translation {0.f, 0.f, 0.f};
         float * weights = nullptr;
         int nWeights; // must match mesh weights
         char const * name = nullptr;

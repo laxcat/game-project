@@ -115,12 +115,15 @@ void RenderSystem::draw() {
 }
 
 void RenderSystem::drawNode(Gobj::Node * node, glm::mat4 const & parentTransform) {
+    // calc global transform
+    glm::mat4 global = parentTransform * node->matrix;
     // draw self if present
     if (node->mesh) {
-        drawMesh(*node->mesh, parentTransform * node->matrix);
+        drawMesh(*node->mesh, global);
     }
+    // draw children
     for (uint16_t nodeIndex = 0; nodeIndex < node->nChildren; ++nodeIndex) {
-        drawNode(node->children[nodeIndex], parentTransform * node->matrix);
+        drawNode(node->children[nodeIndex], global);
     }
 }
 
