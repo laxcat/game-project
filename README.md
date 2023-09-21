@@ -23,6 +23,10 @@ Basic template for a game project.
 		<!-- * Edit material base colors -->
 * Mouse drag and scroll for orbit and zoom camera control
 * Keyboard shortcuts to enable debug overlays and animations (see below)
+* [BGFXCompileShaders.cmake]
+	* Automatically detects shader changes
+	* Optionally prepares shaders for embedding into binary
+* Custom CMake setup to download dependencies (uses [FetchContent])
 
 #### Keyboard Shortcuts
 |Key|Function|
@@ -61,6 +65,9 @@ make
 |[OpenGL]|Khronos Group|None|
 |[RapidJSON]|Milo Yip|BSD||
 |[stb]|Sean Barrett|MIT|stb_image.h|
+
+[FetchContent]: <https://cmake.org/cmake/help/latest/module/FetchContent.html>
+[BGFXCompileShaders.cmake]: <cmake/BGFXCompileShaders.cmake>
 
 [BGFX]: <https://github.com/bkaradzic/bgfx>
 [BGFX flavor of GLSL]: <https://bkaradzic.github.io/bgfx/tools.html#shader-compiler-shaderc>
