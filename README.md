@@ -6,13 +6,13 @@ Basic template for a game project.
 
 ### General Features:
 
+* Custom memory manager
+* Custom GLTF loading (text and binary)
 * Custom renderer using BGFX
 	* Directional lights
 	* Point lights
 	* Distance fog
 	* Psudo-physically-based rendering. (Blinn-Phong + simple adjustments based on metallicism/roughness)
-* Custom memory manager
-* Custom GLTF loading (text and binary)
 * Dear ImGui interface
 	* Control render settings like MSAA and vsync
 	<!-- * Control directional and point lights -->
