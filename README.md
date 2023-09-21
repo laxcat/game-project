@@ -37,6 +37,20 @@ Basic template for a game project.
 |3|Show bgfx debgug text output debug overlay|
 |4|Show wireframes|
 
+## Supported Platforms
+
+### Tested On:
+
+* macOS (MBP M1 Max)
+
+### Future Platforms:
+
+* WebGL/WebGPU (emscripten)
+* Windows
+* Linux
+* iOS/iPadOS/tvOS
+* Android
+
 ## Build Instructions
 
 Setting `DEV_INTERFACE` to 0 (default) will cull the libraries only used for the developer interface.
