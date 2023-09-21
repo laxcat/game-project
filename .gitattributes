@@ -1,3 +1,4 @@
 *.sc linguist-language=GLSL
 *.sh linguist-language=GLSL
 *.bin.geninc linguist-vendored=false
+*.bin.h linguist-vendored=false
