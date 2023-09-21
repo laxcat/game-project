@@ -1,5 +1,5 @@
 #
-# Loops through subdirectories and looks for BGFX shaders and compiles them.
+# Compiles BGFX shaders as part of build process
 # 
 # Output:
 # BGFXShader_target
