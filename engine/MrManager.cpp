@@ -38,11 +38,11 @@ int MrManager::init(EngineSetup const & setup) {
 
     createWorker([this]{
         // printl("fart");
-        Gobj * g = memMan.createGobj("../../../gltf_assets/CesiumMilkTruck.glb");
+        // Gobj * g = memMan.createGobj("../../../gltf_assets/CesiumMilkTruck.glb");
         // Gobj * g = memMan.createGobj("../../../gltf_assets/Cameras.gltf");
         // Gobj * g = memMan.createGobj("../../../gltf_assets/CesiumMilkTruck.glb");
         // Gobj * g = memMan.createGobj("../../../gltf_assets/CesiumMilkTruck/CesiumMilkTruck.gltf");
-        // Gobj * g = memMan.createGobj("../../../gltf_assets/LS500.glb");
+        Gobj * g = memMan.createGobj("../../../gltf_assets/LS500.glb");
         // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoomBox/glTF-Binary/BoomBox.glb");
         // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/Box/glTF-Binary/Box.glb");
         // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoxInterleaved/glTF-Binary/BoxInterleaved.glb");
