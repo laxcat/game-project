@@ -6,22 +6,21 @@ Basic template for a game project.
 
 ### General Features:
 
-* Custom BGFX renderer
+* Custom renderer using BGFX
 	* Directional lights
 	* Point lights
 	* Distance fog
 	* Psudo-physically-based rendering. (Blinn-Phong + simple adjustments based on metallicism/roughness)
-* GLTF loading (text and binary)
+* Custom memory manager
+* Custom GLTF loading (text and binary)
 * Dear ImGui interface
 	* Control render settings like MSAA and vsync
-	* Control directional and point lights
+	<!-- * Control directional and point lights -->
 	* Control orbiting camera angle/target/fov
-	* Visual widget for origin/axis visualization
-	* GLTF loading, hot-swappint
-		* Draw multiple instances
-		* Edit material base colors
-	* Adjust distance fog
-	* Adjust color of background
+	<!-- * Visual widget for origin/axis visualization -->
+	* GLTF loading, hot-swapping
+		<!-- * Draw multiple instances -->
+		<!-- * Edit material base colors -->
 * Mouse drag and scroll for orbit and zoom camera control
 * Keyboard shortcuts to enable debug overlays and animations (see below)
 
@@ -51,27 +50,25 @@ make
 
 ### Third Party
 
-|Library|Author|License Type|Notes|
+|Library|Author/Owner|License Type|Notes|
 |---|---|---|---|
-|[OpenGL]|Khronos Group|None|
+|[BGFX]|Branimir Karadzic|BSD 2-Clause "Simplified" License|Uses [BGFX flavor of GLSL] for shaders|
 |[CMake]|Kitware|3-Clause BSD||
-|[BGFX]|Branimir Karadzic|BSD 2-Clause "Simplified" License||
+|[Dear_ImGui]|Omar Cornut|MIT|Desktop only|
 |[GLFW]|Camilla Löwy|Zlib/libpng|Desktop only|
 |[GLM]|g_truc|The Happy Bunny (Modified MIT)||
-|[stb_image]|Sean Barrett|MIT||
-|[tinygltf]|Syoyo Fujita|MIT||
-|[Dear_ImGui]|Omar Cornut|MIT|Desktop only|
 |[NativeFileDialog]|Michael Labbe|zlib|Desktop only|
+|[OpenGL]|Khronos Group|None|
+|[RapidJSON]|Milo Yip|BSD||
+|[stb]|Sean Barrett|MIT|stb_image.h|
 
-[CMake]: <https://cmake.org/>
-[GLFW]: <https://www.glfw.org/>
-[OpenGL]: <https://www.opengl.org/>
-[OpenGL ES]: <https://www.khronos.org/opengles/>
-[stb_image]: <https://github.com/nothings/stb/blob/master/stb_image.h>
-[GLM]: <https://github.com/g-truc/glm>
 [BGFX]: <https://github.com/bkaradzic/bgfx>
-[tinygltf]: <https://github.com/syoyo/tinygltf>
-[Dear_ImGui]: <https://github.com/ocornut/imgui>
-[NativeFileDialog]: <https://github.com/mlabbe/nativefiledialog>
-[OpenGL context]: <https://www.khronos.org/opengl/wiki/OpenGL_Context>
 [BGFX flavor of GLSL]: <https://bkaradzic.github.io/bgfx/tools.html#shader-compiler-shaderc>
+[CMake]: <https://cmake.org/>
+[Dear_ImGui]: <https://github.com/ocornut/imgui>
+[GLFW]: <https://www.glfw.org/>
+[GLM]: <https://github.com/g-truc/glm>
+[NativeFileDialog]: <https://github.com/mlabbe/nativefiledialog>
+[OpenGL]: <https://www.opengl.org/>
+[RapidJSON]: <https://github.com/Tencent/rapidjson>
+[stb]: <https://github.com/nothings/stb>
