@@ -11,6 +11,7 @@ public:
 // INTERFACE
 public:
     bool isComplete() const;
+    void * group() const;
     void join();
 
 // PRIVATE TYPES
@@ -24,11 +25,12 @@ private:
 // INIT
 private:
     friend class MemMan;
-    Worker(Fn const & task);
+    Worker(Fn const & task, void * group = nullptr);
 
 // STORAGE
 private:
     Fn _task = nullptr;
+    void * _group = nullptr;
     std::thread * _thread;
     Status _status = STATUS_INACTIVE;
     mutable std::mutex _mutex;
@@ -36,4 +38,11 @@ private:
 // INTERNALS
 private:
     void setStatus(Status status);
+};
+
+class WorkerGroup {
+public:
+    void * id = nullptr;
+    int count = 0;
+    Worker::Fn onComplete = nullptr;
 };

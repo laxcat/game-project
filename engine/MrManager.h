@@ -45,6 +45,7 @@ public:
     RenderSystem rendSys;
 
     Array<Worker *> * workers = nullptr;
+    Array<WorkerGroup> * workerGroups = nullptr;
 
     bool mouseIsDown = false;
     glm::vec2 mousePos;
@@ -76,7 +77,8 @@ public:
 // -------------------------------------------------------------------------- //
 // WORKERS
 // -------------------------------------------------------------------------- //
-    void createWorker(Worker::Fn const & task);
+    Worker * createWorker(Worker::Fn const & task, void * group = nullptr);
+    void setWorkerGroupOnComplete(void * group, Worker::Fn const & onComplete);
     void joinWorkers();
 
 // -------------------------------------------------------------------------- //

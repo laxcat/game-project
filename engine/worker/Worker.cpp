@@ -1,8 +1,9 @@
 #include "Worker.h"
 #include "../MrManager.h"
 
-Worker::Worker(Fn const & task) :
-    _task(task)
+Worker::Worker(Fn const & task, void * group) :
+    _task(task),
+    _group(group)
 {
     _thread = mm.memMan.create<std::thread>([this]{
         setStatus(STATUS_WORKING);
@@ -16,6 +17,10 @@ Worker::Worker(Fn const & task) :
 bool Worker::isComplete() const {
     guard_t guard{_mutex};
     return (_status == STATUS_COMPLETE);
+}
+
+void * Worker::group() const {
+    return _group;
 }
 
 void Worker::join() {

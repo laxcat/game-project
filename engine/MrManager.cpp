@@ -17,6 +17,7 @@ int MrManager::init(EngineSetup const & setup) {
     editor.init();
 
     workers = memMan.createArray<Worker *>(64);
+    workerGroups = memMan.createArray<WorkerGroup>(16);
 
     #if DEV_INTERFACE
     devOverlay.init(windowSize);
@@ -65,6 +66,8 @@ void MrManager::shutdown() {
     if (setup.preShutdown) setup.preShutdown();
     rendSys.shutdown();
     camera.shutdown();
+    memMan.request({.ptr=workers, .size=0});
+    memMan.request({.ptr=workerGroups, .size=0});
     if (setup.postShutdown) setup.postShutdown();
 }
 
@@ -112,9 +115,43 @@ void MrManager::updateSize(size2 windowSize) {
 // -------------------------------------------------------------------------- //
 // WORKERS
 // -------------------------------------------------------------------------- //
-    void MrManager::createWorker(Worker::Fn const & task) {
-        Worker * w = memMan.create<Worker>(task);
+    Worker * MrManager::createWorker(Worker::Fn const & task, void * group) {
+        Worker * w = memMan.create<Worker>(task, group);
         workers->append(w);
+
+        if (group) {
+            size_t size = workerGroups->size();
+            size_t i = 0;
+            for (; i < size; ++i) {
+                if (workerGroups->data()[i].id == group) break;
+            }
+            // not found, create
+            if (i == size) {
+                workerGroups->append({group, 1, nullptr});
+            }
+            // found, increment
+            else {
+                ++workerGroups->data()[i].count;
+            }
+        }
+
+        return w;
+    }
+
+    void MrManager::setWorkerGroupOnComplete(void * group, Worker::Fn const & onComplete) {
+        size_t size = workerGroups->size();
+        size_t i = 0;
+        for (; i < size; ++i) {
+            if (workerGroups->data()[i].id == group) break;
+        }
+        // not found, create
+        if (i == size) {
+            workerGroups->append({group, 0, onComplete});
+        }
+        // found, replace
+        else {
+            workerGroups->data()[i].onComplete = onComplete;
+        }
     }
 
     void MrManager::joinWorkers() {
@@ -123,6 +160,26 @@ void MrManager::updateSize(size2 windowSize) {
             Worker * w = workers->data()[i];
             if (w->isComplete()) {
                 w->join();
+
+                if (w->group()) {
+                    size_t size = workerGroups->size();
+                    size_t i = 0;
+                    for (; i < size; ++i) {
+                        if (workerGroups->data()[i].id == w->group()) break;
+                    }
+                    // found, decrement
+                    if (i != size) {
+                        WorkerGroup * wg = workerGroups->data() + i;
+                        --wg->count;
+                        if (wg->count == 0) {
+                            if (wg->onComplete) {
+                                wg->onComplete();
+                            }
+                            workerGroups->remove(i);
+                        }
+                    }
+                }
+
                 memMan.request({.ptr=w, .size=0});
                 workers->remove(i);
                 --i;

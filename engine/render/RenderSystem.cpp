@@ -345,23 +345,30 @@ void RenderSystem::addHandles(Gobj * gobj) {
 
     // setup textures
     for (uint16_t texIndex = 0; texIndex < gobj->counts.textures; ++texIndex) {
-        Gobj::Texture & tex = gobj->textures[texIndex];
-        if (tex.renderHandle != UINT16_MAX) {
+        Gobj::Texture * tex = gobj->textures + texIndex;
+        if (tex->renderHandle != UINT16_MAX) {
             continue;
         }
-        bimg::ImageContainer * imgc = decodeImage(tex.source);
-        tex.renderHandle = bgfx::createTexture2D(
-            (uint16_t)imgc->m_width,
-            (uint16_t)imgc->m_height,
-            false,
-            1,
-            (bgfx::TextureFormat::Enum)imgc->m_format,
-            BGFX_TEXTURE_NONE|BGFX_SAMPLER_NONE,
-            bgfx::makeRef(imgc->m_data, imgc->m_size)
-        ).idx;
+        mm.createWorker([this, tex]{
+            bimg::ImageContainer * imgc = decodeImage(tex->source);
+            tex->renderHandle = bgfx::createTexture2D(
+                (uint16_t)imgc->m_width,
+                (uint16_t)imgc->m_height,
+                false,
+                1,
+                (bgfx::TextureFormat::Enum)imgc->m_format,
+                BGFX_TEXTURE_NONE|BGFX_SAMPLER_NONE,
+                bgfx::makeRef(imgc->m_data, imgc->m_size)
+            ).idx;
+        },
+        gobj // group
+        );
     }
 
-    gobj->setStatus(Gobj::STATUS_READY_TO_DRAW);
+    // when all in group are done
+    mm.setWorkerGroupOnComplete(gobj, [gobj]{
+        gobj->setStatus(Gobj::STATUS_READY_TO_DRAW);
+    });
 }
 
 bimg::ImageContainer * RenderSystem::decodeImage(Gobj::Image * img) {
