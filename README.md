@@ -1,15 +1,77 @@
 # Game Project
 
-Bare bones framework for a general PC game, using some popular open source tools. Experimentation zone for finding and implementing more tools. See [SetupLib.cmake](cmake/SetupLib.cmake) for supported libraries.
+## Overview
+
+Basic template for a game project.
+
+### General Features:
+
+* Custom BGFX renderer
+	* Directional lights
+	* Point lights
+	* Distance fog
+	* Psudo-physically-based rendering. (Blinn-Phong + simple adjustments based on metallicism/roughness)
+* GLTF loading (text and binary)
+* Dear ImGui interface
+	* Control render settings like MSAA and vsync
+	* Control directional and point lights
+	* Control orbiting camera angle/target/fov
+	* Visual widget for origin/axis visualization
+	* GLTF loading, hot-swappint
+		* Draw multiple instances
+		* Edit material base colors
+	* Adjust distance fog
+	* Adjust color of background
+* Mouse drag and scroll for orbit and zoom camera control
+* Keyboard shortcuts to enable debug overlays and animations (see below)
+
+#### Keyboard Shortcuts
+|Key|Function|
+|---|---|
+|0|Hide debug overlay|
+|1|Show dear imgui debug overlay|
+|2|Show bgfx stats debug overlay|
+|3|Show bgfx debgug text output debug overlay|
+|4|Show wireframes|
 
 ## Build Instructions
+
+Setting `DEV_INTERFACE` to 0 (default) will cull the libraries only used for the developer interface.
 
 ```bash
 mkdir build
 cd build
-cmake ..
+cmake .. -DDEV_INTERFACE=1
 make
-./GameProject
+./IC_Dev_Desktop
 
 ```
-Currently: builds for macOS, shaders compile for Metal, tested on Mac mini (M1, 2020), building as x86_64. Other platforms should be trivial to add when they become a priority.
+
+## Additional Info
+
+### Third Party
+
+|Library|Author|License Type|Notes|
+|---|---|---|---|
+|[OpenGL]|Khronos Group|None|
+|[CMake]|Kitware|3-Clause BSD||
+|[BGFX]|Branimir Karadzic|BSD 2-Clause "Simplified" License||
+|[GLFW]|Camilla Löwy|Zlib/libpng|Desktop only|
+|[GLM]|g_truc|The Happy Bunny (Modified MIT)||
+|[stb_image]|Sean Barrett|MIT||
+|[tinygltf]|Syoyo Fujita|MIT||
+|[Dear_ImGui]|Omar Cornut|MIT|Desktop only|
+|[NativeFileDialog]|Michael Labbe|zlib|Desktop only|
+
+[CMake]: <https://cmake.org/>
+[GLFW]: <https://www.glfw.org/>
+[OpenGL]: <https://www.opengl.org/>
+[OpenGL ES]: <https://www.khronos.org/opengles/>
+[stb_image]: <https://github.com/nothings/stb/blob/master/stb_image.h>
+[GLM]: <https://github.com/g-truc/glm>
+[BGFX]: <https://github.com/bkaradzic/bgfx>
+[tinygltf]: <https://github.com/syoyo/tinygltf>
+[Dear_ImGui]: <https://github.com/ocornut/imgui>
+[NativeFileDialog]: <https://github.com/mlabbe/nativefiledialog>
+[OpenGL context]: <https://www.khronos.org/opengl/wiki/OpenGL_Context>
+[BGFX flavor of GLSL]: <https://bkaradzic.github.io/bgfx/tools.html#shader-compiler-shaderc>

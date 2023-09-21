@@ -13,10 +13,10 @@ if (NOT DEFINED SetupLib_FILES_PATH)
 endif()
 
 # OUTPUT
-set(SetupLib_libs "${SetupLib_libs}") # lib names get appended to this list
-set(SetupLib_sources "${SetupLib_sources}") # compile sources get appended to this list
-set(SetupLib_flag "${SetupLib_flag}") # additional compile flags get appended to this list
-set(SetupLib_include_dirs "${SetupLib_include_dirs}") # include_directories entries get appended to this list
+set(SetupLib_libs "${SetupLib_libs}") # append lib names to this list
+set(SetupLib_sources "${SetupLib_sources}") # append compile sources to this list
+set(SetupLib_flag "${SetupLib_flag}") # append additional compile flags to this list
+set(SetupLib_include_dirs "${SetupLib_include_dirs}") # append include_directories entries to this list
 
 
 # ---------------------------------------------------------------------------- #
@@ -56,7 +56,7 @@ macro(SetupLib_bgfx)
     FetchContent_Declare(
         bgfx_content
         GIT_REPOSITORY https://github.com/bkaradzic/bgfx.cmake
-        GIT_TAG        99b9c1e852462bf3b50ab0c698797180db8544e9 # arbitrary, captured March2022, https://github.com/bkaradzic/bgfx.cmake/releases/tag/v1.115.8087-99b9c1e
+        GIT_TAG        12b75cc0ad0078a700d4854db16e119ef4706347 # arbitrary, captured Aug2022, https://github.com/bkaradzic/bgfx.cmake/releases/tag/v1.115.8181-12b75cc
     )
     add_compile_definitions(BGFX_CONFIG_MULTITHREADED=1)
 
@@ -69,9 +69,11 @@ macro(SetupLib_bgfx)
     set(BX_AMALGAMATED              ON  CACHE BOOL "" FORCE)
     set(BGFX_CONFIG_RENDERER_WEBGPU OFF CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(bgfx_content)
-    include_directories(${BX_DIR}/include)
-    # include_directories(${BIMG_DIR}/include)
+    # include_directories("${BX_DIR}/include")
     list(APPEND SetupLib_include_dirs "${BX_DIR}/include")
+    # list(APPEND SetupLib_include_dirs "${BGFX_DIR}/3rdparty")
+    list(APPEND SetupLib_include_dirs "${BIMG_DIR}/include")
+    list(APPEND SetupLib_include_dirs "${BIMG_DIR}/3rdparty")
     target_compile_options(bgfx PUBLIC 
         -Wno-tautological-compare
         -Wno-deprecated-declarations
@@ -83,6 +85,7 @@ macro(SetupLib_bgfx)
 
     # Force shaderc to always be release, and not to recompile if CMAKE_BUILD_TYPE changes
     set(SetupLib_BGFX_shaderc_PATH "${CMAKE_CURRENT_BINARY_DIR}/shaderc")
+    set(SetupLib_BGFX_shaderc_PATH "${SetupLib_BGFX_shaderc_PATH}" PARENT_SCOPE)
     if (NOT EXISTS "${SetupLib_BGFX_shaderc_PATH}")
         set(TEMP_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
         unset(CMAKE_BUILD_TYPE)
@@ -129,91 +132,34 @@ endmacro()
 
 
 # ---------------------------------------------------------------------------- #
-# ENTT
-# ---------------------------------------------------------------------------- #
-macro(SetupLib_entt)
-    message(STATUS "SETUP ENTT")
-    FetchContent_Declare(
-        entt_content
-        GIT_REPOSITORY https://github.com/skypjack/entt
-        GIT_TAG        dd6863f71da1b360ec09c25912617a3423f08149 # arbitrary, captured Oct.2021, https://github.com/skypjack/entt/releases/tag/v3.8.1
-    )
-    FetchContent_MakeAvailable(entt_content)
-    include_directories(${EnTT_SOURCE_DIR}/src)
-    list(APPEND SetupLib_libs EnTT)
-endmacro()
-
-
-# ---------------------------------------------------------------------------- #
-# CEREAL
-# ---------------------------------------------------------------------------- #
-macro(SetupLib_cereal)
-    # Note: header only; nothing to "build"
-    message(STATUS "SETUP CEREAL")
-    FetchContent_Declare(
-        cereal_content
-        GIT_REPOSITORY https://github.com/USCiLab/cereal/
-        GIT_TAG        02eace19a99ce3cd564ca4e379753d69af08c2c8 # arbitrary, captured Oct.2021, https://github.com/USCiLab/cereal/releases/tag/v1.3.0
-        SOURCE_SUBDIR  do-nothing # avoid CMakeLists.txt in root
-    )
-    FetchContent_MakeAvailable(cereal_content)
-    include_directories(${cereal_content_SOURCE_DIR}/include)
-endmacro()
-
-
-# ---------------------------------------------------------------------------- #
 # IMGUI
 # ---------------------------------------------------------------------------- #
-# TODO configure for GLFW (or other windowing apis) and BGFX (or other renderers). assuming both GLFW and BGFX for now.
+# TODO: configure other renderers. assuming BGFX for now.
 macro(SetupLib_imgui)
     message(STATUS "SETUP IMGUI")
     FetchContent_Declare(
         imgui_content
         GIT_REPOSITORY https://github.com/ocornut/imgui
-        GIT_TAG        c71a50deb5ddf1ea386b91e60fa2e4a26d080074 # 1.87, captured Feb.2022, https://github.com/ocornut/imgui/releases/tag/v1.87
+        GIT_TAG        1ebb91382757777382b3629ced2a573996e46453 # 1.89.5, captured May.2023, https://github.com/ocornut/imgui/releases/tag/v1.89.5
     )
     FetchContent_MakeAvailable(imgui_content)
     include_directories(${imgui_content_SOURCE_DIR})
     list(APPEND SetupLib_include_dirs "${imgui_content_SOURCE_DIR}")
     list(APPEND SetupLib_sources
-        ${imgui_content_SOURCE_DIR}/imgui.cpp
-        ${imgui_content_SOURCE_DIR}/imgui_draw.cpp
-        ${imgui_content_SOURCE_DIR}/imgui_tables.cpp
-        ${imgui_content_SOURCE_DIR}/imgui_widgets.cpp
-        # ${imgui_content_SOURCE_DIR}/imgui_demo.cpp
-        ${imgui_content_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+        "${imgui_content_SOURCE_DIR}/imgui.cpp"
+        "${imgui_content_SOURCE_DIR}/imgui_draw.cpp"
+        "${imgui_content_SOURCE_DIR}/imgui_tables.cpp"
+        "${imgui_content_SOURCE_DIR}/imgui_widgets.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/common/imgui_bgfx_glfw/imgui_bgfx_glfw.cpp"
     )
-
-    # BGFX + IMGUI
-    # Taken from https://github.com/pr0g/sdl-bgfx-imgui-starter
-    # (See also this gist: https://gist.github.com/pr0g/aff79b71bf9804ddb03f39ca7c0c3bbb)
-    # Content from this repo is pretty old and static, and we don't want SDL 
-    # support. Rather than pulling that repo, imgui_impl_bgfx files are 
-    # expected to be coppied directly to this project. Required shaders are
-    # included directly from BGFX example code.
-    message(STATUS "SETUP BGFX+IMGUI")
-    if(NOT DEFINED ${bgfx_content_SOURCE_DIR})
-        # take educated guess if imgui_content_SOURCE_DIR missing
-        set(bgfx_content_SOURCE_DIR "${imgui_content_SOURCE_DIR}/../bgfx_content-src")
-    endif()
-    include_directories("${bgfx_content_SOURCE_DIR}/bgfx/examples/common/imgui")
-    include_directories("${SetupLib_FILES_PATH}/bgfx_imgui")
-    list(APPEND SetupLib_include_dirs "${bgfx_content_SOURCE_DIR}/bgfx/examples/common/imgui")
-    list(APPEND SetupLib_include_dirs "${SetupLib_FILES_PATH}/bgfx_imgui")
-    list(APPEND SetupLib_sources "${SetupLib_FILES_PATH}/bgfx_imgui/imgui_impl_bgfx.cpp")
-
-    # OLD FETCH CONTENT WAY:
-    # FetchContent_Declare(
-    #     bgfx_imgui_content
-    #     GIT_REPOSITORY https://github.com/pr0g/sdl-bgfx-imgui-starter
-    #     GIT_TAG        1b7b8c917e3d9fbe7028766c960ab123eccaeb44 # arbitrary, captured Oct.2021, https://github.com/pr0g/sdl-bgfx-imgui-starter/commit/1b7b8c917e3d9fbe7028766c960ab123eccaeb44
-    #     SOURCE_SUBDIR  bgfx-imgui # avoid CMakeLists.txt in root # THIS DIDN'T WORK IN LINUX. CMAKE CONFIG WAS ASKING FOR SDL FILES!
-    # )
-    # FetchContent_MakeAvailable(bgfx_imgui_content)
-    # include_directories(${bgfx_imgui_content_SOURCE_DIR})
-    # list(APPEND SetupLib_sources
-    #     ${bgfx_imgui_content_SOURCE_DIR}/bgfx-imgui/imgui_impl_bgfx.cpp
-    # )
+    FetchContent_Declare(
+        imgui_memory_editor_content
+        GIT_REPOSITORY https://github.com/ocornut/imgui_club/
+        GIT_TAG        d4cd9896e15a03e92702a578586c3f91bbde01e8 # captured Feb.2023
+    )
+    FetchContent_MakeAvailable(imgui_memory_editor_content)
+    include_directories(${imgui_memory_editor_content_SOURCE_DIR})
+    list(APPEND SetupLib_include_dirs "${imgui_memory_editor_content_SOURCE_DIR}")
 endmacro()
 
 
@@ -262,17 +208,40 @@ endmacro()
 
 
 # ---------------------------------------------------------------------------- #
-# MAGIC ENUM
+# RAPID JSON
 # ---------------------------------------------------------------------------- #
-macro(SetupLib_magicenum)
-    message(STATUS "SETUP MAGIC ENUM")
+macro(SetupLib_rapidjson)
+    message(STATUS "SETUP RAPID JSON")
     FetchContent_Declare(
-        magicenum_content
-        GIT_REPOSITORY https://github.com/Neargye/magic_enum
-        GIT_TAG        3d1f6a5a2a3fbcba077e00ad0ccc2dd9fefc2ca7 # arbitrary, captured Feb.2022, https://github.com/Neargye/magic_enum/releases/tag/v0.7.3
+        rapidjason_content
+        GIT_REPOSITORY https://github.com/Tencent/rapidjson
+        GIT_TAG        f54b0e47a08782a6131cc3d60f94d038fa6e0a51 # arbitrary, captured Aug.2022, https://github.com/Tencent/rapidjson/releases/tag/v1.1.0
     )
-    FetchContent_MakeAvailable(magicenum_content)
-    include_directories(${magicenum_content_SOURCE_DIR}/include)
+    set(RAPIDJSON_BUILD_DOC                 OFF CACHE BOOL "" FORCE)
+    set(RAPIDJSON_BUILD_EXAMPLES            OFF CACHE BOOL "" FORCE)
+    set(RAPIDJSON_BUILD_TESTS               OFF CACHE BOOL "" FORCE)
+    set(RAPIDJSON_BUILD_THIRDPARTY_GTEST    OFF CACHE BOOL "" FORCE)
+    set(RAPIDJSON_BUILD_CXX11               ON  CACHE BOOL "" FORCE)
+    set(RAPIDJSON_BUILD_CXX17               ON  CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(rapidjason_content)
+    include_directories(${rapidjason_content_SOURCE_DIR}/include)
+    list(APPEND SetupLib_include_dirs "${rapidjason_content_SOURCE_DIR}/include")
+endmacro()
+
+
+# ---------------------------------------------------------------------------- #
+# STB
+# ---------------------------------------------------------------------------- #
+macro(SetupLib_stb)
+    message(STATUS "SETUP STB")
+    FetchContent_Declare(
+        stb_content
+        GIT_REPOSITORY https://github.com/nothings/stb
+        GIT_TAG        5736b15f7ea0ffb08dd38af21067c314d6a3aae9 # arbitrary, captured Sept.2023, https://github.com/nothings/stb/commit/5736b15f7ea0ffb08dd38af21067c314d6a3aae9
+    )
+    FetchContent_MakeAvailable(stb_content)
+    include_directories(${stb_content_SOURCE_DIR})
+    list(APPEND SetupLib_include_dirs "${stb_content_SOURCE_DIR}")
 endmacro()
 
 
