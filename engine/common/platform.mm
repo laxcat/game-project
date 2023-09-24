@@ -16,7 +16,9 @@ void * getGLContext() {
         // untested, but something like this.
         return eglGetCurrentContext();
     #elif PLATFORM_MAC
-        return (void *)[NSOpenGLContext currentContext];
+        fprintf(stderr, "OpenGL deprecated in BGFX for Apple platforms.");
+        return 0;
+        // return (void *)[NSOpenGLContext currentContext];
     #endif // PLATFORM_*
     return nullptr;
 }

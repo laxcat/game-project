@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
-cmake ..                                \
--DCMAKE_BUILD_TYPE=Debug                \
--DBX_SILENCE_DEBUG_OUTPUT=1             \
+# ./clearcache
+
+# rm -rf _deps
+
+cmake ..                                            \
+-DCMAKE_BUILD_TYPE=Debug                            \
+-DBX_SILENCE_DEBUG_OUTPUT=1                         \
+-DSetupLib_LOCAL_REPO_DIR=/Users/Shared/Dev/SDKs    \

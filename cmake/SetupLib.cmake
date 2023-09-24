@@ -4,13 +4,11 @@
 
 # NOTES
 # Using specific git hashes speeds up build. (Doesn't have to check remote.)
+# Additionally, SetupLib_LOCAL_REPO_DIR to first look for local version of
+# repos, potentially skipping download altogether.
 
 include(FetchContent)
-
-# CONFIGURE
-if (NOT DEFINED SetupLib_FILES_PATH)
-    set(SetupLib_FILES_PATH "${CMAKE_CURRENT_LIST_DIR}/setuplib")
-endif()
+set(FETCHCONTENT_QUIET off)
 
 # OUTPUT
 set(SetupLib_libs "${SetupLib_libs}") # append lib names to this list
@@ -52,49 +50,82 @@ endmacro()
 # BGFX
 # ---------------------------------------------------------------------------- #
 macro(SetupLib_bgfx)
-    message(STATUS "SETUP BGFX")
-    FetchContent_Declare(
-        bgfx_content
-        GIT_REPOSITORY https://github.com/bkaradzic/bgfx.cmake
-        GIT_TAG        12b75cc0ad0078a700d4854db16e119ef4706347 # arbitrary, captured Aug2022, https://github.com/bkaradzic/bgfx.cmake/releases/tag/v1.115.8181-12b75cc
-    )
-    add_compile_definitions(BGFX_CONFIG_MULTITHREADED=1)
+    message(STATUS "SETUP BGFX (bgfx.cmake)")
 
-    set(BGFX_BUILD_TOOLS            OFF CACHE BOOL "" FORCE)
-    set(BGFX_BUILD_EXAMPLES         OFF CACHE BOOL "" FORCE)
-    set(BGFX_INSTALL                OFF CACHE BOOL "" FORCE)
-    set(BGFX_INSTALL_EXAMPLES       OFF CACHE BOOL "" FORCE)
-    set(BGFX_CUSTOM_TARGETS         OFF CACHE BOOL "" FORCE)
-    set(BGFX_AMALGAMATED            ON  CACHE BOOL "" FORCE)
-    set(BX_AMALGAMATED              ON  CACHE BOOL "" FORCE)
-    set(BGFX_CONFIG_RENDERER_WEBGPU OFF CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(bgfx_content)
-    # include_directories("${BX_DIR}/include")
-    list(APPEND SetupLib_include_dirs "${BX_DIR}/include")
-    # list(APPEND SetupLib_include_dirs "${BGFX_DIR}/3rdparty")
-    list(APPEND SetupLib_include_dirs "${BIMG_DIR}/include")
-    list(APPEND SetupLib_include_dirs "${BIMG_DIR}/3rdparty")
-    target_compile_options(bgfx PUBLIC 
-        -Wno-tautological-compare
-        -Wno-deprecated-declarations
-    )
+    set(BX_CONFIG_DEBUG ON CACHE BOOL "" FORCE)
+
+    set(BGFX_CMAKE_DIR "${SetupLib_LOCAL_REPO_DIR}/bgfx.cmake")
+    if (EXISTS "${BGFX_CMAKE_DIR}")
+        message(STATUS "Using local BGFX ${BGFX_CMAKE_DIR}")
+
+        set(BGFX_DIR "${SetupLib_LOCAL_REPO_DIR}/bgfx")
+        set(BX_DIR   "${SetupLib_LOCAL_REPO_DIR}/bx")
+        set(BIMG_DIR "${SetupLib_LOCAL_REPO_DIR}/bimg")
+
+        add_subdirectory("${BGFX_CMAKE_DIR}" "cmake-build")
+
+    else()
+        set(BGFX_CMAKE_DIR "https://github.com/bkaradzic/bgfx.cmake")
+        message(STATUS "Using remote BGFX ${BGFX_CMAKE_DIR}")
+        FetchContent_Declare(
+            bgfx_content
+            GIT_REPOSITORY "${BGFX_CMAKE_DIR}"
+            GIT_TAG        6a8aba37fff38dee714b81f27e542c12522917b7 # arbitrary, captured Sept2023, https://github.com/bkaradzic/bgfx.cmake/releases/tag/v1.122.8572-455
+        )
+        FetchContent_MakeAvailable(bgfx_content)
+    endif()
+
+    include_directories("${BGFX_DIR}/include")
+    include_directories("${BX_DIR}/include")
+    include_directories("${BIMG_DIR}/include")
+    # include_directories("${BGFX_DIR}/3rdparty")
+    # include_directories("${BIMG_DIR}/3rdparty")
+    list(APPEND SetupLib_libs bgfx bimg_decode)
+
     if (BX_SILENCE_DEBUG_OUTPUT)
         target_compile_definitions(bx PUBLIC BX_SILENCE_DEBUG_OUTPUT=1)
     endif()
-    list(APPEND SetupLib_libs bgfx)
 
-    # Force shaderc to always be release, and not to recompile if CMAKE_BUILD_TYPE changes
-    set(SetupLib_BGFX_shaderc_PATH "${CMAKE_CURRENT_BINARY_DIR}/shaderc")
-    set(SetupLib_BGFX_shaderc_PATH "${SetupLib_BGFX_shaderc_PATH}" PARENT_SCOPE)
-    if (NOT EXISTS "${SetupLib_BGFX_shaderc_PATH}")
-        set(TEMP_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
-        unset(CMAKE_BUILD_TYPE)
-        unset(CMAKE_BUILD_TYPE CACHE)
-        set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
-        include("${bgfx_content_SOURCE_DIR}/cmake/tools/shaderc.cmake")
-        set(CMAKE_BUILD_TYPE "${TEMP_BUILD_TYPE}" CACHE STRING "" FORCE)
-    endif()
 
+    # if (EXISTS "${SetupLib_bgfx_repo}")
+    #     message(STATUS "Using local BGFX repo ${SetupLib_bgfx_repo}")
+    # else()
+    #     set(SetupLib_bgfx_repo "https://github.com/bkaradzic/bgfx.cmake")
+    #     message(STATUS "Local BGFX repo not found. Using ${SetupLib_bgfx_repo}")
+    # endif()
+    # FetchContent_Declare(
+    #     bgfx_content
+    #     GIT_REPOSITORY "${SetupLib_bgfx_repo}"
+    #     GIT_TAG        6a8aba37fff38dee714b81f27e542c12522917b7 # arbitrary, captured Sept2023, https://github.com/bkaradzic/bgfx.cmake/releases/tag/v1.122.8572-455
+    # )
+    # FetchContent_MakeAvailable(bgfx_content)
+
+
+    # add_compile_definitions(BGFX_CONFIG_MULTITHREADED=1)
+
+    # set(BGFX_BUILD_TOOLS            OFF CACHE BOOL "" FORCE)
+    # set(BGFX_BUILD_TOOLS_SHADER     ON  CACHE BOOL "" FORCE)
+    # set(BGFX_BUILD_EXAMPLES         OFF CACHE BOOL "" FORCE)
+    # set(BGFX_INSTALL                OFF CACHE BOOL "" FORCE)
+    # set(BGFX_INSTALL_EXAMPLES       OFF CACHE BOOL "" FORCE)
+    # set(BGFX_CUSTOM_TARGETS         OFF CACHE BOOL "" FORCE)
+    # set(BGFX_AMALGAMATED            ON  CACHE BOOL "" FORCE)
+    # set(BX_AMALGAMATED              ON  CACHE BOOL "" FORCE)
+    # set(BGFX_CONFIG_RENDERER_WEBGPU OFF CACHE BOOL "" FORCE)
+    # FetchContent_MakeAvailable(bgfx_content)
+    # list(APPEND SetupLib_include_dirs "${BX_DIR}/include")
+    # list(APPEND SetupLib_include_dirs "${BGFX_DIR}/3rdparty")
+    # list(APPEND SetupLib_include_dirs "${BIMG_DIR}/include")
+    # list(APPEND SetupLib_include_dirs "${BIMG_DIR}/3rdparty")
+    # include_directories(SetupLib_include_dirs)
+    # target_compile_options(bgfx PUBLIC
+    #     -Wno-tautological-compare
+    #     -Wno-deprecated-declarations
+    # )
+    # if (BX_SILENCE_DEBUG_OUTPUT)
+    #     target_compile_definitions(bx PUBLIC BX_SILENCE_DEBUG_OUTPUT=1)
+    # endif()
+    # list(APPEND SetupLib_libs bgfx)
 endmacro()
 
 
@@ -196,14 +227,13 @@ macro(SetupLib_nativefiledialog)
     list(APPEND SetupLib_include_dirs "${nativefiledialog_content_SOURCE_DIR}/src/include")
     list(APPEND SetupLib_sources ${nativefiledialog_content_SOURCE_DIR}/src/nfd_common.c)
     if(APPLE)
-        list(APPEND SetupLib_sources ${nativefiledialog_content_SOURCE_DIR}/src/nfd_cocoa.m)
+        list(APPEND SetupLib_sources "${nativefiledialog_content_SOURCE_DIR}/src/nfd_cocoa.m")
     elseif(UNIX AND NOT APPLE)
         find_package(GTK2)
         list(APPEND SetupLib_libs           ${GTK2_LIBRARIES})
         list(APPEND SetupLib_include_dirs   ${GTK2_INCLUDE_DIRS})
         list(APPEND SetupLib_sources        "${nativefiledialog_content_SOURCE_DIR}/src/nfd_gtk.c")
     endif()
-    #TODO: support linux
 endmacro()
 
 

@@ -23,6 +23,7 @@ if(DEV_INTERFACE)
     set(ENABLE_IMGUI 1)
 endif()
 
+set(CMAKE_DEBUG_POSTFIX d)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 project (game_project_engine
@@ -100,25 +101,25 @@ if(DEV_INTERFACE)
 endif()
 
 # SHADERS
-include(BGFXCompileShaders)
-set(BGFXCompileShaders_OuputProfiles "metal")
-if(FORCE_OPENGL)
-    set(BGFXCompileShaders_OuputProfiles "150")
-endif()
-BGFXCompileShaders(
-    embed
-    shader_dirs     "${CMAKE_CURRENT_SOURCE_DIR}/shader/shaders/standard"
-                    "${CMAKE_CURRENT_SOURCE_DIR}/shader/shaders/unlit"
-    profile_list    "${BGFXCompileShaders_OuputProfiles}"
-    target          BGFXShader_engine_target
-)
+# include(BGFXCompileShaders)
+# set(BGFXCompileShaders_OuputProfiles "metal")
+# if(FORCE_OPENGL)
+#     set(BGFXCompileShaders_OuputProfiles "150")
+# endif()
+# BGFXCompileShaders(
+#     embed
+#     shader_dirs     "${CMAKE_CURRENT_SOURCE_DIR}/shader/shaders/standard"
+#                     "${CMAKE_CURRENT_SOURCE_DIR}/shader/shaders/unlit"
+#     profile_list    "${BGFXCompileShaders_OuputProfiles}"
+#     target          BGFXShader_engine_target
+# )
 
 # CONFIGURE MAIN BINARY
 include_directories(${SetupLib_include_dirs})
-set_property(TARGET ${PROJECT_NAME} PROPERTY COMPILE_WARNING_AS_ERROR ON)
+set_property(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" PROPERTY COMPILE_WARNING_AS_ERROR ON)
 set_property(TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY COMPILE_FLAGS ${SetupLib_flags})
 target_link_libraries(${PROJECT_NAME} ${SetupLib_libs})
 target_compile_definitions(${PROJECT_NAME} PUBLIC ENABLE_IMGUI=${ENABLE_IMGUI})
 target_compile_definitions(${PROJECT_NAME} PUBLIC DEV_INTERFACE=${DEV_INTERFACE})
 target_compile_definitions(${PROJECT_NAME} PUBLIC FORCE_OPENGL=${FORCE_OPENGL})
-add_dependencies(${PROJECT_NAME} BGFXShader_engine_target)
+# add_dependencies(${PROJECT_NAME} BGFXShader_engine_target)

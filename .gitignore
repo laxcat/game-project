@@ -1,5 +1,4 @@
 build/*
-build_xcode/*
 !build/clearcache
 !build/cmk
 

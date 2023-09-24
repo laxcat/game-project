@@ -1,7 +1,10 @@
 #include "Editor.h"
 #include "../common/imgui_bgfx_glfw/imgui_bgfx_glfw.h"
 #include "../common/imgui_bgfx_glfw/imgui_utils.h"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #include <imgui_memory_editor/imgui_memory_editor.h>
+#pragma clang diagnostic pop
 #include <nfd.h>
 #include "../MrManager.h"
 #include "../memory/CharKeys.h"
