@@ -26,7 +26,7 @@ Basic template for a game project.
 * Utilizes [bgfx_compile_shader_to_header] for compiling shaders
 	* Automatically detects shader changes
 	* Automatically prepares shaders for embedding into binary
-* Custom CMake setup to download dependencies (uses [FetchContent])
+* Custom CMake setup to download dependencies (uses [FetchContent] or optionally local repos)
 
 #### Keyboard Shortcuts
 |Key|Function|
@@ -58,9 +58,11 @@ Setting `DEV_INTERFACE` to 0 (default) will cull the libraries only used for the
 ```bash
 mkdir build
 cd build
-cmake .. -DDEV_INTERFACE=1
+cmake .. \
+-DDEV_INTERFACE=1 \
+-DSetupLib_LOCAL_REPO_DIR=/Example/Dev/SDKs
 make
-./IC_Dev_Desktop
+./game_project
 
 ```
 
