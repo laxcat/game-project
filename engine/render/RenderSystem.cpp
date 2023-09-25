@@ -432,7 +432,9 @@ void RenderSystem::removeHandles(Gobj * gobj) {
             bgfx::destroy(bgfx::TextureHandle{tex.renderHandle});
         }
         if (tex.source && tex.source->decoded) {
-            mm.memMan.request({.ptr=tex.source->decoded, .size=0});
+            // TODO: research a bit more. this was crashing. not necessary...?
+            // either BGFX handles this or was temporary in the first place
+            // mm.memMan.request({.ptr=tex.source->decoded, .size=0});
         }
     }
 }
