@@ -8,15 +8,15 @@
 #include "../memory/CharKeys.h"
 
 #if FORCE_OPENGL
-    #include "../shader/shaders/standard/vs_standard.150.bin.geninc"
-    #include "../shader/shaders/standard/fs_standard.150.bin.geninc"
-    #include "../shader/shaders/unlit/vs_unlit.150.bin.geninc"
-    #include "../shader/shaders/unlit/fs_unlit.150.bin.geninc"
+    #include "../shader/shaders/standard/vs_standard.sc.glsl.bin.h"
+    #include "../shader/shaders/standard/fs_standard.sc.glsl.bin.h"
+    #include "../shader/shaders/unlit/vs_unlit.sc.glsl.bin.h"
+    #include "../shader/shaders/unlit/fs_unlit.sc.glsl.bin.h"
 #else
-    #include "../shader/shaders/standard/vs_standard.metal.bin.geninc"
-    #include "../shader/shaders/standard/fs_standard.metal.bin.geninc"
-    #include "../shader/shaders/unlit/vs_unlit.metal.bin.geninc"
-    #include "../shader/shaders/unlit/fs_unlit.metal.bin.geninc"
+    #include "../shader/shaders/standard/vs_standard.sc.mtl.bin.h"
+    #include "../shader/shaders/standard/fs_standard.sc.mtl.bin.h"
+    #include "../shader/shaders/unlit/vs_unlit.sc.mtl.bin.h"
+    #include "../shader/shaders/unlit/fs_unlit.sc.mtl.bin.h"
 #endif
 
 static bool constexpr ShowRenderDbg = true;
@@ -32,8 +32,13 @@ void RenderSystem::init() {
     if (!bgfx::init(settings.bgfxInit))
         return;
 
-    standardProgram = CREATE_BGFX_PROGRAM(standard);
-    unlitProgram = CREATE_BGFX_PROGRAM(unlit);
+    #if FORCE_OPENGL
+        standardProgram = CREATE_BGFX_PROGRAM(standard_glsl);
+        unlitProgram = CREATE_BGFX_PROGRAM(unlit_glsl);
+    #else
+        standardProgram = CREATE_BGFX_PROGRAM(standard_mtl);
+        unlitProgram = CREATE_BGFX_PROGRAM(unlit_mtl);
+    #endif
     samplers.init();
     lights.init();
     fog.init();

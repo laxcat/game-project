@@ -3,8 +3,8 @@
 #include "../memory/Gobj.h"
 
 inline bgfx::ProgramHandle createBGFXProgram(
-    unsigned char * vdata, unsigned int vlen,
-    unsigned char * fdata, unsigned int flen
+    uint8_t const * vdata, unsigned int vlen,
+    uint8_t const * fdata, unsigned int flen
 ) {
     bgfx::ShaderHandle vh = bgfx::createShader(bgfx::makeRef(vdata, vlen));
     bgfx::ShaderHandle fh = bgfx::createShader(bgfx::makeRef(fdata, flen));
@@ -13,8 +13,8 @@ inline bgfx::ProgramHandle createBGFXProgram(
 
 // call createBGFXProgram with the usual name pattern
 #define CREATE_BGFX_PROGRAM(_shader_name) createBGFXProgram( \
-    vs_##_shader_name##_bin, vs_##_shader_name##_bin_len, \
-    fs_##_shader_name##_bin, fs_##_shader_name##_bin_len)
+    vs_##_shader_name, sizeof(vs_##_shader_name), \
+    fs_##_shader_name, sizeof(fs_##_shader_name))
 
 inline bgfx::AttribType::Enum bgfxAttribTypeFromAccessorComponentType(Gobj::Accessor::ComponentType componentType) {
     switch (componentType) {

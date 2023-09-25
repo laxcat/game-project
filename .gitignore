@@ -4,3 +4,4 @@ build/*
 
 .DS_Store
 *.geninc
+engine/shader/shaders/*/*.bin.h

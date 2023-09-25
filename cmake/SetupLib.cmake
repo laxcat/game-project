@@ -52,7 +52,15 @@ endmacro()
 macro(SetupLib_bgfx)
     message(STATUS "SETUP BGFX (bgfx.cmake)")
 
-    set(BX_CONFIG_DEBUG ON CACHE BOOL "" FORCE)
+    set(BX_CONFIG_DEBUG             ON  CACHE BOOL "" FORCE)
+    set(BGFX_BUILD_TOOLS            ON  CACHE BOOL "" FORCE)
+    set(BGFX_BUILD_TOOLS_BIN2C      OFF CACHE BOOL "" FORCE)
+    set(BGFX_BUILD_TOOLS_SHADER     ON  CACHE BOOL "" FORCE)
+    set(BGFX_BUILD_TOOLS_GEOMETRY   OFF CACHE BOOL "" FORCE)
+    set(BGFX_BUILD_TOOLS_TEXTURE    OFF CACHE BOOL "" FORCE)
+    set(BGFX_BUILD_EXAMPLES         OFF CACHE BOOL "" FORCE)
+    set(BGFX_INSTALL                OFF CACHE BOOL "" FORCE)
+    set(BGFX_CUSTOM_TARGETS         ON  CACHE BOOL "" FORCE)
 
     set(BGFX_CMAKE_DIR "${SetupLib_LOCAL_REPO_DIR}/bgfx.cmake")
     if (EXISTS "${BGFX_CMAKE_DIR}")
@@ -65,67 +73,30 @@ macro(SetupLib_bgfx)
         add_subdirectory("${BGFX_CMAKE_DIR}" "cmake-build")
 
     else()
-        set(BGFX_CMAKE_DIR "https://github.com/bkaradzic/bgfx.cmake")
-        message(STATUS "Using remote BGFX ${BGFX_CMAKE_DIR}")
-        FetchContent_Declare(
-            bgfx_content
-            GIT_REPOSITORY "${BGFX_CMAKE_DIR}"
-            GIT_TAG        6a8aba37fff38dee714b81f27e542c12522917b7 # arbitrary, captured Sept2023, https://github.com/bkaradzic/bgfx.cmake/releases/tag/v1.122.8572-455
-        )
-        FetchContent_MakeAvailable(bgfx_content)
+        message(FATAL_ERROR "FetchContent not supported yet. Set SetupLib_LOCAL_REPO_DIR to directroy that contains bgfx/bx/bimg repos.")
+        # set(BGFX_CMAKE_DIR "https://github.com/bkaradzic/bgfx.cmake")
+        # message(STATUS "Using remote BGFX ${BGFX_CMAKE_DIR}")
+        # FetchContent_Declare(
+        #     bgfx_content
+        #     GIT_REPOSITORY "${BGFX_CMAKE_DIR}"
+        #     GIT_TAG        6a8aba37fff38dee714b81f27e542c12522917b7 # arbitrary, captured Sept2023, https://github.com/bkaradzic/bgfx.cmake/releases/tag/v1.122.8572-455
+        # )
+        # FetchContent_MakeAvailable(bgfx_content)
     endif()
 
-    include_directories("${BGFX_DIR}/include")
-    include_directories("${BX_DIR}/include")
-    include_directories("${BIMG_DIR}/include")
-    # include_directories("${BGFX_DIR}/3rdparty")
-    # include_directories("${BIMG_DIR}/3rdparty")
-    list(APPEND SetupLib_libs bgfx bimg_decode)
+    list(APPEND SetupLib_include_dirs "${BGFX_DIR}/include")
+    list(APPEND SetupLib_include_dirs "${BX_DIR}/include")
+    list(APPEND SetupLib_include_dirs "${BIMG_DIR}/include")
 
     if (BX_SILENCE_DEBUG_OUTPUT)
         target_compile_definitions(bx PUBLIC BX_SILENCE_DEBUG_OUTPUT=1)
     endif()
 
+    set(SetupLib_shaderc "${CMAKE_CURRENT_BINARY_DIR}/cmake-build/cmake/bgfx/shaderc")
 
-    # if (EXISTS "${SetupLib_bgfx_repo}")
-    #     message(STATUS "Using local BGFX repo ${SetupLib_bgfx_repo}")
-    # else()
-    #     set(SetupLib_bgfx_repo "https://github.com/bkaradzic/bgfx.cmake")
-    #     message(STATUS "Local BGFX repo not found. Using ${SetupLib_bgfx_repo}")
-    # endif()
-    # FetchContent_Declare(
-    #     bgfx_content
-    #     GIT_REPOSITORY "${SetupLib_bgfx_repo}"
-    #     GIT_TAG        6a8aba37fff38dee714b81f27e542c12522917b7 # arbitrary, captured Sept2023, https://github.com/bkaradzic/bgfx.cmake/releases/tag/v1.122.8572-455
-    # )
-    # FetchContent_MakeAvailable(bgfx_content)
+    # add_dependencies(BGFXShader_engine_target tools)
 
-
-    # add_compile_definitions(BGFX_CONFIG_MULTITHREADED=1)
-
-    # set(BGFX_BUILD_TOOLS            OFF CACHE BOOL "" FORCE)
-    # set(BGFX_BUILD_TOOLS_SHADER     ON  CACHE BOOL "" FORCE)
-    # set(BGFX_BUILD_EXAMPLES         OFF CACHE BOOL "" FORCE)
-    # set(BGFX_INSTALL                OFF CACHE BOOL "" FORCE)
-    # set(BGFX_INSTALL_EXAMPLES       OFF CACHE BOOL "" FORCE)
-    # set(BGFX_CUSTOM_TARGETS         OFF CACHE BOOL "" FORCE)
-    # set(BGFX_AMALGAMATED            ON  CACHE BOOL "" FORCE)
-    # set(BX_AMALGAMATED              ON  CACHE BOOL "" FORCE)
-    # set(BGFX_CONFIG_RENDERER_WEBGPU OFF CACHE BOOL "" FORCE)
-    # FetchContent_MakeAvailable(bgfx_content)
-    # list(APPEND SetupLib_include_dirs "${BX_DIR}/include")
-    # list(APPEND SetupLib_include_dirs "${BGFX_DIR}/3rdparty")
-    # list(APPEND SetupLib_include_dirs "${BIMG_DIR}/include")
-    # list(APPEND SetupLib_include_dirs "${BIMG_DIR}/3rdparty")
-    # include_directories(SetupLib_include_dirs)
-    # target_compile_options(bgfx PUBLIC
-    #     -Wno-tautological-compare
-    #     -Wno-deprecated-declarations
-    # )
-    # if (BX_SILENCE_DEBUG_OUTPUT)
-    #     target_compile_definitions(bx PUBLIC BX_SILENCE_DEBUG_OUTPUT=1)
-    # endif()
-    # list(APPEND SetupLib_libs bgfx)
+    list(APPEND SetupLib_libs bgfx bimg_decode)
 endmacro()
 
 

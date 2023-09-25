@@ -39,6 +39,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
 # ---------------------------------------------------------------------------- #
 include(SetupLib)
 
+# add_custom_target(BGFXShader_engine_target)
+
 if(FORCE_OPENGL)
     SetupLib_opengl()
 endif()
@@ -100,25 +102,36 @@ if(DEV_INTERFACE)
     )
 endif()
 
-# SHADERS
-# include(BGFXCompileShaders)
-# set(BGFXCompileShaders_OuputProfiles "metal")
-# if(FORCE_OPENGL)
-#     set(BGFXCompileShaders_OuputProfiles "150")
-# endif()
-# BGFXCompileShaders(
-#     embed
-#     shader_dirs     "${CMAKE_CURRENT_SOURCE_DIR}/shader/shaders/standard"
-#                     "${CMAKE_CURRENT_SOURCE_DIR}/shader/shaders/unlit"
-#     profile_list    "${BGFXCompileShaders_OuputProfiles}"
-#     target          BGFXShader_engine_target
-# )
+include(Utils)
+set(shaders_root "${CMAKE_CURRENT_SOURCE_DIR}/shader/shaders")
+subdirlist(shader_dirs "${shaders_root}")
+message(STATUS "shader_dirs ${shader_dirs}")
+foreach(dir_name ${shader_dirs})
+    bgfx_compile_shader_to_header(
+        TYPE VERTEX
+        SHADERS         ${shaders_root}/${dir_name}/vs_${dir_name}.sc
+        VARYING_DEF     ${shaders_root}/${dir_name}/varying.def.sc
+        OUTPUT_DIR      ${shaders_root}/${dir_name}
+        INCLUDE_DIRS    ${shaders_root}/${dir_name}
+                        ${BGFX_DIR}/src
+    )
+    bgfx_compile_shader_to_header(
+        TYPE FRAGMENT
+        SHADERS         ${shaders_root}/${dir_name}/fs_${dir_name}.sc
+        VARYING_DEF     ${shaders_root}/${dir_name}/varying.def.sc
+        OUTPUT_DIR      ${shaders_root}/${dir_name}
+        INCLUDE_DIRS    ${shaders_root}/${dir_name}
+                        ${BGFX_DIR}/src
+    )
+    target_sources(${PROJECT_NAME} PRIVATE ${shaders_root}/${dir_name}/vs_${dir_name}.sc)
+    target_sources(${PROJECT_NAME} PRIVATE ${shaders_root}/${dir_name}/fs_${dir_name}.sc)
+endforeach()
 
 # CONFIGURE MAIN BINARY
-include_directories(${SetupLib_include_dirs})
 set_property(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" PROPERTY COMPILE_WARNING_AS_ERROR ON)
 set_property(TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY COMPILE_FLAGS ${SetupLib_flags})
 target_link_libraries(${PROJECT_NAME} ${SetupLib_libs})
+target_include_directories(${PROJECT_NAME} PUBLIC ${SetupLib_include_dirs})
 target_compile_definitions(${PROJECT_NAME} PUBLIC ENABLE_IMGUI=${ENABLE_IMGUI})
 target_compile_definitions(${PROJECT_NAME} PUBLIC DEV_INTERFACE=${DEV_INTERFACE})
 target_compile_definitions(${PROJECT_NAME} PUBLIC FORCE_OPENGL=${FORCE_OPENGL})
