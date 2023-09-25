@@ -81,7 +81,7 @@ make
 |[stb]|Sean Barrett|MIT|stb_image.h|
 
 [FetchContent]: <https://cmake.org/cmake/help/latest/module/FetchContent.html>
-[bgfx_compile_shader_to_header] <https://github.com/bkaradzic/bgfx.cmake#bgfx_compile_shader_to_header>
+[bgfx_compile_shader_to_header]: <https://github.com/bkaradzic/bgfx.cmake#bgfx_compile_shader_to_header>
 
 [BGFX]: <https://github.com/bkaradzic/bgfx>
 [BGFX flavor of GLSL]: <https://bkaradzic.github.io/bgfx/tools.html#shader-compiler-shaderc>
