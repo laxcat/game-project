@@ -1248,8 +1248,10 @@ bool GLTFLoader::handleNode(GLTFLoader * l, Gobj * g, char const * str, uint32_t
             // https://stackoverflow.com/a/49416643/560384
             // (but we're not using the constructor here)
             #ifdef GLM_FORCE_QUAT_DATA_WXYZ
+            // printl("SETTING QUAT *WITH* GLM_FORCE_QUAT_DATA_WXYZ");
             node->rotation[(i+1)%4] = Number{str, len};
             #else
+            // printl("SETTING QUAT *WITHOUT* GLM_FORCE_QUAT_DATA_WXYZ");
             node->rotation[i] = Number{str, len};
             #endif
             return true;

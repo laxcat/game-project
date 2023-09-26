@@ -332,8 +332,6 @@ GLTFLoader3::Loader::Loader(byte_t * dst, size_t dstSize, Gobj::Counts const & c
     _dstSize(dstSize),
     counts(counts)
 {
-    // debugBreak();
-    
     gobj = new (head()) Gobj{counts};
     _head += sizeof(Gobj);
 

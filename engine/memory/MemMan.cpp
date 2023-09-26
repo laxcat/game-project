@@ -511,7 +511,7 @@ void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * 
 
     // #if DEBUG
     // if (size == 32160) {
-    //     debugBreak();
+    //     assert(false);
     // }
     // #endif // DEBUG
 
@@ -530,10 +530,10 @@ void * BXAllocator::realloc(void * ptr, size_t size, size_t align, char const * 
     #if DEBUG
     memMan->validateAllBlocks();
     if (res->ptr == nullptr && size > 0) {
-        debugBreak();
+        assert(false);
     }
     if (res->size < size) {
-        debugBreak();
+        assert(false);
     }
     if constexpr (ShowMemManBGFXDbg) printl("          (RETURNS: %011p)", res->ptr);
     if constexpr (ShowMemManBGFXDbg) memMan->printAllBlocks();

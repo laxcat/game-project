@@ -4,17 +4,19 @@
 cmake_minimum_required(VERSION 3.24)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 11)
-
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: Debug, Release, or MinSizeRel." FORCE)
-    message(STATUS "CMAKE_BUILD_TYPE not set, defaulting to Release.")
-endif()
-
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/../cmake")
+include(Utils)
+include(SetupLib)
 
 # ---------------------------------------------------------------------------- #
 # PROJECT
 # ---------------------------------------------------------------------------- #
+set(CMAKE_BUILD_TYPE "")
+
+if(NOT BUILD_TYPE)
+    set(BUILD_TYPE Release)
+endif()
+
 if(NOT BUILD_NUMBER)
     set(BUILD_NUMBER 0)
 endif()
@@ -23,7 +25,6 @@ if(DEV_INTERFACE)
     set(ENABLE_IMGUI 1)
 endif()
 
-set(CMAKE_DEBUG_POSTFIX d)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 project (game_project_engine
@@ -37,10 +38,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
 # ---------------------------------------------------------------------------- #
 # LIBRARIES
 # ---------------------------------------------------------------------------- #
-include(SetupLib)
-
-# add_custom_target(BGFXShader_engine_target)
-
 if(FORCE_OPENGL)
     SetupLib_opengl()
 endif()
@@ -102,10 +99,8 @@ if(DEV_INTERFACE)
     )
 endif()
 
-include(Utils)
 set(shaders_root "${CMAKE_CURRENT_SOURCE_DIR}/shader/shaders")
 subdirlist(shader_dirs "${shaders_root}")
-message(STATUS "shader_dirs ${shader_dirs}")
 foreach(dir_name ${shader_dirs})
     bgfx_compile_shader_to_header(
         TYPE VERTEX
@@ -135,4 +130,5 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${SetupLib_include_dirs})
 target_compile_definitions(${PROJECT_NAME} PUBLIC ENABLE_IMGUI=${ENABLE_IMGUI})
 target_compile_definitions(${PROJECT_NAME} PUBLIC DEV_INTERFACE=${DEV_INTERFACE})
 target_compile_definitions(${PROJECT_NAME} PUBLIC FORCE_OPENGL=${FORCE_OPENGL})
+set_target_build_type(${PROJECT_NAME} PUBLIC)
 # add_dependencies(${PROJECT_NAME} BGFXShader_engine_target)

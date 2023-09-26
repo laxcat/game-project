@@ -165,6 +165,13 @@ int main_desktop(EngineSetup & setup) {
     if (setup.postInit) err = setup.postInit(setup.args);
     if (err) return err;
 
+    #ifdef DEBUG
+    printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! DEBUG %d\n", DEBUG);
+    #endif
+    #ifdef NDEBUG
+    printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! NDEBUG %d\n", NDEBUG);
+    #endif
+
     while (!glfwWindowShouldClose(mm.window)) {
         // printf("DEV_INTERFACE %d\n", DEV_INTERFACE);
         // printf("ENABLE_IMGUI %d\n", ENABLE_IMGUI);

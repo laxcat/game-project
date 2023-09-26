@@ -453,7 +453,7 @@ void Editor::guiMem() {
 void Editor::guiDebugger() {
     if (CollapsingHeader("Debugger")) {
         if (Button("Break")) {
-            debugBreakEditor();
+            assert(false && "Breaking on request.");
         }
         Dummy(ImVec2(0.0f, 20.0f));
     }
