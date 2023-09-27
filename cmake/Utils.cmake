@@ -23,7 +23,7 @@ macro(set_target_build_type target mode)
         target_compile_options(${target} ${mode} -O3)
     # Debug
     elseif(this_build_type STREQUAL debug)
-        target_compile_options(${target} ${mode} -g -Og)
+        target_compile_options(${target} ${mode} -g -O0)
     # RelWithDebInfo
     elseif(this_build_type STREQUAL relwithdebinfo)
         target_compile_definitions(${target} ${mode} NDEBUG)
