@@ -233,7 +233,10 @@ void RenderSystem::shutdown() {
 }
 
 void RenderSystem::add(char const * key, Gobj * gobj) {
-    if (renderList->isFull()) return;
+    if (renderList->isFull()) {
+        fprintf(stderr, "Could not add Gobj (%p) to %s\n", gobj, key);
+        return;
+    }
     renderList->insert(key, gobj);
     addHandles(gobj);
 }
