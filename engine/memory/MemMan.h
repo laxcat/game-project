@@ -163,7 +163,7 @@ public:
     FreeList * createFreeList(size_t max);
     // MEM_BLOCK_GOBJ
     Gobj * createGobj(char const * gltfPath);
-    Gobj * createGobj(Gobj::Counts const & counts);
+    Gobj * createGobj(Gobj::Counts const & counts, int lifetime = -1);
     // MEM_BLOCK_POOL
     template<typename T>
     Pool<T> * createPool(size_t max);

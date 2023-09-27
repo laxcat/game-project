@@ -54,8 +54,9 @@ int MrManager::init(EngineSetup const & setup) {
         // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MultipleScenes/glTF-Embedded/MultipleScenes.gltf");
         // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/TextureCoordinateTest/glTF-Binary/TextureCoordinateTest.glb");
         // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/TwoSidedPlane/glTF/TwoSidedPlane.gltf");
-        assert(g && "init gobj failed");
-        rendSys.add("test", g);
+        if (g) {
+            rendSys.add("test", g);
+        }
         // rendSys.remove("test");
     });
 

@@ -129,6 +129,9 @@ public:
     size_t calculateSize();
     bool load(Gobj * gobj);
 
+    // allows user to add counts and string length before calculateSize,
+    // or just to reset the counts object
+    void setCounts(Gobj::Counts const & counts);
     Gobj::Counts counts() const;
     bool isGLB() const;
     uint32_t binDataSize() const;

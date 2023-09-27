@@ -279,6 +279,7 @@ public:
     char const * minVersion = nullptr;
 
     #if DEBUG
+    char const * loadedPath = nullptr;
     char const * jsonStr = nullptr;
     #endif // DEBUG
 

@@ -136,6 +136,13 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
         return nullptr;
     }
 
+    // create room to save the loadedPath string
+    #if DEBUG
+    loader->setCounts({
+        .allStrLen = (uint32_t)strlen(gltfPath) + 1,
+    });
+    #endif // DEBUG
+
     // calc size
     loader->calculateSize();
 
@@ -158,6 +165,11 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
         releaseBlock(block);
         return nullptr;
     }
+
+    // set loadedPath
+    #if DEBUG
+    gobj->loadedPath = gobj->strings->formatStr("%s", gltfPath);
+    #endif // DEBUG
 
     gobj->setStatus(Gobj::STATUS_LOADED);
 
@@ -183,12 +195,13 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     return gobj;
 }
 
-Gobj * MemMan::createGobj(Gobj::Counts const & counts) {
+Gobj * MemMan::createGobj(Gobj::Counts const & counts, int lifetime) {
     // create block
     BlockInfo * block = createBlock({
         .size = counts.totalSize(),
         .align = Gobj::Align,
         .type = MEM_BLOCK_GOBJ,
+        .lifetime = lifetime,
     });
     if (block == nullptr) {
         fprintf(stderr, "Error creating Gobj block\n");

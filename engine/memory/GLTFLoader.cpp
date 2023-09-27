@@ -315,6 +315,10 @@ GLTFLoader::GLTFLoader(byte_t const * gltfData, char const * loadingDir) :
     }
 }
 
+void GLTFLoader::setCounts(Gobj::Counts const & counts) {
+    _counts = counts;
+}
+
 Gobj::Counts GLTFLoader::counts() const { return _counts; }
 bool GLTFLoader::isGLB() const { return _isGLB; }
 
@@ -331,7 +335,9 @@ size_t GLTFLoader::calculateSize() {
 
     #if DEBUG
     // add length of pretty JSON string to total string length
-    prettyJSON(&_counts.allStrLen);
+    uint32_t prettyJSONSize = 0;
+    prettyJSON(&prettyJSONSize);
+    _counts.allStrLen += prettyJSONSize;
     #endif // DEBUG
 
     auto ss = rapidjson::StringStream(jsonStr());
