@@ -43,6 +43,6 @@ private:
 class WorkerGroup {
 public:
     void * id = nullptr;
-    int count = 0;
+    uint16_t count = 0;
     Worker::Fn onComplete = nullptr;
 };

@@ -80,6 +80,7 @@ public:
     Worker * createWorker(Worker::Fn const & task, void * group = nullptr);
     void setWorkerGroupOnComplete(void * group, Worker::Fn const & onComplete);
     void joinWorkers();
+    uint16_t numberOfWorkersInGroup(void * group) const;
 
 // -------------------------------------------------------------------------- //
 // FRAME STACK UTILS

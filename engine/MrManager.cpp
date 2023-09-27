@@ -155,6 +155,19 @@ void MrManager::updateSize(size2 windowSize) {
         }
     }
 
+    uint16_t MrManager::numberOfWorkersInGroup(void * group) const {
+        if (workerGroups->size() == 0) {
+            return 0;
+        }
+        WorkerGroup const * wg = workerGroups->find([group](WorkerGroup const & a){
+            return (a.id == group);
+        });
+        if (wg == nullptr) {
+            return 0;
+        }
+        return wg->count;
+    }
+
     void MrManager::joinWorkers() {
         size_t size = workers->size();
         for (size_t i = 0; i < size; ++i) {
