@@ -267,6 +267,10 @@ bool RenderSystem::keyExists(char const * key) {
     return renderList->hasKey(key);
 }
 
+Gobj * RenderSystem::gobjForKey(char const * key) {
+    return (Gobj *)renderList->ptrForKey(key);
+}
+
 #if DEBUG || DEV_INTERFACE
 
 void RenderSystem::showStatus() {

@@ -409,8 +409,15 @@ void Editor::guiGobjs() {
 
     // hit swap button
     if (keyToSwap) {
+        Gobj * oldGobj = mm.rendSys.gobjForKey(keyToSwap);
+        char const * startPath = nullptr;
+        #if DEBUG
+        if (oldGobj) {
+            startPath = oldGobj->loadedPath;
+        }
+        #endif // DEBUG
         nfdchar_t * outPath = NULL;
-        nfdresult_t result = NFD_OpenDialog(NULL, "/Users/Shared/Dev/gltf_assets", &outPath);
+        nfdresult_t result = NFD_OpenDialog(NULL, startPath, &outPath);
 
         if (result == NFD_OKAY) {
             mm.createWorker([keyToSwap, outPath]{

@@ -32,6 +32,7 @@ public:
     Gobj * update(char const * key, Gobj * newGobj);
 
     bool keyExists(char const * key);
+    Gobj * gobjForKey(char const * key);
 
     #if DEBUG || DEV_INTERFACE
     void showStatus();
