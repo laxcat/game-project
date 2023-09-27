@@ -82,8 +82,8 @@ make
 |[RapidJSON]|Milo Yip|BSD||
 |[stb]|Sean Barrett|MIT|stb_image.h|
 
-[memory manager]: <memory/MemMan.h>
-[GLTF loading]: <memory/GLTFLoader.h>
+[memory manager]: <engine/memory/MemMan.h>
+[GLTF loading]: <engine/memory/GLTFLoader.h>
 [FetchContent]: <https://cmake.org/cmake/help/latest/module/FetchContent.html>
 [bgfx_compile_shader_to_header]: <https://github.com/bkaradzic/bgfx.cmake#bgfx_compile_shader_to_header>
 [cmk]: <build/cmk>
