@@ -377,10 +377,16 @@ void RenderSystem::addHandles(Gobj * gobj) {
         );
     }
 
-    // when all in group are done
-    mm.setWorkerGroupOnComplete(gobj, [gobj]{
+    // no workers in group! set status right away
+    if (mm.numberOfWorkersInGroup(gobj) == 0) {
         gobj->setStatus(Gobj::STATUS_READY_TO_DRAW);
-    });
+    }
+    // when all in group are done
+    else {
+        mm.setWorkerGroupOnComplete(gobj, [gobj]{
+            gobj->setStatus(Gobj::STATUS_READY_TO_DRAW);
+        });
+    }
 }
 
 bimg::ImageContainer * RenderSystem::decodeImage(Gobj::Image * img) {
