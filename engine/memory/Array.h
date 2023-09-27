@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <assert.h>
 #include <stddef.h>
 #include "../common/types.h"
@@ -16,15 +17,23 @@ Array
 
 template <typename T>
 class Array {
+// TYPES
+public:
+    using FindFn = std::function<bool(T const &)>;
+
+// INIT
 private:
     friend class MemMan;
     Array(size_t maxSize) : _maxSize(maxSize) {}
 
+// STATIC INTERFACE
 public:
     static constexpr size_t DataSize(size_t max) {
         return max * sizeof(T);
     }
 
+// INTERFACE
+public:
     T & insert(size_t i, T const & item) {
         assert(i <= _size && "Out of range.");
         assert(_size < _maxSize && "Cannot insert into Array, _size == _maxSize.");
@@ -50,6 +59,15 @@ public:
         #endif // DEBUG
     }
 
+    T const * find(FindFn const & comparison) const {
+        for (size_t i = 0; i < _size; ++i) {
+            if (comparison(data()[i])) {
+                return data() + i;
+            }
+        }
+        return nullptr;
+    }
+
     size_t size() const { return _size; }
     size_t maxSize() const { return _maxSize; }
 
@@ -61,6 +79,7 @@ public:
 
     bool bufferFull() const { return _size == _maxSize; }
 
+// STORAGE
 private:
     size_t _size = 0;
     size_t _maxSize;
@@ -106,6 +125,8 @@ private:
         return count;
     }
 
+// DEBUG / DEV INTERFACE
+private:
     #if DEV_INTERFACE
     friend void Array_editorCreate();
     friend void Array_editorEditBlock(Array<int> &);
