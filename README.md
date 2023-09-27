@@ -6,8 +6,8 @@ Basic template for a game project.
 
 ### General Features:
 
-* Custom memory manager
-* Custom GLTF loading (text and binary)
+* Custom [memory manager]
+* Custom [GLTF loading] (text and binary)
 * Custom renderer using BGFX
 	* Directional lights
 	* Point lights
@@ -53,7 +53,7 @@ Basic template for a game project.
 
 ## Build Instructions
 
-Setting `DEV_INTERFACE` to 0 (default) will cull the libraries only used for the developer interface.
+Setting `DEV_INTERFACE` to 0 (default) will cull the libraries only used for the developer interface. See included [cmk] script for more available options.
 
 ```bash
 mkdir build
@@ -82,8 +82,11 @@ make
 |[RapidJSON]|Milo Yip|BSD||
 |[stb]|Sean Barrett|MIT|stb_image.h|
 
+[memory manager]: <memory/MemMan.h>
+[GLTF loading]: <memory/GLTFLoader.h>
 [FetchContent]: <https://cmake.org/cmake/help/latest/module/FetchContent.html>
 [bgfx_compile_shader_to_header]: <https://github.com/bkaradzic/bgfx.cmake#bgfx_compile_shader_to_header>
+[cmk]: <build/cmk>
 
 [BGFX]: <https://github.com/bkaradzic/bgfx>
 [BGFX flavor of GLSL]: <https://bkaradzic.github.io/bgfx/tools.html#shader-compiler-shaderc>
