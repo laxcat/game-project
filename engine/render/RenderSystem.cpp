@@ -176,7 +176,8 @@ uint16_t RenderSystem::drawMesh(Gobj * gobj, Gobj::Mesh const & mesh, glm::mat4 
             }
             bgfx::setUniform(materialBaseColor, prim->material->baseColorFactor);
 
-            if (prim->material->alphaMode == Gobj::Material::ALPHA_BLEND) {
+            if (prim->material->alphaMode == Gobj::Material::ALPHA_BLEND ||
+                prim->material->baseColorFactor[3] < 1.f) {
                 state |= BGFX_STATE_BLEND_ALPHA;
             }
         }
