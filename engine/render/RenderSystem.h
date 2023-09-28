@@ -21,7 +21,8 @@ public:
 
     void init();
     void draw();
-    void drawNode(Gobj * gobj, Gobj::Node * node, glm::mat4 const & parentTransform = Identity);
+    // returns aggregate submit count
+    uint16_t drawNode(Gobj * gobj, Gobj::Node * node, glm::mat4 const & parentTransform = Identity);
     // returns submit count
     uint16_t drawMesh(Gobj * gobj, Gobj::Mesh const & mesh, glm::mat4 const & transform = Identity);
     void shutdown();

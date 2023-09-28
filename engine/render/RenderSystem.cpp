@@ -98,7 +98,7 @@ void RenderSystem::draw() {
         if (gobj->scene) {
             // each root node
             for (uint16_t nodeIndex = 0; nodeIndex < gobj->scene->nNodes; ++nodeIndex) {
-                drawNode(gobj, gobj->scene->nodes[nodeIndex]);
+                submitCount += drawNode(gobj, gobj->scene->nodes[nodeIndex]);
             }
         }
         // otherwise draw all meshes
@@ -110,6 +110,8 @@ void RenderSystem::draw() {
         }
     }
 
+    // printl("submit count for frame %zu: %d", mm.frame, submitCount);
+
     if (!submitCount) {
         bgfx::touch(mm.mainView);
     }
@@ -119,17 +121,19 @@ void RenderSystem::draw() {
     printc(ShowRenderDbgTick, "-------------------------------------------------------------ENDING RENDER FRAME\n");
 }
 
-void RenderSystem::drawNode(Gobj * gobj, Gobj::Node * node, glm::mat4 const & parentTransform) {
+uint16_t RenderSystem::drawNode(Gobj * gobj, Gobj::Node * node, glm::mat4 const & parentTransform) {
+    uint16_t submitCount = 0;
     // calc global transform
     glm::mat4 global = parentTransform * node->matrix;
     // draw self if present
     if (node->mesh) {
-        drawMesh(gobj, *node->mesh, global);
+        submitCount += drawMesh(gobj, *node->mesh, global);
     }
     // draw children
     for (uint16_t nodeIndex = 0; nodeIndex < node->nChildren; ++nodeIndex) {
-        drawNode(gobj, node->children[nodeIndex], global);
+        submitCount += drawNode(gobj, node->children[nodeIndex], global);
     }
+    return submitCount;
 }
 
 uint16_t RenderSystem::drawMesh(Gobj * gobj, Gobj::Mesh const & mesh, glm::mat4 const & transform) {
@@ -327,7 +331,7 @@ void RenderSystem::addHandles(Gobj * gobj) {
                     bgfxAttribTypeFromAccessorComponentType(acc.componentType)
                 );
                 // printl("skipping... %u - %u (=%u)", bv.byteStride, acc.byteSize(), (bv.byteStride-acc.byteSize()));
-                assert(bv.byteStride);
+                assert(bv.byteStride && "Byte-stride of 0 makes no sense.");
                 layout.skip(bv.byteStride - acc.byteSize());
                 layout.end();
 
