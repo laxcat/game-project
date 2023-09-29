@@ -368,6 +368,9 @@ void RenderSystem::addHandles(Gobj * gobj) {
         }
         mm.createWorker([this, tex]{
             bimg::ImageContainer * imgc = decodeImage(tex->source);
+            if (imgc == nullptr) {
+                return;
+            }
             tex->renderHandle = bgfx::createTexture2D(
                 (uint16_t)imgc->m_width,
                 (uint16_t)imgc->m_height,
@@ -398,17 +401,26 @@ bimg::ImageContainer * RenderSystem::decodeImage(Gobj::Image * img) {
     if (!img) return nullptr;
     if (img->decoded) return (bimg::ImageContainer *)img->decoded;
 
-    assert(img->bufferView && "bufferView required");
-
-    Gobj::BufferView & bv = *img->bufferView;
-    byte_t * data = bv.buffer->data + bv.byteOffset;
+    byte_t * data = nullptr;
+    uint32_t dataSize = 0;
+    // encoded image data is in gobj buffer
+    if (img->bufferView) {
+        Gobj::BufferView & bv = *img->bufferView;
+        data = bv.buffer->data + bv.byteOffset;
+        dataSize = bv.byteLength;
+    }
+    // encoded image data is in external file or base64 string
+    else {
+        fprintf(stderr, "Seperate file and base64-encoded images are not supported.\n");
+        return nullptr;
+    }
 
     // printl("Loading image at %p for %u bytes", data, bv.byteLength);
     bx::Error err;
     bimg::ImageContainer * imgc = imageParse(
         &bxAllocator,
         data,
-        bv.byteLength,
+        dataSize,
         bimg::TextureFormat::Count,
         &err
     );
@@ -417,7 +429,7 @@ bimg::ImageContainer * RenderSystem::decodeImage(Gobj::Image * img) {
             img->name, imgc->m_data, imgc->m_width, imgc->m_height, imgc->m_depth);
     }
     else {
-        fprintf(stderr, "error loading image: %s (%p, %u)", err.getMessage().getPtr(), data, bv.byteLength);
+        fprintf(stderr, "error loading image: %s (%p, %u)", err.getMessage().getPtr(), data, dataSize);
         return nullptr;
     }
     img->decoded = imgc;
