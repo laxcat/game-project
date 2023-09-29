@@ -516,10 +516,10 @@ void GLTFLoader::pop() {
     --_depth;
 }
 
-size_t GLTFLoader::handleDataString(byte_t * dst, char const * str, size_t strLength) {
+size_t GLTFLoader::handleDataString(byte_t * dst, char const * loadingDir, char const * str, size_t strLength) {
     // base64?
     static char const * isDataStr = "data:application/octet-stream;base64,";
-    size_t isDataLen = strlen(isDataStr);
+    static size_t isDataLen = strlen(isDataStr);
     if (strEqu(str, isDataStr, isDataLen)) {
         size_t b64StrLen = strLength - isDataLen;
         modp_b64_decode((char *)dst, (char *)str + isDataLen, b64StrLen);
@@ -528,7 +528,7 @@ size_t GLTFLoader::handleDataString(byte_t * dst, char const * str, size_t strLe
 
     // uri to load?
     // TODO: test this
-    char * fullPath = mm.frameFormatStr("%s%s", _loadingDir, str);
+    char * fullPath = mm.frameFormatStr("%s%s", loadingDir, str);
     FILE * fp = fopen(fullPath, "r");
     if (!fp) {
         fprintf(stderr, "WARNING: Error opening buffer file: %s\n", fullPath);
@@ -844,7 +844,7 @@ bool GLTFLoader::handleBuffer(GLTFLoader * l, Gobj * g, char const * str, uint32
             fprintf(stderr, "Unexpected buffer.uri in GLB.\n");
             return false;
         }
-        size_t bytesWritten = l->handleDataString(l->_nextRawDataPtr, str, len);
+        size_t bytesWritten = l->handleDataString(l->_nextRawDataPtr, l->_loadingDir, str, len);
         if (bytesWritten == 0) {
             fprintf(stderr, "No bytes written in buffer %d.\n", bufIndex);
             return false;

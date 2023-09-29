@@ -12,7 +12,9 @@ Loads GLTF files into Gobj.
 
 Implemented:
     • opening/reading .glb files
-    • opening/reading EMBEDED .gltf files
+    • opening/reading .gltf files (some limitations, see below)
+        • buffer data in seperate file
+        • base64-encoded buffer data
     • Calculating size
     • loading strings
     • loading accessors
@@ -25,7 +27,9 @@ Implemented:
     • loading meshes and related sub-objects
 
 NOT implemented yet:
-    • images without BufferView (URI, both data-stream and external)
+    • images with URI (not BufferView)
+        • data-stream
+        • external file
     • accessor.sparce
     • any extensions
     • any extras
@@ -122,6 +126,11 @@ public:
         std::function<bool(GLTFLoader *, Gobj * g, uint32_t)> handleEnd = nullptr;
     };
 
+// PUBLIC STATIC INTERFACE
+public:
+    // handles string that might be a uri OR data-stream
+    static size_t handleDataString(byte_t * dst, char const * loadingDir, char const * str, size_t strLength);
+
 // PUBLIC INTERFACE
 public:
     GLTFLoader(byte_t const * gltfData, char const * loadingDir = nullptr);
@@ -181,8 +190,6 @@ private:
     // returns crumb from stack. offset==0 is top of stack.
     // offset<0 returns into stack, offset>0 is invalid.
     Crumb & crumb(int offset = 0);
-    // handles string that might be a uri OR data-stream
-    size_t handleDataString(byte_t * dst, char const * str, size_t strLength);
     // do additional work after load
     void postLoad(Gobj * g);
 
