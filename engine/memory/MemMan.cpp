@@ -259,6 +259,31 @@ void MemMan::request() {
     // do nothing (size=0,ptr=0)
 }
 
+size_t MemMan::sizeOfPtr(void * ptr, bool * isFSA) const {
+    // is it in the FSA?
+    uint16_t fsaGroupIndex;
+    uint16_t fsaSubBlockIndex;
+    if (_fsa && _fsa->indicesForPtr(ptr, &fsaGroupIndex, &fsaSubBlockIndex)) {
+        if (isFSA) {
+            *isFSA = true;
+        }
+        return 2 << fsaGroupIndex;
+    }
+
+    // no? must be in a block
+    if (isFSA) {
+        *isFSA = false;
+    }
+    BlockInfo const * block = blockForPtr(ptr);
+    if (block) {
+        return block->dataSize();
+    }
+
+    // not found
+    fprintf(stderr, "WARNING: sizeOfPtr ptr not in within data block.\n");
+    return 0;
+}
+
 void MemMan::autoReleaseEndFrame() {
     for (int i = 0; i < _autoReleaseBuffer->size(); ++i) {
         AutoRelease & alloc = _autoReleaseBuffer->data()[i];
@@ -362,6 +387,9 @@ void MemMan::copy(void * dst, void * src) {
 }
 
 MemMan::BlockInfo * MemMan::blockForPtr(void * ptr) {
+    return (MemMan::BlockInfo *)((MemMan const *)this)->blockForPtr(ptr);
+}
+MemMan::BlockInfo const * MemMan::blockForPtr(void * ptr) const {
     guard_t guard{_mainMutex};
     assert(_data && _size && "MemMan not initialized.");
 
@@ -465,16 +493,36 @@ void MemMan::printFreeBlockSizes() const {
 
 #if DEBUG
 void MemMan::printRequestResult() const {
+    printRequest();
+    printResult();
+}
+void MemMan::printRequest() const {
     printl("REQUEST");
     printl("    size: %zu", _request->size);
     printl("    align: %zu", _request->align);
-    printl("    ptr: %p", _request->ptr);
+    printPtr(_request->ptr, 4);
     printl("    type: %s", memBlockTypeStr(_request->type));
+}
+void MemMan::printResult() const {
     printl("RESULT");
     printl("    size: %zu", _result->size);
     printl("    align: %zu", _result->align);
-    printl("    ptr: %p", _result->ptr);
+    printPtr(_request->ptr, 4);
     printl("    block: %p %s", _result->block, (_result->block == _fsaBlock)?"(FSA)":"");
+}
+void MemMan::printPtr(void * ptr, uint16_t indent) const {
+    if (ptr) {
+        bool isFSA;
+        printl("%*cptr: %p (size: %zu, isFSA: %s)",
+            indent, ' ',
+            ptr,
+            sizeOfPtr(_request->ptr, &isFSA),
+            isFSA?"YES":"NO"
+        );
+    }
+    else {
+        printl("%*cptr: %p", indent, ' ', ptr);
+    }
 }
 #endif // DEBUG
 

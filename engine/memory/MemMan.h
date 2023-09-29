@@ -229,8 +229,11 @@ private:
     void findFirstFreeBlock(BlockInfo * block);
     // BlockInfo for raw ptr pointing to data.
     BlockInfo * blockForPtr(void * ptr);
+    BlockInfo const * blockForPtr(void * ptr) const;
     // is ptr within MemMan's data?
     bool containsPtr(void * ptr) const;
+    // find size of FSA-sub-block or block of pointer target
+    size_t sizeOfPtr(void * ptr, bool * isFSA = nullptr) const;
     // handle lifetime of current AutoRelease allocations at end of every frame
     void autoReleaseEndFrame();
     // conditionally add auto-release
@@ -274,6 +277,9 @@ public:
     void printFreeBlockSizes() const;
     // print request and result
     void printRequestResult() const;
+    void printRequest() const;
+    void printResult() const;
+    void printPtr(void * ptr, uint16_t indent = 0) const;
     #endif // DEBUG
 };
 
