@@ -393,6 +393,7 @@ void Editor::guiGobjs() {
     PushStyleColor(ImGuiCol_HeaderActive,   0xff3333aa);
 
     char const * keyToSwap = nullptr;
+    char const * keyToUnload = nullptr;
 
     for (auto node : mm.rendSys.renderList) {
         auto g = (Gobj *)node->ptr;
@@ -400,6 +401,10 @@ void Editor::guiGobjs() {
         Indent();
         if (Button("Swap")) {
             keyToSwap = node->key;
+        }
+        SameLine();
+        if (Button("Unload")) {
+            keyToUnload = node->key;
         }
         g->editorEditBlock();
         Unindent();
@@ -431,6 +436,12 @@ void Editor::guiGobjs() {
         else {
             fprintf(stderr, "Error: %s\n", NFD_GetError());
         }
+    }
+    // hit unload button
+    else if (keyToUnload) {
+        Gobj * oldGobj = mm.rendSys.gobjForKey(keyToUnload);
+        mm.rendSys.remove(keyToUnload);
+        mm.memMan.request({.ptr=oldGobj, .size=0});
     }
 }
 
