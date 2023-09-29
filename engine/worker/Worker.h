@@ -24,8 +24,9 @@ private:
 
 // INIT
 private:
-    friend class MemMan;
-    Worker(Fn const & task, void * group = nullptr);
+    friend class MrManager;
+    void init(Fn const & task, void * group = nullptr);
+    void shutdown();
 
 // STORAGE
 private:

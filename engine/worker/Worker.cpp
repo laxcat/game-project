@@ -1,10 +1,9 @@
 #include "Worker.h"
 #include "../MrManager.h"
 
-Worker::Worker(Fn const & task, void * group) :
-    _task(task),
-    _group(group)
-{
+void Worker::init(Fn const & task, void * group) {
+    _task = task;
+    _group = group;
     _thread = mm.memMan.create<std::thread>([this]{
         setStatus(STATUS_WORKING);
         if (_task) {
@@ -12,6 +11,10 @@ Worker::Worker(Fn const & task, void * group) :
         }
         setStatus(STATUS_COMPLETE);
     });
+}
+
+void Worker::shutdown() {
+    mm.memMan.request({.ptr=_thread, .size=0});
 }
 
 bool Worker::isComplete() const {

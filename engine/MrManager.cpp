@@ -117,7 +117,8 @@ void MrManager::updateSize(size2 windowSize) {
 // WORKERS
 // -------------------------------------------------------------------------- //
     Worker * MrManager::createWorker(Worker::Fn const & task, void * group) {
-        Worker * w = memMan.create<Worker>(task, group);
+        Worker * w = memMan.create<Worker>();
+        w->init(task, group);
         workers->append(w);
 
         if (group) {
@@ -194,6 +195,7 @@ void MrManager::updateSize(size2 windowSize) {
                     }
                 }
 
+                w->shutdown();
                 memMan.request({.ptr=w, .size=0});
                 workers->remove(i);
                 --i;
