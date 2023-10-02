@@ -34,9 +34,5 @@ include_directories(${SetupLib_include_dirs})
 set(EXE_NAME game_project)
 add_executable(${EXE_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
 target_compile_definitions(${EXE_NAME} PUBLIC DEV_INTERFACE=${DEV_INTERFACE})
-set_target_build_type(${EXE_NAME} PUBLIC)
+target_build_type(${EXE_NAME} PUBLIC ${BUILD_TYPE})
 target_link_libraries(${EXE_NAME} "game_project_engine" ${SetupLib_libs})
-
-# COPY ASSETS
-file(GLOB ASSET_FILES "${CMAKE_CURRENT_SOURCE_DIR}/assets/[!.]*")
-file(COPY ${ASSET_FILES} DESTINATION "${CMAKE_BINARY_DIR}/assets")

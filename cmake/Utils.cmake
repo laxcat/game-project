@@ -10,27 +10,27 @@ MACRO(SUBDIRLIST result curdir)
     SET(${result} ${dirlist})
 ENDMACRO()
 
-# to avoid using CMAKE_BUILD_TYPE, (which I couldn't figure out how to control per-target)
-# set debug info manually
+# to avoid using CMAKE_BUILD_TYPE (which can't be set per-target(?)),
+# set debug build defs and options manually
 # Pulled settings from here: https://stackoverflow.com/a/59314670
 # TODO set windows settings
-macro(set_target_build_type target mode)
-    message(STATUS "SETTING ${BUILD_TYPE} on target: ${target}")
-    string(TOLOWER ${BUILD_TYPE} this_build_type)
+function(target_build_type target mode BUILD_TYPE_PARAM)
+    message(STATUS "SETTING ${BUILD_TYPE_PARAM} on target: ${target}")
+    string(TOLOWER ${BUILD_TYPE_PARAM} test_build_type)
     # Release
-    if(this_build_type STREQUAL release)
+    if(test_build_type STREQUAL release)
         target_compile_definitions(${target} ${mode} NDEBUG)
         target_compile_options(${target} ${mode} -O3)
     # Debug
-    elseif(this_build_type STREQUAL debug)
+    elseif(test_build_type STREQUAL debug)
         target_compile_options(${target} ${mode} -g -O0)
     # RelWithDebInfo
-    elseif(this_build_type STREQUAL relwithdebinfo)
+    elseif(test_build_type STREQUAL relwithdebinfo)
         target_compile_definitions(${target} ${mode} NDEBUG)
         target_compile_options(${target} ${mode} -g -O2)
     # MinSizeRel
-    elseif(this_build_type STREQUAL minsizerel)
+    elseif(test_build_type STREQUAL minsizerel)
         target_compile_definitions(${target} ${mode} NDEBUG)
         target_compile_options(${target} ${mode} -Os)
     endif()
-endmacro()
+endfunction()
