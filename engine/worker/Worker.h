@@ -1,6 +1,7 @@
 #pragma once
 #include <thread>
 #include <mutex>
+#include "../common/debug_defines.h"
 
 class Worker {
 // TYPES
@@ -21,6 +22,10 @@ private:
         STATUS_WORKING,
         STATUS_COMPLETE, // waiting to join
     };
+    #if DEBUG
+    char const * statusString(Status status) const;
+    #endif // DEBUG
+
 
 // INIT
 private:

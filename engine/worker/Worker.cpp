@@ -1,16 +1,29 @@
 #include "Worker.h"
 #include "../MrManager.h"
+#include "../dev/print.h"
+
+#if DEBUG
+char const * Worker::statusString(Status status) const {
+    switch (status) {
+    case STATUS_INACTIVE:   return "INACTIVE";
+    case STATUS_WORKING:    return "WORKING";
+    case STATUS_COMPLETE:   return "COMPLETE";
+    default:                return "(invalid)";
+    }
+}
+#endif // DEBUG
 
 void Worker::init(Fn const & task, void * group) {
     _task = task;
     _group = group;
-    _thread = mm.memMan.create<std::thread>([this]{
+    _thread = (std::thread *)mm.memMan.request({.size=sizeof(std::thread)});
+    new (_thread) std::thread{[this]{
         setStatus(STATUS_WORKING);
         if (_task) {
             _task();
         }
         setStatus(STATUS_COMPLETE);
-    });
+    }};
 }
 
 void Worker::shutdown() {
