@@ -142,6 +142,7 @@ public:
     BlockInfo * firstBlock() const;
     BlockInfo * nextBlock(BlockInfo const * block) const;
     size_t blockCountForDisplayOnly() const;
+    bool isPtrInFSA(void * ptr) const;
 
     // GENERIC ALLOCATION
     // copys request param into request block, then executes request
@@ -213,8 +214,13 @@ private:
     BlockInfo * claimBlockBack(BlockInfo * block);
     // consumes next block if free
     BlockInfo * mergeWithNextBlock(BlockInfo * block);
+    // link prev/next for internal linkage of list of blocks. (will not set blockList[0]->_prev, etc)
+    // first/last blocks in list might be nullptr if just removed, so adjacent blocks can update links.
+    void linkBlockList(BlockInfo ** blockList, uint16_t nBlocks);
+    template <typename ... T>
+    void linkBlocks(T && ... blocks);
     // realigns block in place
-    BlockInfo * realignBlock(BlockInfo * block, size_t relevantDataSize, size_t align);
+    BlockInfo * realignBlock(BlockInfo * block, size_t align);
     // creates free block if possible
     BlockInfo * shrinkBlock(BlockInfo * block, size_t smallerSize);
     // consumes next free block, or moves block
@@ -233,7 +239,7 @@ private:
     // is ptr within MemMan's data?
     bool containsPtr(void * ptr) const;
     // find size of FSA-sub-block or block of pointer target
-    size_t sizeOfPtr(void * ptr, bool * isFSA = nullptr) const;
+    size_t sizeOfPtr(void * ptr, BlockInfo const ** block = nullptr) const;
     // handle lifetime of current AutoRelease allocations at end of every frame
     void autoReleaseEndFrame();
     // conditionally add auto-release
@@ -323,4 +329,11 @@ T * MemMan::create(TS && ... params) {
     if (!block) return nullptr;
     block->_type = MEM_BLOCK_GENERIC;
     return new (block->data()) T{static_cast<TS &&>(params)...};
+}
+
+template <typename... TS>
+void MemMan::linkBlocks(TS && ... blocks) {
+    static constexpr size_t N = sizeof...(blocks);
+    BlockInfo * blockList[N] = {blocks...};
+    linkBlockList(blockList, N);
 }

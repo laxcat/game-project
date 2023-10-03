@@ -67,41 +67,27 @@ void MemMan::releaseBlock(BlockInfo * block) {
     // get some block info
     size_t blockSize = block->blockSize();
 
+    // update block info
+    block->_type = MEM_BLOCK_FREE;
+
     // move BlockInfo back to base if padding was set
     if (block->_padding > 0) {
-        bool isFirstFree = (block == _firstFree);
-        bool isHead = (block == _head);
-        bool isTail = (block == _tail);
-
-        // get block base
-        byte_t * base = block->basePtr();
-
-        // write BlockInfo to new location
-        BlockInfo bi = *block; // copy out
-        memcpy(base, &bi, BlockInfoSize); // copy to new ptr
-
-        // update block info
-        block = (BlockInfo *)base;
-        block->_padding = 0;
-        if (block->_next) block->_next->_prev = block;
-        if (block->_prev) block->_prev->_next = block;
-        if (isFirstFree)  _firstFree = block;
-        if (isHead)       _head = block;
-        if (isTail)       _tail = block;
+        block = realignBlock(block, 0);
     }
 
     // update block info
     block->_dataSize = blockSize - BlockInfoSize;
-    block->_type = MEM_BLOCK_FREE;
 
     // set data bytes to 0
     #if DEBUG
     memset(block->data(), 0, block->_dataSize);
     #endif // DEBUG
 
-    // check to see if this newly released block changes _firstFree
-    // (it may or may not, findFirstFreeBlock will check)
-    findFirstFreeBlock(block);
+    linkBlocks(block->_prev, block, block->_next);
+
+    #if DEBUG
+    validateAllBlocks();
+    #endif // DEBUG
 }
 
 MemMan::BlockInfo * MemMan::claimBlock(BlockInfo * block) {
@@ -115,62 +101,23 @@ MemMan::BlockInfo * MemMan::claimBlock(BlockInfo * block) {
     if (block->calcAlignDataSize(_request->align) < _request->size) return nullptr;
 
     // re-align if necessary
-    if (_request->align > 0 && block->_padding != block->calcAlignPaddingSize(_request->align)) {
-        // get some block info
-        size_t blockSize = block->blockSize();
-        byte_t * base = block->basePtr();
-        size_t padding = block->calcAlignPaddingSize(_request->align);
-        byte_t * newBlockInfoPtr = base + padding;
-
-        // write BlockInfo to new location
-        BlockInfo bi = *block; // copy out
-        memcpy(newBlockInfoPtr, &bi, BlockInfoSize); // copy to new ptr
-
-        // set padding bytes to 0 (setting as 0xfe for debugging)
-        #if DEBUG
-        memset(base, 0xfe, padding);
-        #endif // DEBUG
-
-        // update block info
-        bool isFirstFree = (block == _firstFree);
-        bool isHead = (block == _head);
-        bool isTail = (block == _tail);
-        block = (BlockInfo *)newBlockInfoPtr;
-        block->_dataSize = blockSize - padding - BlockInfoSize;
-        block->_padding = (uint32_t)padding;
-        // next and prev pointers need to point to new memory location of BlockInfo
-        if (block->_next) {
-            block->_next->_prev = block;
-        }
-        if (block->_prev) {
-            block->_prev->_next = block;
-        }
-        if (isFirstFree) {
-            _firstFree = block;
-        }
-        if (isHead) {
-            _head = block;
-        }
-        if (isTail) {
-            _tail = block;
-        }
+    size_t newPadding = block->calcAlignPaddingSize(_request->align);
+    if (_request->align > 0 && block->_padding != newPadding) {
+        block = realignBlock(block, newPadding);
     }
 
 
+    block->_type = MEM_BLOCK_CLAIMED;
     // create free block, leaving this block at requested size
     // (might fail but that's ok)
     shrinkBlock(block, _request->size);
-    block->_type = MEM_BLOCK_CLAIMED;
 
     #if DEBUG
     // zero out data in newly claimed block
     memset(block->data(), 0, block->_dataSize);
     #endif // DEBUG
 
-    // if our newly claimed block happend to be _firstFree, initiate a search for new firstFree
-    if (block == _firstFree) {
-        findFirstFreeBlock(block);
-    }
+    linkBlocks(block->_prev, block, block->_next);
 
     return block;
 }
@@ -188,11 +135,11 @@ MemMan::BlockInfo * MemMan::claimBlockBack(BlockInfo * block) {
         return nullptr;
     }
 
-    // from end of block data, move back size+align+sizeof(BlockInfo).
+    // from end of block data, move back size+align+BlockInfoSize.
     // if align==0, this will be the new block location.
     // if needs alignment, will be forward slightly, but should still be able
     // to accomodate `size`.
-    byte_t * newBlockPtr = block->data() + block->_dataSize - (_request->size + _request->align + sizeof(BlockInfo));
+    byte_t * newBlockPtr = block->data() + block->_dataSize - (_request->size + _request->align + BlockInfoSize);
     // get padding
     size_t newBlockPadding = alignPadding((size_t)newBlockPtr, _request->align);
     // actual block location
@@ -207,8 +154,8 @@ MemMan::BlockInfo * MemMan::claimBlockBack(BlockInfo * block) {
     // set new block info
     BlockInfo * newBlock = new (newBlockAlignedPtr) BlockInfo{};
     newBlock->_padding = (uint32_t)newBlockPadding;
-    newBlock->_prev = block;
-    newBlock->_next = block->_next;
+    // newBlock->_prev = block;
+    // newBlock->_next = block->_next;
     newBlock->_type = MEM_BLOCK_CLAIMED;
     newBlock->_dataSize = (block->data() + block->_dataSize) - newBlock->data();
 
@@ -218,18 +165,13 @@ MemMan::BlockInfo * MemMan::claimBlockBack(BlockInfo * block) {
 
     // update old block info
     block->_dataSize = newBlock->basePtr() - block->data();
-    if (block->_next) {
-        block->_next->_prev = newBlock;
-    }
-    block->_next = newBlock;
-    if (block == _tail) {
-        _tail = newBlock;
-    }
 
     // set data bytes to 0
     #if DEBUG
     memset(block->data(), 0, block->_dataSize);
     #endif // DEBUG
+
+    linkBlocks(block, newBlock, block->_next);
 
     return newBlock;
 }
@@ -253,54 +195,95 @@ MemMan::BlockInfo * MemMan::mergeWithNextBlock(BlockInfo * block) {
         _tail = block;
     }
     block->_dataSize += block->_next->blockSize();
-    block->_next = block->_next->_next;
-    if (block->_next) {
-        block->_next->_prev = block;
-    }
+
+    linkBlocks(block, block->_next->_next);
 
     return block;
 }
 
-MemMan::BlockInfo * MemMan::realignBlock(BlockInfo * block, size_t relevantDataSize, size_t align) {
-    // guard_t guard{_mainMutex};
+void MemMan::linkBlockList(BlockInfo ** blockList, uint16_t nBlocks) {
+    assert(blockList && nBlocks && "Unexpected parameters.");
 
-    // printl("MemMan::realign");
-    // printFreeSizes();
+    BlockInfo * lastNonNull = nullptr;
+    BlockInfo * firstNonNull = nullptr;
+    BlockInfo * foundTail = nullptr;
+    bool shouldFindFree = false;
 
-    // #if DEBUG
-    // assert(block->isValid() && "Block not valid.");
-    // #endif // DEBUG
+    for (uint16_t i = 0; i < nBlocks; ++i) {
+        BlockInfo * b = blockList[i];
+        if (b == nullptr) {
+            continue;
+        }
 
-    // size_t padding = block->calcAlignPaddingSize(align);
+        if (firstNonNull == nullptr) {
+            firstNonNull = b;
+        }
+        lastNonNull = b;
 
-    // // already aligned!
-    // if (block->_padding == padding) return nullptr;
+        if (b == _head && i != 0) {
+            _head = firstNonNull;
+        }
+        if (b == _tail && i != nBlocks-1) {
+            foundTail = b;
+        }
+        if (!shouldFindFree &&
+            (b->_type == MEM_BLOCK_FREE ||
+            b == _firstFree
+            )) {
+            shouldFindFree = true;
+        }
 
-    // // make sure we have enough room for relevant data
-    // if (block->blockSize() - padding - BlockInfoSize < relevantDataSize) {
-    //     return nullptr;
-    // }
+        if (i > 0) {
+            b->_prev = blockList[i-1];
+        }
+        if (i < nBlocks-1) {
+            b->_next = blockList[i+1];
+        }
+    }
 
-    // // find free space to copy data to
-    // BlockInfo * tempBlock = createBlock(relevantDataSize, 0, block);
-    // assert(tempBlock == nullptr && "Couldn't find temp free space to realign.");
+    if (foundTail && lastNonNull) {
+        _tail = lastNonNull;
+    }
 
-    // // copy data to temp
-    // memcpy(tempBlock->data(), block->data(), relevantDataSize);
+    if (shouldFindFree) {
+        findFirstFreeBlock(firstNonNull);
+    }
+}
 
-    // // free and re-claim current block with alignment
-    // block = releaseBlock(block);
-    // block = claim(block, relevantDataSize, align);
+MemMan::BlockInfo * MemMan::realignBlock(BlockInfo * block, size_t padding) {
+    guard_t guard{_mainMutex};
 
-    // assert(block && "Claim in realign failed.");
+    assert(block->_type == MEM_BLOCK_FREE && "Block must be free to realign.");
 
-    // // copy relevant
-    // memcpy(block->data(), tempBlock->data(), relevantDataSize);
-    // releaseBlock(tempBlock);
+    bool isFirstFree = (block == _firstFree);
+    bool isHead = (block == _head);
+    bool isTail = (block == _tail);
+    size_t blockSize = block->blockSize();
 
-    // return block;
+    // get block base
+    byte_t * base = block->basePtr();
 
-    return nullptr;
+    // write BlockInfo to new location
+    BlockInfo bi = *block; // copy out
+    memcpy(base + padding, &bi, BlockInfoSize); // copy to new ptr
+
+    // set padding bytes to 0 (setting as 0xfe for debugging)
+    #if DEBUG
+    memset(base, 0xfe, padding);
+    #endif // DEBUG
+
+    // update block info
+    BlockInfo * newBlock = (BlockInfo *)(base + padding);
+    newBlock->_padding = padding;
+    newBlock->_dataSize = blockSize - padding - BlockInfoSize;
+
+    if (isFirstFree)  _firstFree = newBlock;
+    if (isHead)       _head = newBlock;
+    if (isTail)       _tail = newBlock;
+
+    linkBlocks(newBlock->_prev, newBlock, newBlock->_next);
+
+    return newBlock;
 }
 
 MemMan::BlockInfo * MemMan::shrinkBlock(BlockInfo * block, size_t smallerSize) {
@@ -315,14 +298,8 @@ MemMan::BlockInfo * MemMan::shrinkBlock(BlockInfo * block, size_t smallerSize) {
     BlockInfo * newBlock = new (newBlockLoc) BlockInfo();
     newBlock->_dataSize = block->_dataSize - smallerSize - BlockInfoSize;
     block->_dataSize = smallerSize;
-    newBlock->_next = block->_next;
-    newBlock->_prev = block;
-    block->_next = newBlock;
-    if (block == _tail) {
-        _tail = newBlock;
-    }
 
-    findFirstFreeBlock(newBlock);
+    linkBlocks(block->_prev, block, newBlock, block->_next);
 
     return block;
 }
@@ -334,31 +311,7 @@ MemMan::BlockInfo * MemMan::growBlock(BlockInfo * block, size_t biggerSize, size
     assert(block->isValid() && "Block not valid.");
     #endif // DEBUG
 
-    // is next free?
-    if (block->_next && block->_next->_type == MEM_BLOCK_FREE) {
-        bool isAligned = block->isAligned(align);
-        size_t sizeAvailable = (isAligned) ?
-            // is aligned already
-            (block->_dataSize + block->_next->blockSize()) :
-            // calc size after alignment
-            ((block->blockSize() - BlockInfoSize - block->calcAlignPaddingSize(align)) +
-                block->_next->blockSize());
-        // next is free and is big enough
-        if (sizeAvailable >= biggerSize) {
-            size_t relevantDataSize = block->_dataSize;
-            // consume next block
-            mergeWithNextBlock(block);
-            // move everything around to new alignment first
-            if (isAligned == false) {
-                assert(false && "Does this ever happen? Untested. if so, realign needs rewrite.");
-                block = realignBlock(block, relevantDataSize, align);
-            }
-            assert(block && "Realignment failed.");
-            // try to create a free block with any unneeded space
-            shrinkBlock(block, relevantDataSize);
-            return block;
-        }
-    }
+    // TODO: optimize for quick expansion if next block is free and big enough
 
     // next not free or not big enough
     // move the block to new location
@@ -371,17 +324,19 @@ MemMan::BlockInfo * MemMan::growBlock(BlockInfo * block, size_t biggerSize, size
     releaseBlock(block);
     assert(newBlock && "Not enough room to move block during grow.");
 
-    #if DEBUG
-    validateAllBlocks();
-    #endif // DEBUG
-
     return newBlock;
 }
 
 MemMan::BlockInfo * MemMan::resizeBlock(BlockInfo * block) {
     guard_t guard{_mainMutex};
+
     if (block->_dataSize > _request->size) return shrinkBlock(block, _request->size);
     if (block->_dataSize < _request->size) return growBlock(block, _request->size, _request->align);
+
+    #if DEBUG
+    validateAllBlocks();
+    #endif // DEBUG
+
     return block;
 }
 
@@ -394,6 +349,10 @@ void MemMan::mergeAllAdjacentFreeBlocks() {
         if (newBi) bi = newBi;
         ++_blockCount;
     }
+
+    #if DEBUG
+    validateAllBlocks();
+    #endif // DEBUG
 }
 
 void MemMan::findFirstFreeBlock(BlockInfo * block) {
@@ -402,30 +361,16 @@ void MemMan::findFirstFreeBlock(BlockInfo * block) {
     // if _firstFree is already earlier in list than suggested search starting point (block)
     // then abort, no search needed.
     if ((size_t)_firstFree < (size_t)block) {
-        // #if DEBUG
-        // printl("MemMan::findFirstFree first free (%p) already precedes given block (%p).",
-        //     _firstFree, block);
-        // printFreeSizes();
-        // #endif // DEBUG
         return;
     }
 
     for (BlockInfo * bi = block; bi; bi = bi->_next) {
         if (bi->_type == MEM_BLOCK_FREE) {
             _firstFree = bi;
-
-            #if DEBUG
-            validateAllBlocks();
-            #endif // DEBUG
-
             return;
         }
     }
 
     // should only happen if no free blocks exist
     _firstFree = nullptr;
-
-    #if DEBUG
-    validateAllBlocks();
-    #endif // DEBUG
 }

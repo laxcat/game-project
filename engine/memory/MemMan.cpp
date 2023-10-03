@@ -66,11 +66,6 @@ void MemMan::endFrame() {
 
     autoReleaseEndFrame();
     mergeAllAdjacentFreeBlocks();
-    // updateFirstFree();
-
-    #if DEBUG
-    validateAllBlocks();
-    #endif // DEBUG
 }
 
 void MemMan::shutdown() {
@@ -104,6 +99,10 @@ MemMan::BlockInfo * MemMan::nextBlock(BlockInfo const * block) const {
 
 size_t MemMan::blockCountForDisplayOnly() const {
     return _blockCount;
+}
+
+bool MemMan::isPtrInFSA(void * ptr) const {
+    return (_fsa && _fsa->containsPtr(ptr));
 }
 
 void * MemMan::request(Request const & newRequest) {
@@ -252,31 +251,25 @@ void MemMan::request() {
             releaseBlock(block);
             removeAutoRelease();
         }
-        #if DEBUG
-        validateAllBlocks();
-        #endif // DEBUG
     }
     // do nothing (size=0,ptr=0)
 }
 
-size_t MemMan::sizeOfPtr(void * ptr, bool * isFSA) const {
+size_t MemMan::sizeOfPtr(void * ptr, MemMan::BlockInfo const ** block) const {
     // is it in the FSA?
     uint16_t fsaGroupIndex;
     uint16_t fsaSubBlockIndex;
     if (_fsa && _fsa->indicesForPtr(ptr, &fsaGroupIndex, &fsaSubBlockIndex)) {
-        if (isFSA) {
-            *isFSA = true;
+        if (block) {
+            *block = _fsaBlock;
         }
         return 2 << fsaGroupIndex;
     }
 
     // no? must be in a block
-    if (isFSA) {
-        *isFSA = false;
-    }
-    BlockInfo const * block = blockForPtr(ptr);
-    if (block) {
-        return block->dataSize();
+    *block = blockForPtr(ptr);
+    if (*block) {
+        return (*block)->dataSize();
     }
 
     // not found
@@ -426,6 +419,7 @@ void MemMan::validateAllBlocks() {
     size_t i = 0;
     BlockInfo * checkFirstFree = nullptr;
     size_t totalMemManSize = 0;
+    BlockInfo * lastBlock;
     for (BlockInfo * bi = _head; bi; bi = bi->_next) {
         bi->_debug_index = i;
         assert(bi->isValid() && "Block invalid.");
@@ -448,16 +442,42 @@ void MemMan::validateAllBlocks() {
 
         totalMemManSize += bi->blockSize();
         ++i;
+        lastBlock = bi;
     }
 
     // make sure that sum of all blocks' sizes is expected total size.
-    assert(totalMemManSize == _size && "Total of block sizes doesn't match MemMan _size.");
+    if (totalMemManSize != _size){
+        fprintf(stderr, "_size: %zu, totalMemManSize: %zu\n", _size, totalMemManSize);
+        if (_size > totalMemManSize) {
+            fprintf(stderr, "Missing %zu bytes\n", _size - totalMemManSize);
+        }
+        else {
+            fprintf(stderr, "Found extra %zu bytes\n", totalMemManSize - _size);
+        }
+        assert(totalMemManSize == _size && "Total of block sizes doesn't match MemMan _size.");
+    }
+
+    // assert the last block encountered is the tail
+    assert(lastBlock == _tail && "Block list did not reach _tail.");
 
     // if checkFirstFree is nullptr, then no free blocks were found.
     // in that case, check that _firstFree is also nullptr
     if (checkFirstFree == nullptr) {
         assert(_firstFree == nullptr && "No free blocks were found, but _firstFree has a value.");
     }
+
+    // now run everything in reverse to make sure all linkage is correct
+    totalMemManSize = 0;
+    for (BlockInfo * bi = _tail; bi; bi = bi->_prev) {
+        totalMemManSize += bi->blockSize();
+        lastBlock = bi;
+    }
+
+    // make sure we get the same size total from running in reverse
+    assert(totalMemManSize == _size && "Total of block sizes doesn't match MemMan _size.");
+
+    // assert the last block encountered is the tail
+    assert(lastBlock == _head && "Reverse block list did not reach _head.");
 }
 #endif // DEBUG
 
@@ -512,12 +532,13 @@ void MemMan::printResult() const {
 }
 void MemMan::printPtr(void * ptr, uint16_t indent) const {
     if (ptr) {
-        bool isFSA;
-        printl("%*cptr: %p (size: %zu, isFSA: %s)",
+        BlockInfo const * block;
+        printl("%*cptr: %p (size: %zu, block: %p, isFSA: %s)",
             indent, ' ',
             ptr,
-            sizeOfPtr(_request->ptr, &isFSA),
-            isFSA?"YES":"NO"
+            sizeOfPtr(_request->ptr, &block),
+            block,
+            (block && block == _fsaBlock) ? "YES":"NO"
         );
     }
     else {
