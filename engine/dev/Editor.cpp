@@ -416,11 +416,9 @@ void Editor::guiGobjs() {
     if (keyToSwap) {
         Gobj * oldGobj = mm.rendSys.gobjForKey(keyToSwap);
         char const * startPath = nullptr;
-        #if DEBUG
-        if (oldGobj) {
-            startPath = oldGobj->loadedPath;
+        if (oldGobj && oldGobj->loadedDirName) {
+            startPath = oldGobj->loadedDirName;
         }
-        #endif // DEBUG
         nfdchar_t * outPath = NULL;
         nfdresult_t result = NFD_OpenDialog(NULL, startPath, &outPath);
 

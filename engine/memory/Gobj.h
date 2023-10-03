@@ -278,8 +278,9 @@ public:
     char const * version = nullptr;
     char const * minVersion = nullptr;
 
+    char const * loadedDirName = nullptr;
+
     #if DEBUG
-    char const * loadedPath = nullptr;
     char const * jsonStr = nullptr;
     #endif // DEBUG
 
@@ -420,13 +421,13 @@ public:
     };
 
     struct Image {
-        // TODO: add URI
         enum MIMEType {
             TYPE_JPEG,
             TYPE_PNG,
         };
         MIMEType mimeType = TYPE_PNG;
         BufferView * bufferView = nullptr;
+        char const * uri = nullptr;
         char const * name = nullptr;
 
         void * decoded = nullptr;

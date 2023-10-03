@@ -116,13 +116,14 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     }
 
     // base path of gltf
-    BlockInfo * pathBlock = createBlock({
-        .size = strlen(gltfPath),
+    uint32_t gltfPathLen = strlen(gltfPath);
+    BlockInfo * dirNameBlock = createBlock({
+        .size = gltfPathLen,
         .lifetime = 0,
         .high = true
     });
-    char * basePath = (char *)pathBlock->data();
-    getPath(gltfPath, basePath);
+    char * dirName = (char *)dirNameBlock->data();
+    uint32_t dirNameLen = (uint32_t)copyDirName(dirName, gltfPath);
 
     // LOADER 4
     BlockInfo * loaderBlock = createBlock({
@@ -130,18 +131,16 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
         .lifetime = 0,
         .high = true
     });
-    GLTFLoader * loader = new (loaderBlock->data()) GLTFLoader{gltf->data(), basePath};
+    GLTFLoader * loader = new (loaderBlock->data()) GLTFLoader{gltf->data(), dirName};
     if (loader->validData() == false) {
         fprintf(stderr, "Error creating loader block\n");
         return nullptr;
     }
 
-    // create room to save the loadedPath string
-    #if DEBUG
+    // create room to save the loadedDirName string
     loader->setCounts({
-        .allStrLen = (uint32_t)strlen(gltfPath) + 1,
+        .allStrLen = dirNameLen + 1,
     });
-    #endif // DEBUG
 
     // calc size
     loader->calculateSize();
@@ -166,10 +165,11 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
         return nullptr;
     }
 
-    // set loadedPath
-    #if DEBUG
-    gobj->loadedPath = gobj->strings->formatStr("%s", gltfPath);
-    #endif // DEBUG
+    // set loadedDirName
+    gobj->loadedDirName = gobj->strings->writeStr(dirName, dirNameLen);
+
+    // bytesLeft should be 0 at this point.
+    assert(gobj->strings->bytesLeft() == 0 && "Miscalculation in string buffer. Should be full.");
 
     gobj->setStatus(Gobj::STATUS_LOADED);
 

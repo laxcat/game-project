@@ -61,6 +61,65 @@ bool strWithin(char const * str, char const * strGroup, char sep) {
     return false;
 }
 
+// https://stackoverflow.com/a/14530993
+void urldecode2(char * dst, char const * src) {
+    char a, b;
+    int extra = 0;
+    // fill the remaining dst buffer with \0 if same as src
+    bool fillDstBuffer = (dst == src);
+    while (*src) {
+        if ((*src == '%') &&
+            ((a = src[1]) && (b = src[2])) &&
+            (isxdigit(a) && isxdigit(b)))
+        {
+            if (a >= 'a')
+                a -= 'a'-'A';
+            if (a >= 'A')
+                a -= ('A' - 10);
+            else
+                a -= '0';
+            if (b >= 'a')
+                b -= 'a'-'A';
+            if (b >= 'A')
+                b -= ('A' - 10);
+            else
+                b -= '0';
+            *dst++ = 16*a+b;
+            src += 3;
+            extra += 2;
+        }
+        else if (*src == '+') {
+            *dst++ = ' ';
+            src++;
+        }
+        else {
+            *dst++ = *src++;
+        }
+    }
+    *dst = '\0';
+    if (fillDstBuffer) {
+        while(extra) {
+            *dst++ = '\0';
+            --extra;
+        }
+    }
+}
+int urldecode2_length(char const * src) {
+    int length = 0;
+    char a, b;
+    while (*src) {
+        if (*src == '%' && isxdigit(src[1]) && isxdigit(src[2])) {
+            ++length;
+            src += 3;
+        }
+        else {
+            ++length;
+            ++src;
+        }
+    }
+    return length;
+}
+
 // ImageData loadImageBase64(char const * data, size_t length) {
 //     if (strEqu("data:image/jpeg;base64,", data, 23)) {
 //         data   += 23;

@@ -6,6 +6,7 @@
 #include "../common/string_utils.h"
 #include "../render/bgfx_extra.h"
 #include "../memory/CharKeys.h"
+#include "../memory/File.h"
 
 #if FORCE_OPENGL
     #include "../shader/shaders/standard/vs_standard.sc.glsl.bin.h"
@@ -366,8 +367,8 @@ void RenderSystem::addHandles(Gobj * gobj) {
         if (tex->renderHandle != UINT16_MAX) {
             continue;
         }
-        mm.createWorker([this, tex]{
-            bimg::ImageContainer * imgc = decodeImage(tex->source);
+        mm.createWorker([this, tex, gobj]{
+            bimg::ImageContainer * imgc = decodeImage(tex->source, gobj->loadedDirName);
             if (imgc == nullptr) {
                 return;
             }
@@ -397,7 +398,7 @@ void RenderSystem::addHandles(Gobj * gobj) {
     }
 }
 
-bimg::ImageContainer * RenderSystem::decodeImage(Gobj::Image * img) {
+bimg::ImageContainer * RenderSystem::decodeImage(Gobj::Image * img, char const * loadedDirName) {
     if (!img) return nullptr;
     if (img->decoded) return (bimg::ImageContainer *)img->decoded;
 
@@ -409,9 +410,19 @@ bimg::ImageContainer * RenderSystem::decodeImage(Gobj::Image * img) {
         data = bv.buffer->data + bv.byteOffset;
         dataSize = bv.byteLength;
     }
-    // encoded image data is in external file or base64 string
+    // encoded image data is in external file
+    else if (img->uri) {
+        if (strlen(img->uri) >= 8 && strEqu(img->uri, "data:app", 8)) {
+            fprintf(stderr, "data-encoded image URIs not supported.\n");
+            return nullptr;
+        }
+        char const * fullPath = mm.frameFormatStr("%s%s", loadedDirName, img->uri);
+        File * f = mm.memMan.createFileHandle(fullPath, true, {.high=true, .lifetime=0});
+        data = f->data();
+        dataSize = f->size();
+    }
     else {
-        fprintf(stderr, "Seperate file and base64-encoded images are not supported.\n");
+        fprintf(stderr, "No bufferView or URI set on Gobj::Image (%p).\n", img);
         return nullptr;
     }
 

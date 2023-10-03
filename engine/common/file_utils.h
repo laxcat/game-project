@@ -26,12 +26,12 @@ inline long getFileSize(char const * path) {
 }
 
 // buf should have at least strlen(file) bytes available
-inline void getPath(char const * file, char * buf) {
+inline int copyDirName(char * buf, char const * file) {
     int i = 0;
     int lastSlash = 0;
     while (file[i]) {
         if (file[i] == '/') lastSlash = i;
         ++i;
     }
-    snprintf(buf, lastSlash + 2, "%.*s", lastSlash + 1, file);
+    return snprintf(buf, lastSlash + 2, "%.*s", lastSlash + 1, file);
 }

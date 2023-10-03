@@ -50,6 +50,15 @@ bool GLTFLoader::Counter::String(char const * str, uint32_t length, bool copy) {
     ) {
         l->_counts.allStrLen += length + 1;
     }
+
+    // image URIs
+    else if (
+        l->crumb(-1).matches(TYPE_ARR, "images") &&
+        strEqu(l->_key, "uri")
+    ) {
+        l->_counts.allStrLen += length + 1;
+    }
+
     return true;
 }
 
@@ -971,10 +980,13 @@ bool GLTFLoader::handleImage(GLTFLoader * l, Gobj * g, char const * str, uint32_
     switch (c.key[0]) {
     // uri
     case 'u': {
-        fprintf(stderr,
-            "WARNING, external images are not loaded to main memory. "
-            "TODO: load directly to GPU or setup deferred loading.\n"
-        );
+        char * buf = g->strings->writeStr(str, len);
+        // urldecode all strings that aren't data. len<8 strings always get decoded.
+        // don't run strEqu if len is not at least 8.
+        if (len < 8 || strEqu(buf, "data:app", 8) == false) {
+            urldecode2(buf, buf);
+        }
+        img->uri = buf;
         break; }
     // mimeType
     case 'm': {

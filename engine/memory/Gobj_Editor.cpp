@@ -56,17 +56,17 @@ void Gobj::editorEditBlock() {
         TextUnformatted(jsonStr);
     }
     #endif // DEBUG
-    if (CollapsingHeader("Hierarchy")) {
-        for (uint16_t i = 0; i < counts.scenes; ++i) {
-            Scene const & s = scenes[i];
-            if (TreeNode("Scene", "Scene %d (%s)", i, s.name)) {
-                // printl("scene nNode %d", s.nNodes);
-                for (uint16_t j = 0; j < s.nNodes; ++j) {
-                    // printl("scene node %d: %d", i, s.nodes[i]);
-                    // drawNode(nodes + s.nodes[i]);
-                }
-                TreePop();
-            }
-        }
-    }
+    // if (CollapsingHeader("Hierarchy")) {
+    //     for (uint16_t i = 0; i < counts.scenes; ++i) {
+    //         Scene const & s = scenes[i];
+    //         if (TreeNode("Scene", "Scene %d (%s)", i, s.name)) {
+    //             // printl("scene nNode %d", s.nNodes);
+    //             for (uint16_t j = 0; j < s.nNodes; ++j) {
+    //                 // printl("scene node %d: %d", i, s.nodes[i]);
+    //                 // drawNode(nodes + s.nodes[i]);
+    //             }
+    //             TreePop();
+    //         }
+    //     }
+    // }
 }

@@ -52,7 +52,7 @@ private:
     CharKeys * renderList = nullptr;
     
     void addHandles(Gobj * gobj);
-    bimg::ImageContainer * decodeImage(Gobj::Image * img);
+    bimg::ImageContainer * decodeImage(Gobj::Image * img, char const * loadedDirName);
     void removeHandles(Gobj * gobj);
 
     #if DEV_INTERFACE

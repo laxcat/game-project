@@ -15,6 +15,10 @@ bool strEqu(char const * strA, char const * strB, size_t length);
 // strWithin("hell", "hello,goodbye") // return false
 bool strWithin(char const * str, char const * strGroup, char sep = ',');
 
+// https://stackoverflow.com/a/14530993
+void urldecode2(char * dst, char const * src);
+int urldecode2_length(char const * src);
+
 // struct ImageData {
 //     byte_t * data;
 //     int width = 0;

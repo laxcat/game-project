@@ -24,6 +24,7 @@ public:
     size_t head() const { return _head; }
     byte_t * data() const { return (byte_t *)this + sizeof(FrameStack); }
     byte_t * dataHead() const { return data() + _head; }
+    size_t bytesLeft() const { return _size - _head; }
 
     template <typename T>
     T * alloc(size_t count = 1) {

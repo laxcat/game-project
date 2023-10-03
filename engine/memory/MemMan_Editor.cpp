@@ -175,7 +175,7 @@ void MemMan::editor() {
     SameLine();
     TextUnformatted("Filter:");
     SameLine();
-    static MemBlockType filterType = MEM_BLOCK_GOBJ;
+    static MemBlockType filterType = MEM_BLOCK_FILTER_ALL;
     if (BeginCombo("###MemBlockFilterType", memBlockTypeStr(filterType))) {
         for (int i = MEM_BLOCK_FREE; i <= MEM_BLOCK_FILTER_ALL; ++i) {
             if (Selectable(memBlockTypeStr((MemBlockType)i))) {
