@@ -215,7 +215,7 @@ private:
     // consumes next block if free
     BlockInfo * mergeWithNextBlock(BlockInfo * block);
     // link prev/next for internal linkage of list of blocks. (will not set blockList[0]->_prev, etc)
-    // first/last blocks in list might be nullptr if just removed, so adjacent blocks can update links.
+    // first/last blocks in list might be nullptr
     void linkBlockList(BlockInfo ** blockList, uint16_t nBlocks);
     template <typename ... T>
     void linkBlocks(T && ... blocks);

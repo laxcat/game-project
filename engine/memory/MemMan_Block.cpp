@@ -106,7 +106,6 @@ MemMan::BlockInfo * MemMan::claimBlock(BlockInfo * block) {
         block = realignBlock(block, newPadding);
     }
 
-
     block->_type = MEM_BLOCK_CLAIMED;
     // create free block, leaving this block at requested size
     // (might fail but that's ok)
@@ -117,6 +116,7 @@ MemMan::BlockInfo * MemMan::claimBlock(BlockInfo * block) {
     memset(block->data(), 0, block->_dataSize);
     #endif // DEBUG
 
+    // block may have moved in realign, so link all three
     linkBlocks(block->_prev, block, block->_next);
 
     return block;
@@ -154,8 +154,6 @@ MemMan::BlockInfo * MemMan::claimBlockBack(BlockInfo * block) {
     // set new block info
     BlockInfo * newBlock = new (newBlockAlignedPtr) BlockInfo{};
     newBlock->_padding = (uint32_t)newBlockPadding;
-    // newBlock->_prev = block;
-    // newBlock->_next = block->_next;
     newBlock->_type = MEM_BLOCK_CLAIMED;
     newBlock->_dataSize = (block->data() + block->_dataSize) - newBlock->data();
 
@@ -171,6 +169,7 @@ MemMan::BlockInfo * MemMan::claimBlockBack(BlockInfo * block) {
     memset(block->data(), 0, block->_dataSize);
     #endif // DEBUG
 
+    // block never realigns, so block->_prev not necessary
     linkBlocks(block, newBlock, block->_next);
 
     return newBlock;
