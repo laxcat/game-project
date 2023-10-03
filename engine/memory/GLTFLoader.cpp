@@ -983,7 +983,7 @@ bool GLTFLoader::handleImage(GLTFLoader * l, Gobj * g, char const * str, uint32_
         char * buf = g->strings->writeStr(str, len);
         // urldecode all strings that aren't data. len<8 strings always get decoded.
         // don't run strEqu if len is not at least 8.
-        if (len < 8 || strEqu(buf, "data:app", 8) == false) {
+        if (len < 8 || strEqu(buf, "data:ima", 8) == false) {
             urldecode2(buf, buf);
         }
         img->uri = buf;

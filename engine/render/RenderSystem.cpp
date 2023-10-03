@@ -3,6 +3,7 @@
 #include <bimg/decode.h>
 #include <bx/error.h>
 #include "../MrManager.h"
+#include "../common/modp_b64.h"
 #include "../common/string_utils.h"
 #include "../render/bgfx_extra.h"
 #include "../memory/CharKeys.h"
@@ -45,7 +46,7 @@ void RenderSystem::init() {
     fog.init();
     colors.init();
     materialBaseColor = bgfx::createUniform("u_materialBaseColor", bgfx::UniformType::Vec4);
-    materialPBRValues = bgfx::createUniform("u_materialPBRValues",  bgfx::UniformType::Vec4);
+    materialPBRValues = bgfx::createUniform("u_materialPBRValues", bgfx::UniformType::Vec4);
     normModel = bgfx::createUniform("u_normModel", bgfx::UniformType::Mat3);
 
     renderList = mm.memMan.createCharKeys(8);
@@ -412,14 +413,27 @@ bimg::ImageContainer * RenderSystem::decodeImage(Gobj::Image * img, char const *
     }
     // encoded image data is in external file
     else if (img->uri) {
-        if (strlen(img->uri) >= 8 && strEqu(img->uri, "data:app", 8)) {
-            fprintf(stderr, "data-encoded image URIs not supported.\n");
-            return nullptr;
+        // data encoded image
+        if (strlen(img->uri) >= 8 && strEqu(img->uri, "data:ima", 8)) {
+            static char const * isDataStr = "data:image/png;base64,";
+            static size_t isDataLen = strlen(isDataStr);
+            assert(strEqu(img->uri, isDataStr, isDataLen) && "Unexpected data string header.");
+
+            size_t b64StrLen = strlen(img->uri) - isDataLen;
+            dataSize = modp_b64_decode_len(b64StrLen);
+            data = (byte_t *)mm.memMan.request({.size=dataSize, .high=true, .lifetime=0});
+            modp_b64_decode((char *)data, (char *)img->uri + isDataLen, b64StrLen);
+
+            // fprintf(stderr, "data-encoded image URIs not supported.\n");
+            // return nullptr;
         }
-        char const * fullPath = mm.frameFormatStr("%s%s", loadedDirName, img->uri);
-        File * f = mm.memMan.createFileHandle(fullPath, true, {.high=true, .lifetime=0});
-        data = f->data();
-        dataSize = f->size();
+        // image file
+        else {
+            char const * fullPath = mm.frameFormatStr("%s%s", loadedDirName, img->uri);
+            File * f = mm.memMan.createFileHandle(fullPath, true, {.high=true, .lifetime=0});
+            data = f->data();
+            dataSize = f->size();
+        }
     }
     else {
         fprintf(stderr, "No bufferView or URI set on Gobj::Image (%p).\n", img);
