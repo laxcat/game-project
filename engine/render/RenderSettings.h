@@ -11,7 +11,7 @@
 class RenderSettings {
 public:
     struct User {
-        int msaa = 0;
+        int msaa = 2;
         bool vsync = true;
         bool maxAnisotropy = false;
 
@@ -66,9 +66,12 @@ public:
 
         bgfxInit.resolution.reset = 0;
         if (user.vsync)             bgfxInit.resolution.reset |= BGFX_RESET_VSYNC;
-        if (user.msaa == 4)         bgfxInit.resolution.reset |= BGFX_RESET_MSAA_X4;
-        else if (user.msaa == 8)    bgfxInit.resolution.reset |= BGFX_RESET_MSAA_X8;
-        else if (user.msaa == 16)   bgfxInit.resolution.reset |= BGFX_RESET_MSAA_X16;
+        switch (user.msaa) {
+        case  2: {                  bgfxInit.resolution.reset |= BGFX_RESET_MSAA_X2;  break; }
+        case  4: {                  bgfxInit.resolution.reset |= BGFX_RESET_MSAA_X4;  break; }
+        case  8: {                  bgfxInit.resolution.reset |= BGFX_RESET_MSAA_X8;  break; }
+        case 16: {                  bgfxInit.resolution.reset |= BGFX_RESET_MSAA_X16; break; }
+        }
         if (user.maxAnisotropy)     bgfxInit.resolution.reset |= BGFX_RESET_MAXANISOTROPY;
 
         state = 0

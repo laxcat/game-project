@@ -59,14 +59,15 @@ void Editor::guiRendering() {
     if (CollapsingHeader("Rendering")) {
         auto user = mm.rendSys.settings.user;
 
-        char const * items[] = {"Off", "x4", "x8", "x16"};
-        int values[] = {0, 4, 8, 16};
+        char const * items[] = {"Off", "x2", "x4", "x8", "x16"};
+        int values[] = {0, 2, 4, 8, 16};
         int current;
         switch (mm.rendSys.settings.user.msaa) {
         default: { current = 0; break; }
-        case  4: { current = 1; break; }
-        case  8: { current = 2; break; }
-        case 16: { current = 3; break; }
+        case  2: { current = 1; break; }
+        case  4: { current = 2; break; }
+        case  8: { current = 3; break; }
+        case 16: { current = 4; break; }
         }
         char const * item = items[current];
         PushItemWidth(60);
