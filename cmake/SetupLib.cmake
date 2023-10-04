@@ -313,6 +313,8 @@ macro(SetupLib_stb)
         FetchContent_MakeAvailable(stb_content)
     endif()
     list(APPEND SetupLib_include_dirs "${stb_content_SOURCE_DIR}")
+    # configure stb libraries modifying common/stb.cpp
+    list(APPEND SetupLib_sources "${CMAKE_CURRENT_SOURCE_DIR}/common/stb.cpp")
 endmacro()
 
 
