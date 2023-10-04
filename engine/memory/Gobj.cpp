@@ -791,6 +791,9 @@ char const * Gobj::attrStr(Gobj::Attr attr) {
     }
 }
 
+Gobj::Attr Gobj::texCoordAttr(int index) {
+    return (Attr)((int)ATTR_TEXCOORD0 + index);
+}
 
 #if DEBUG || DEV_INTERFACE
 

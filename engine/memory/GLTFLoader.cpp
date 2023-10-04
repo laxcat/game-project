@@ -1026,7 +1026,7 @@ bool GLTFLoader::handleMaterial(GLTFLoader * l, Gobj * g, char const * str, uint
                 // index
                 case 'i': { mat->emissiveTexture = g->textures + n; break; }
                 // texCoord
-                case 't': { mat->emissiveTexCoord = (Gobj::Attr)(int)n; break; }
+                case 't': { mat->emissiveTexCoord = Gobj::texCoordAttr((int)n); break; }
                 }
                 return true;
             };
@@ -1057,7 +1057,7 @@ bool GLTFLoader::handleMaterial(GLTFLoader * l, Gobj * g, char const * str, uint
                 // scale
                 case 's': { mat->normalScale = n; break; }
                 // texCoord
-                case 't': { mat->normalTexCoord = (Gobj::Attr)(int)n; break; }
+                case 't': { mat->normalTexCoord = Gobj::texCoordAttr((int)n); break; }
                 }
                 return true;
             };
@@ -1076,7 +1076,7 @@ bool GLTFLoader::handleMaterial(GLTFLoader * l, Gobj * g, char const * str, uint
             // strength
             case 's': { mat->occlusionStrength = n; break; }
             // texCoord
-            case 't': { mat->occlusionTexCoord = (Gobj::Attr)(int)n; break; }
+            case 't': { mat->occlusionTexCoord = Gobj::texCoordAttr((int)n); break; }
             }
             return true;
         };
@@ -1103,7 +1103,7 @@ bool GLTFLoader::handleMaterial(GLTFLoader * l, Gobj * g, char const * str, uint
                         // index
                         case 'i': { mat->baseColorTexture = g->textures + n; break; }
                         // texCoord
-                        case 't': { mat->baseColorTexCoord = (Gobj::Attr)(int)n; break; }
+                        case 't': { mat->baseColorTexCoord = Gobj::texCoordAttr((int)n); break; }
                         }
                         return true;
                     };
@@ -1123,7 +1123,7 @@ bool GLTFLoader::handleMaterial(GLTFLoader * l, Gobj * g, char const * str, uint
                         // index
                         case 'i': { mat->metallicRoughnessTexture = g->textures + n; break; }
                         // texCoord
-                        case 't': { mat->metallicRoughnessTexCoord = (Gobj::Attr)(int)n; break; }
+                        case 't': { mat->metallicRoughnessTexCoord = Gobj::texCoordAttr((int)n); break; }
                         }
                         return true;
                     };

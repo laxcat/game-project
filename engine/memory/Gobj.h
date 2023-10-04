@@ -645,6 +645,8 @@ public:
     static Attr attrFromStr(char const * str);
     // to string
     static char const * attrStr(Gobj::Attr attr);
+    // attr conversion
+    static Attr texCoordAttr(int index);
 
 // -------------------------------------------------------------------------- //
 // DEBUG
