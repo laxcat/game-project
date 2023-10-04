@@ -232,6 +232,310 @@ bool Gobj::isReadyToDraw() const {
     return (_status == STATUS_READY_TO_DRAW);
 }
 
+void Gobj::copy(Gobj * src) {
+    memcpy(strings, src->strings, src->strings->totalSize());
+    for (uint16_t i = 0; i < src->counts.accessors; ++i) {
+        accessors[i].copy(src->accessors + i, this, src);
+    }
+    for (uint16_t i = 0; i < src->counts.animations; ++i) {
+        animations[i].copy(src->animations + i, this, src);
+    }
+    for (uint16_t i = 0; i < src->counts.animationChannels; ++i) {
+        animationChannels[i].copy(src->animationChannels + i, this, src);
+    }
+    for (uint16_t i = 0; i < src->counts.animationSamplers; ++i) {
+        animationSamplers[i].copy(src->animationSamplers + i, this, src);
+    }
+    for (uint16_t i = 0; i < src->counts.buffers; ++i) {
+        buffers[i].copy(src->buffers + i, this, src);
+    }
+    for (uint16_t i = 0; i < src->counts.bufferViews; ++i) {
+        bufferViews[i].copy(src->bufferViews + i, this, src);
+    }
+    for (uint16_t i = 0; i < src->counts.cameras; ++i) {
+        cameras[i].copy(src->cameras + i, this, src);
+    }
+    for (uint16_t i = 0; i < src->counts.images; ++i) {
+        images[i].copy(src->images + i, this, src);
+    }
+    for (uint16_t i = 0; i < src->counts.materials; ++i) {
+        materials[i].copy(src->materials + i, this, src);
+    }
+    for (uint16_t i = 0; i < src->counts.meshes; ++i) {
+        meshes[i].copy(src->meshes + i, this, src);
+    }
+    for (uint16_t i = 0; i < src->counts.meshAttributes; ++i) {
+        meshAttributes[i].copy(src->meshAttributes + i, this, src);
+    }
+    for (uint16_t i = 0; i < src->counts.meshPrimitives; ++i) {
+        meshPrimitives[i].copy(src->meshPrimitives + i, this, src);
+    }
+    for (uint16_t i = 0; i < src->counts.meshTargets; ++i) {
+        meshTargets[i].copy(src->meshTargets + i, this, src);
+    }
+    memcpy(meshWeights, src->meshWeights, sizeof(float) * src->counts.meshWeights);
+    for (uint16_t i = 0; i < src->counts.nodes; ++i) {
+        nodes[i].copy(src->nodes + i, this, src);
+    }
+    for (uint16_t i = 0; i < src->counts.nodeChildren; ++i) {
+        nodeChildren[i] = src->nodeRelPtr(src->nodeChildren[i], this);
+    }
+    memcpy(nodeWeights, src->nodeWeights, sizeof(float) * src->counts.nodeWeights);
+    for (uint16_t i = 0; i < src->counts.samplers; ++i) {
+        samplers[i].copy(src->samplers + i, this, src);
+    }
+    for (uint16_t i = 0; i < src->counts.scenes; ++i) {
+        scenes[i].copy(src->scenes + i, this, src);
+    }
+    for (uint16_t i = 0; i < src->counts.skins; ++i) {
+        skins[i].copy(src->skins + i, this, src);
+    }
+    for (uint16_t i = 0; i < src->counts.textures; ++i) {
+        textures[i].copy(src->textures + i, this, src);
+    }
+    memcpy(rawData, src->rawData, src->counts.rawDataLen);
+    counts = src->counts;
+    scene = src->sceneRelPtr(src->scene, this);
+    copyright = src->stringRelPtr(src->copyright, this);
+    generator = src->stringRelPtr(src->generator, this);
+    version = src->stringRelPtr(src->version, this);
+    minVersion = src->stringRelPtr(src->minVersion, this);
+    loadedDirName = src->stringRelPtr(src->loadedDirName, this);
+    #if DEBUG
+    jsonStr = src->stringRelPtr(src->jsonStr, this);
+    #endif // DEBUG
+}
+
+void Gobj::Accessor::copy(Accessor * accessor, Gobj * dst, Gobj * src) {
+    memcpy(this, accessor, sizeof(Accessor));
+    bufferView = src->bufferViewRelPtr(accessor->bufferView, dst);
+    name = src->stringRelPtr(accessor->name, dst);
+    renderHandle = UINT16_MAX;
+}
+
+void Gobj::Animation::copy(Animation * animation, Gobj * dst, Gobj * src) {
+    channels = src->animationChannelRelPtr(animation->channels, dst);
+    nChannels = animation->nChannels;
+    samplers = src->animationSamplerRelPtr(animation->samplers, dst);
+    nSamplers = animation->nSamplers;
+    name = src->stringRelPtr(animation->name, dst);
+}
+
+void Gobj::AnimationChannel::copy(AnimationChannel * channel, Gobj * dst, Gobj * src) {
+    sampler = dst->animationSamplers + (channel->sampler - src->animationSamplers);
+    node = dst->nodes + (channel->node - src->nodes);
+    path = channel->path;
+}
+
+void Gobj::AnimationSampler::copy(AnimationSampler * sampler, Gobj * dst, Gobj * src) {
+    input = dst->accessors + (sampler->input - src->accessors);
+    interpolation = sampler->interpolation;
+    output = dst->accessors + (sampler->output - src->accessors);
+}
+
+void Gobj::Buffer::copy(Buffer * buffer, Gobj * dst, Gobj * src) {
+    data = src->rawDataRelPtr(buffer->data, dst);
+    byteLength = buffer->byteLength;
+    name = src->stringRelPtr(buffer->name, dst);
+}
+
+void Gobj::BufferView::copy(BufferView * bufferView, Gobj * dst, Gobj * src) {
+    buffer = src->bufferRelPtr(bufferView->buffer, dst);
+    byteOffset = bufferView->byteOffset;
+    byteLength = bufferView->byteLength;
+    byteStride = bufferView->byteStride;
+    target = bufferView->target;
+    name = src->stringRelPtr(bufferView->name, dst);
+}
+
+void Gobj::Camera::copy(Camera * camera, Gobj * dst, Gobj * src) {
+    memcpy(_data, camera->_data, sizeof(float) * 4);
+    orthographic = (camera->orthographic) ? (CameraOrthographic *)_data : nullptr;
+    perspective = (camera->perspective)   ? (CameraPerspective * )_data : nullptr;
+    type = camera->type;
+    name = src->stringRelPtr(camera->name, dst);
+}
+
+void Gobj::Image::copy(Image * image, Gobj * dst, Gobj * src) {
+    mimeType = image->mimeType;
+    bufferView = src->bufferViewRelPtr(image->bufferView, dst);
+    uri  = src->stringRelPtr(image->uri, dst);
+    name = src->stringRelPtr(image->name, dst);
+}
+
+void Gobj::Material::copy(Material * material, Gobj * dst, Gobj * src) {
+    memcpy(this, material, sizeof(Material));
+    emissiveTexture = src->textureRelPtr(material->emissiveTexture, dst);
+    normalTexture = src->textureRelPtr(material->normalTexture, dst);
+    occlusionTexture = src->textureRelPtr(material->occlusionTexture, dst);
+    baseColorTexture = src->textureRelPtr(material->baseColorTexture, dst);
+    metallicRoughnessTexture = src->textureRelPtr(material->metallicRoughnessTexture, dst);
+    name = src->stringRelPtr(material->name, dst);
+}
+
+void Gobj::Mesh::copy(Mesh * mesh, Gobj * dst, Gobj * src) {
+    primitives = src->meshPrimitiveRelPtr(mesh->primitives, dst);
+    nPrimitives = mesh->nPrimitives;
+    weights = src->meshWeightRelPtr(mesh->weights, dst);
+    nWeights = mesh->nWeights;
+    name = src->stringRelPtr(mesh->name, dst);
+}
+
+void Gobj::MeshAttribute::copy(MeshAttribute * meshAttribute, Gobj * dst, Gobj * src) {
+    type = meshAttribute->type;
+    accessor = src->accessorRelPtr(meshAttribute->accessor, dst);
+}
+
+void Gobj::MeshPrimitive::copy(MeshPrimitive * meshPrimitive, Gobj * dst, Gobj * src) {
+    attributes = src->meshAttributeRelPtr(meshPrimitive->attributes, dst);
+    nAttributes = meshPrimitive->nAttributes;
+    indices = src->accessorRelPtr(meshPrimitive->indices, dst);
+    material = src->materialRelPtr(meshPrimitive->material, dst);
+    mode = meshPrimitive->mode;
+    targets = src->meshTargetRelPtr(meshPrimitive->targets, dst);
+    nTargets = meshPrimitive->nTargets;
+}
+
+void Gobj::MeshTarget::copy(MeshTarget * meshTarget, Gobj * dst, Gobj * src) {
+    attributes = src->meshAttributeRelPtr(meshTarget->attributes, dst);
+    nAttributes = meshTarget->nAttributes;
+}
+
+void Gobj::Node::copy(Node * node, Gobj * dst, Gobj * src) {
+    camera = src->cameraRelPtr(node->camera, dst);
+    children = src->nodeChildrenRelPtr(node->children, dst);
+    nChildren = node->nChildren;
+    skin = src->skinRelPtr(node->skin, dst);
+    matrix = node->matrix;
+    mesh = src->meshRelPtr(node->mesh, dst);
+    rotation = node->rotation;
+    scale = node->scale;
+    translation = node->translation;
+    weights = src->meshWeightRelPtr(node->weights, dst);
+    name = src->stringRelPtr(node->name, dst);
+}
+
+void Gobj::Sampler::copy(Sampler * sampler, Gobj * dst, Gobj * src) {
+    magFilter = sampler->magFilter;
+    minFilter = sampler->minFilter;
+    wrapS = sampler->wrapS;
+    wrapT = sampler->wrapT;
+    name = src->stringRelPtr(sampler->name, dst);
+ }
+
+void Gobj::Scene::copy(Scene * scene, Gobj * dst, Gobj * src) {
+    nodes = src->nodeChildrenRelPtr(scene->nodes, dst);
+    nNodes = scene->nNodes;
+    memcpy(name, scene->name, Scene::NameSize);
+}
+
+void Gobj::Skin::copy(Skin * skin, Gobj * dst, Gobj * src) {
+    inverseBindMatrices = src->accessorRelPtr(skin->inverseBindMatrices, dst);
+    skeleton = src->nodeRelPtr(skin->skeleton, dst);
+    joints = src->nodeChildrenRelPtr(skin->joints, dst);
+    nJoints = skin->nJoints;
+    name = src->stringRelPtr(skin->name, dst);
+}
+
+void Gobj::Texture::copy(Texture * texture, Gobj * dst, Gobj * src) {
+    sampler = src->samplerRelPtr(texture->sampler, dst);
+    source = src->imageRelPtr(texture->source, dst);
+    name = src->stringRelPtr(texture->name, dst);
+}
+
+char const * Gobj::stringRelPtr(char const * str, Gobj * dst) const {
+    if (str == nullptr) return nullptr;
+    return (char const *)dst->strings->data() + (str - (char const *)strings->data());
+}
+Gobj::Accessor * Gobj::accessorRelPtr(Accessor * accessor, Gobj * dst) const {
+    if (accessor == nullptr) return nullptr;
+    return dst->accessors + (accessor - accessors);
+}
+Gobj::Animation * Gobj::animationRelPtr(Animation * animation, Gobj * dst) const {
+    if (animation == nullptr) return nullptr;
+    return dst->animations + (animation - animations);
+}
+Gobj::AnimationChannel * Gobj::animationChannelRelPtr(AnimationChannel * channel, Gobj * dst) const {
+    if (channel == nullptr) return nullptr;
+    return dst->animationChannels + (channel - animationChannels);
+}
+Gobj::AnimationSampler * Gobj::animationSamplerRelPtr(AnimationSampler * sampler, Gobj * dst) const {
+    if (sampler == nullptr) return nullptr;
+    return dst->animationSamplers + (sampler - animationSamplers);
+}
+Gobj::Buffer * Gobj::bufferRelPtr(Buffer * buffer, Gobj * dst) const {
+    if (buffer == nullptr) return nullptr;
+    return dst->buffers + (buffer - buffers);
+}
+Gobj::BufferView * Gobj::bufferViewRelPtr(BufferView * bufferView, Gobj * dst) const {
+    if (bufferView == nullptr) return nullptr;
+    return dst->bufferViews + (bufferView - bufferViews);
+}
+Gobj::Camera * Gobj::cameraRelPtr(Camera * camera, Gobj * dst) const {
+    if (camera == nullptr) return nullptr;
+    return dst->cameras + (camera - cameras);
+}
+Gobj::Image * Gobj::imageRelPtr(Image * image, Gobj * dst) const {
+    if (image == nullptr) return nullptr;
+    return dst->images + (image - images);
+}
+Gobj::Material * Gobj::materialRelPtr(Material * material, Gobj * dst) const {
+    if (material == nullptr) return nullptr;
+    return dst->materials + (material - materials);
+}
+Gobj::Mesh * Gobj::meshRelPtr(Mesh * mesh, Gobj * dst) const {
+    if (mesh == nullptr) return nullptr;
+    return dst->meshes + (mesh - meshes);
+}
+Gobj::MeshAttribute * Gobj::meshAttributeRelPtr(MeshAttribute * meshAttribute, Gobj * dst) const {
+    if (meshAttribute == nullptr) return nullptr;
+    return dst->meshAttributes + (meshAttribute - meshAttributes);
+}
+Gobj::MeshPrimitive * Gobj::meshPrimitiveRelPtr(MeshPrimitive * meshPrimitive, Gobj * dst) const {
+    if (meshPrimitive == nullptr) return nullptr;
+    return dst->meshPrimitives + (meshPrimitive - meshPrimitives);
+}
+Gobj::MeshTarget * Gobj::meshTargetRelPtr(MeshTarget * meshTarget, Gobj * dst) const {
+    if (meshTarget == nullptr) return nullptr;
+    return dst->meshTargets + (meshTarget - meshTargets);
+}
+float * Gobj::meshWeightRelPtr(float * meshWeight, Gobj * dst) const {
+    if (meshWeight == nullptr) return nullptr;
+    return dst->meshWeights + (meshWeight - meshWeights);
+}
+Gobj::Node * Gobj::nodeRelPtr(Node * node, Gobj * dst) const {
+    if (node == nullptr) return nullptr;
+    return dst->nodes + (node - nodes);
+}
+Gobj::Node ** Gobj::nodeChildrenRelPtr(Node ** nodeChildren, Gobj * dst) const {
+    if (nodeChildren == nullptr) return nullptr;
+    return dst->nodeChildren + (nodeChildren - this->nodeChildren);
+}
+float * Gobj::nodeWeightRelPtr(float * nodeWeight, Gobj * dst) const {
+    if (nodeWeight == nullptr) return nullptr;
+    return dst->nodeWeights + (nodeWeight - nodeWeights);
+}
+Gobj::Sampler * Gobj::samplerRelPtr(Sampler * sampler, Gobj * dst) const {
+    if (sampler == nullptr) return nullptr;
+    return dst->samplers + (sampler - samplers);
+}
+Gobj::Scene * Gobj::sceneRelPtr(Scene * scene, Gobj * dst) const {
+    if (scene == nullptr) return nullptr;
+    return dst->scenes + (scene - scenes);
+}
+Gobj::Skin * Gobj::skinRelPtr(Skin * skin, Gobj * dst) const {
+    if (skin == nullptr) return nullptr;
+    return dst->skins + (skin - skins);
+}
+Gobj::Texture * Gobj::textureRelPtr(Texture * texture, Gobj * dst) const {
+    if (texture == nullptr) return nullptr;
+    return dst->textures + (texture - textures);
+}
+byte_t * Gobj::rawDataRelPtr(byte_t * data, Gobj * dst) const {
+    if (data == nullptr) return nullptr;
+    return dst->rawData + (data - rawData);
+}
+
 size_t Gobj::Counts::totalSize() const {
     return
         ALIGN_SIZE(sizeof(Gobj)) +
@@ -259,6 +563,36 @@ size_t Gobj::Counts::totalSize() const {
         ALIGN_SIZE(sizeof(Gobj::Texture)           * textures) +
         ALIGN_SIZE(rawDataLen)
     ;
+}
+
+Gobj::Counts Gobj::Counts::operator+(Counts const & other) const {
+    Counts ret = *this;
+
+    ret.allStrLen          += other.allStrLen;
+    ret.accessors          += other.accessors;
+    ret.animations         += other.animations;
+    ret.animationChannels  += other.animationChannels;
+    ret.animationSamplers  += other.animationSamplers;
+    ret.buffers            += other.buffers;
+    ret.bufferViews        += other.bufferViews;
+    ret.cameras            += other.cameras;
+    ret.images             += other.images;
+    ret.materials          += other.materials;
+    ret.meshes             += other.meshes;
+    ret.meshAttributes     += other.meshAttributes;
+    ret.meshPrimitives     += other.meshPrimitives;
+    ret.meshTargets        += other.meshTargets;
+    ret.meshWeights        += other.meshWeights;
+    ret.nodes              += other.nodes;
+    ret.nodeChildren       += other.nodeChildren;
+    ret.nodeWeights        += other.nodeWeights;
+    ret.samplers           += other.samplers;
+    ret.scenes             += other.scenes;
+    ret.skins              += other.skins;
+    ret.textures           += other.textures;
+    ret.rawDataLen         += other.rawDataLen;
+
+    return ret;
 }
 
 uint8_t Gobj::Accessor::componentCount() const {
@@ -470,27 +804,29 @@ char * Gobj::printToFrameStack() const {
 
     char * str = (char *)fs.dataHead();
 
-    fs.formatPen("Accessors   %011p (%d)\n", accessors,         counts.accessors);
-    fs.formatPen("Animation   %011p (%d)\n", animations,        counts.animations);
-    fs.formatPen("AChannels               (%d)\n",              counts.animationChannels);
-    fs.formatPen("ASamplers               (%d)\n",              counts.animationSamplers);
-    fs.formatPen("Buffers     %011p (%d)\n", buffers,           counts.buffers);
-    fs.formatPen("BufferViews %011p (%d)\n", bufferViews,       counts.bufferViews);
-    fs.formatPen("Cameras     %011p (%d)\n", cameras,           counts.cameras);
-    fs.formatPen("Images      %011p (%d)\n", images,            counts.images);
-    fs.formatPen("Materials   %011p (%d)\n", materials,         counts.materials);
-    fs.formatPen("Meshs       %011p (%d)\n", meshes,            counts.meshes);
-    fs.formatPen("MAttributes %011p (%d)\n", meshAttributes,    counts.meshAttributes);
-    fs.formatPen("MPrimitives %011p (%d)\n", meshPrimitives,    counts.meshPrimitives);
-    fs.formatPen("MTargets    %011p (%d)\n", meshTargets,       counts.meshTargets);
-    fs.formatPen("MWeights    %011p (%d)\n", meshWeights,       counts.meshWeights);
-    fs.formatPen("Nodes       %011p (%d)\n", nodes,             counts.nodes);
-    fs.formatPen("Node Kids   %011p (%d)\n", nodeChildren,      counts.nodeChildren);
-    fs.formatPen("Samplers    %011p (%d)\n", samplers,          counts.samplers);
-    fs.formatPen("Scenes      %011p (%d)\n", scenes,            counts.scenes);
-    fs.formatPen("Skins       %011p (%d)\n", skins,             counts.skins);
-    fs.formatPen("Textures    %011p (%d)\n", textures,          counts.textures);
-    fs.formatPen("raw data    %011p (%zu)\n",rawData,           counts.rawDataLen);
+    fs.formatPen("strings     %011p (%u)\n", strings,           counts.allStrLen);
+    fs.formatPen("Accessors   %011p (%u)\n", accessors,         counts.accessors);
+    fs.formatPen("Animation   %011p (%u)\n", animations,        counts.animations);
+    fs.formatPen("AChannels   %011p (%u)\n", animationChannels, counts.animationChannels);
+    fs.formatPen("ASamplers   %011p (%u)\n", animationSamplers, counts.animationSamplers);
+    fs.formatPen("Buffers     %011p (%u)\n", buffers,           counts.buffers);
+    fs.formatPen("BufferViews %011p (%u)\n", bufferViews,       counts.bufferViews);
+    fs.formatPen("Cameras     %011p (%u)\n", cameras,           counts.cameras);
+    fs.formatPen("Images      %011p (%u)\n", images,            counts.images);
+    fs.formatPen("Materials   %011p (%u)\n", materials,         counts.materials);
+    fs.formatPen("Meshs       %011p (%u)\n", meshes,            counts.meshes);
+    fs.formatPen("MAttributes %011p (%u)\n", meshAttributes,    counts.meshAttributes);
+    fs.formatPen("MPrimitives %011p (%u)\n", meshPrimitives,    counts.meshPrimitives);
+    fs.formatPen("MTargets    %011p (%u)\n", meshTargets,       counts.meshTargets);
+    fs.formatPen("MWeights    %011p (%u)\n", meshWeights,       counts.meshWeights);
+    fs.formatPen("Nodes       %011p (%u)\n", nodes,             counts.nodes);
+    fs.formatPen("Node Kids   %011p (%u)\n", nodeChildren,      counts.nodeChildren);
+    fs.formatPen("NWeights    %011p (%u)\n", nodeWeights,       counts.nodeWeights);
+    fs.formatPen("Samplers    %011p (%u)\n", samplers,          counts.samplers);
+    fs.formatPen("Scenes      %011p (%u)\n", scenes,            counts.scenes);
+    fs.formatPen("Skins       %011p (%u)\n", skins,             counts.skins);
+    fs.formatPen("Textures    %011p (%u)\n", textures,          counts.textures);
+    fs.formatPen("raw data    %011p (%u)\n", rawData,           counts.rawDataLen);
 
     fs.formatPen("scene       %011p (%zu)\n", scene, scene - scenes);
 
@@ -517,6 +853,7 @@ char * Gobj::Counts::printToFrameStack() const {
     char * str = (char *)fs.dataHead();
 
     fs.formatPen("Gobj Counts\n");
+    fs.formatPen("strings len:  %u\n", allStrLen);
     fs.formatPen("Accessor:     %d\n", accessors);
     fs.formatPen("Animation:    %d\n", animations);
     fs.formatPen("AChannels:    %d\n", animationChannels);
@@ -530,12 +867,15 @@ char * Gobj::Counts::printToFrameStack() const {
     fs.formatPen("MAttribute:   %d\n", meshAttributes);
     fs.formatPen("MPrimitive:   %d\n", meshPrimitives);
     fs.formatPen("MTarget:      %d\n", meshTargets);
+    fs.formatPen("MWeights:     %d\n", meshWeights);
     fs.formatPen("Node:         %d\n", nodes);
     fs.formatPen("Node Kids:    %d\n", nodeChildren);
+    fs.formatPen("NWeights:     %d\n", nodeWeights);
     fs.formatPen("Sampler:      %d\n", samplers);
     fs.formatPen("Scene:        %d\n", scenes);
     fs.formatPen("Skin:         %d\n", skins);
     fs.formatPen("Texture:      %d\n", textures);
+    fs.formatPen("raw data size:%u\n", rawDataLen);
     fs.formatPen("Total size: %zu\n", totalSize());
 
     fs.terminatePen();

@@ -172,6 +172,7 @@ public:
 // ENUMS, TYPES
 public:
     struct Counts {
+        uint32_t allStrLen          = 0;
         uint16_t accessors          = 0;
         uint16_t animations         = 0;
         uint16_t animationChannels  = 0;
@@ -182,8 +183,8 @@ public:
         uint16_t images             = 0;
         uint16_t materials          = 0;
         uint16_t meshes             = 0;
-        uint16_t meshPrimitives     = 0;
         uint16_t meshAttributes     = 0;
+        uint16_t meshPrimitives     = 0;
         uint16_t meshTargets        = 0;
         uint16_t meshWeights        = 0;
         uint16_t nodes              = 0;
@@ -193,11 +194,12 @@ public:
         uint16_t scenes             = 0;
         uint16_t skins              = 0;
         uint16_t textures           = 0;
-
-        uint32_t allStrLen          = 0;
         uint32_t rawDataLen         = 0;
 
         size_t totalSize() const;
+
+        Counts operator+(Counts const & other) const;
+
         #if DEBUG || DEV_INTERFACE
         void print() const;
         char * printToFrameStack() const;
@@ -287,17 +289,39 @@ public:
 // INTERFACE
     void setStatus(Status status);
     bool isReadyToDraw() const;
+    void copy(Gobj * srcGobj);
 
-// STATIC INTERFACE
-
-    constexpr size_t DataSize(Counts const & counts) {
-        return counts.totalSize();
-    }
 
 // PRIVATE STORAGE
 private:
     Status _status = STATUS_UNINITIALIZED;
     mutable std::mutex _mutex;
+
+// RELATIVE POINTER FUNCTIONS
+private:
+    char const       * stringRelPtr             (char const * str,              Gobj * dst) const;
+    Accessor         * accessorRelPtr           (Accessor * accessor,           Gobj * dst) const;
+    Animation        * animationRelPtr          (Animation * animation,         Gobj * dst) const;
+    AnimationChannel * animationChannelRelPtr   (AnimationChannel * channel,    Gobj * dst) const;
+    AnimationSampler * animationSamplerRelPtr   (AnimationSampler * sampler,    Gobj * dst) const;
+    Buffer           * bufferRelPtr             (Buffer * buffer,               Gobj * dst) const;
+    BufferView       * bufferViewRelPtr         (BufferView * bufferView,       Gobj * dst) const;
+    Camera           * cameraRelPtr             (Camera * camera,               Gobj * dst) const;
+    Image            * imageRelPtr              (Image * image,                 Gobj * dst) const;
+    Material         * materialRelPtr           (Material * material,           Gobj * dst) const;
+    Mesh             * meshRelPtr               (Mesh * mesh,                   Gobj * dst) const;
+    MeshAttribute    * meshAttributeRelPtr      (MeshAttribute * meshAttribute, Gobj * dst) const;
+    MeshPrimitive    * meshPrimitiveRelPtr      (MeshPrimitive * meshPrimitive, Gobj * dst) const;
+    MeshTarget       * meshTargetRelPtr         (MeshTarget * meshTarget,       Gobj * dst) const;
+    float            * meshWeightRelPtr         (float * meshWeight,            Gobj * dst) const;
+    Node             * nodeRelPtr               (Node * node,                   Gobj * dst) const;
+    Node            ** nodeChildrenRelPtr       (Node ** nodeChildren,          Gobj * dst) const;
+    float            * nodeWeightRelPtr         (float * nodeWeight,            Gobj * dst) const;
+    Sampler          * samplerRelPtr            (Sampler * sampler,             Gobj * dst) const;
+    Scene            * sceneRelPtr              (Scene * scene,                 Gobj * dst) const;
+    Skin             * skinRelPtr               (Skin * skin,                   Gobj * dst) const;
+    Texture          * textureRelPtr            (Texture * texture,             Gobj * dst) const;
+    byte_t           * rawDataRelPtr            (byte_t * data,                 Gobj * dst) const;
 
 // -------------------------------------------------------------------------- //
 // SUB-PARTS
@@ -336,6 +360,8 @@ public:
         uint8_t componentCount() const;
         uint32_t byteSize() const;
 
+        void copy(Accessor * accessor, Gobj * dst, Gobj * src);
+
         #if DEBUG || DEV_INTERFACE
         void print(int indent = 0) const;
         char * printToFrameStack(int indent = 0) const;
@@ -348,6 +374,8 @@ public:
         AnimationSampler * samplers = nullptr;
         uint32_t nSamplers = 0;
         char const * name = nullptr;
+
+        void copy(Animation * animation, Gobj * dst, Gobj * src);
     };
 
     struct AnimationChannel {
@@ -361,6 +389,8 @@ public:
             TARGET_SCALE,
         };
         Target path = TARGET_UNDEFINED;
+
+        void copy(AnimationChannel * channel, Gobj * dst, Gobj * src);
     };
 
     struct AnimationSampler {
@@ -372,12 +402,16 @@ public:
         };
         Interpolation interpolation = INTERP_LINEAR;
         Accessor * output = nullptr;
+
+        void copy(AnimationSampler * sampler, Gobj * dst, Gobj * src);
     };
 
     struct Buffer {
         byte_t * data = nullptr;
         uint32_t byteLength = 0;
         char const * name = nullptr;
+
+        void copy(Buffer * buffer, Gobj * dst, Gobj * src);
     };
 
     struct BufferView {
@@ -391,6 +425,8 @@ public:
         };
         Target target = ARRAY_BUFFER;
         char const * name = nullptr;
+
+        void copy(BufferView * bufferView, Gobj * dst, Gobj * src);
     };
 
     struct Camera {
@@ -404,6 +440,8 @@ public:
         char const * name = nullptr;
         // pointed to by orthographic or perspective
         float _data[4] = {0.f};
+
+        void copy(Camera * camera, Gobj * dst, Gobj * src);
     };
 
     struct CameraOrthographic {
@@ -431,6 +469,8 @@ public:
         char const * name = nullptr;
 
         void * decoded = nullptr;
+
+        void copy(Image * image, Gobj * dst, Gobj * src);
     };
 
     struct Material {
@@ -462,6 +502,8 @@ public:
             Attr metallicRoughnessTexCoord = ATTR_TEXCOORD0;
             float roughnessFactor = 1.f;
         char const * name = nullptr;
+
+        void copy(Material * material, Gobj * dst, Gobj * src);
     };
 
     struct Mesh {
@@ -470,11 +512,15 @@ public:
         float * weights = nullptr;
         int nWeights = 0;
         char const * name = nullptr;
+
+        void copy(Mesh * mesh, Gobj * dst, Gobj * src);
     };
 
     struct MeshAttribute {
         Attr type = ATTR_POSITION;
         Accessor * accessor = nullptr;
+
+        void copy(MeshAttribute * meshAttribute, Gobj * dst, Gobj * src);
 
         #if DEBUG || DEV_INTERFACE
         void print(int indent = 0) const;
@@ -499,11 +545,15 @@ public:
         Mode mode = MODE_TRIANGLES;
         MeshTarget * targets = nullptr;
         int nTargets = 0;
+
+        void copy(MeshPrimitive * meshPrimitive, Gobj * dst, Gobj * src);
     };
 
     struct MeshTarget {
         MeshAttribute * attributes = nullptr;
         int nAttributes = 0;
+
+        void copy(MeshTarget * meshTarget, Gobj * dst, Gobj * src);
     };
 
     struct Node {
@@ -526,6 +576,8 @@ public:
         char const * name = nullptr;
 
         void syncMatrixTRS(bool syncChildren = true);
+
+        void copy(Node * node, Gobj * dst, Gobj * src);
     };
 
     struct Sampler {
@@ -547,6 +599,8 @@ public:
         Wrap wrapS = WRAP_CLAMP_TO_EDGE;
         Wrap wrapT = WRAP_CLAMP_TO_EDGE;
         char const * name = nullptr;
+
+        void copy(Sampler * sampler, Gobj * dst, Gobj * src);
     };
 
     struct Scene {
@@ -554,6 +608,8 @@ public:
         int nNodes = 0;
         static constexpr size_t NameSize = 8;
         char name[NameSize] = "";
+
+        void copy(Scene * scene, Gobj * dst, Gobj * src);
     };
 
     struct Skin {
@@ -562,6 +618,8 @@ public:
         Node ** joints = nullptr;
         int nJoints = 0;
         char const * name = nullptr;
+
+        void copy(Skin * skin, Gobj * dst, Gobj * src);
     };
 
     struct Texture {
@@ -570,10 +628,12 @@ public:
         char const * name = nullptr;
 
         uint16_t renderHandle = UINT16_MAX;
+
+        void copy(Texture * texture, Gobj * dst, Gobj * src);
     };
 
 // -------------------------------------------------------------------------- //
-// STRING CONVERSIONS
+// STATIC HELPER CONVERSIONS
 public:
     // from string
     static Accessor::Type accessorTypeFromStr(char const * str);
