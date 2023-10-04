@@ -1,4 +1,9 @@
-SAMPLER2D(s_texColor,  0);
+#include "../../shared_defines.h"
+#include "../../utils.sh"
+
+SAMPLER2D(s_color, TEXTURE_SLOT_COLOR);
+SAMPLER2D(s_norm,  TEXTURE_SLOT_NORM);
+SAMPLER2D(s_metal, TEXTURE_SLOT_METAL);
 
 // material
 uniform vec4 u_materialBaseColor;

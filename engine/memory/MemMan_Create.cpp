@@ -210,6 +210,13 @@ Gobj * MemMan::createGobj(Gobj::Counts const & counts, int lifetime) {
     return new (block->data()) Gobj{counts};
 }
 
+Gobj * MemMan::updateGobj(Gobj * oldGobj, Gobj::Counts additionalCounts) {
+    Gobj * newGobj = createGobj(oldGobj->counts + additionalCounts);
+    newGobj->copy(oldGobj);
+    request({.ptr=oldGobj, .size=0});
+    return newGobj;
+}
+
 void MemMan::createRequestResult() {
     guard_t guard{_mainMutex};
 

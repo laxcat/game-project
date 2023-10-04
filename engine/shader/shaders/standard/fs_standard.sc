@@ -1,8 +1,6 @@
 $input v_texcoord0, v_norm, v_pos
 
 #include <bgfx_shader.sh>
-#include "../../shared_defines.h"
-#include "../../utils.sh"
 #include "../../engine.h"
 
 
@@ -54,7 +52,7 @@ void main() {
     }
 
     // light + object color
-    vec4 objColor = texture2D(s_texColor, v_texcoord0) * u_materialBaseColor;
+    vec4 objColor = texture2D(s_color, v_texcoord0) * u_materialBaseColor;
     vec4 color = vec4((ambient + diffuse * (1.0 - materialMetallic)) * objColor.rgb + specular, objColor.a);
 
     // distance fog

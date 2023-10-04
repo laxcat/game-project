@@ -46,10 +46,10 @@ int MrManager::init(EngineSetup const & setup) {
         // Gobj * g = memMan.createGobj("../../../gltf_assets/Box With Spaces/Box With Spaces.gltf");
         // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoomBox/glTF-Binary/BoomBox.glb");
         // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/Box/glTF-Binary/Box.glb");
-        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/Box With Spaces/glTF/Box With Spaces.gltf");
+        Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/Box With Spaces/glTF/Box With Spaces.gltf");
         // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoxInterleaved/glTF-Binary/BoxInterleaved.glb");
         // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoxTextured/glTF-Binary/BoxTextured.glb");
-        Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoxTextured/glTF-Embedded/BoxTextured.gltf");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoxTextured/glTF-Embedded/BoxTextured.gltf");
         // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/ClearCoatCarPaint/glTF-Binary/ClearCoatCarPaint.glb");
         // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MaterialsVariantsShoe/glTF-Binary/MaterialsVariantsShoe.glb");
         // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb");
@@ -57,6 +57,35 @@ int MrManager::init(EngineSetup const & setup) {
         // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MultipleScenes/glTF-Embedded/MultipleScenes.gltf");
         // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/TextureCoordinateTest/glTF-Binary/TextureCoordinateTest.glb");
         // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/TwoSidedPlane/glTF/TwoSidedPlane.gltf");
+
+        // g = memMan.updateGobj(g, {.materials=1, .textures=1});
+        // Gobj * g2 = memMan.createGobj(g->counts);
+        // g2->copy(g);
+
+        // pointers match?
+        // printl("g %p, g2 %p", g, g2);
+        // byte_t * gb  = (byte_t *)g;
+        // byte_t * gb2 = (byte_t *)g2;
+        // for (int i = 0; i < 23; ++i) {
+        //     size_t offset = i * sizeof(void *);
+        //     byte_t * p  = gb  + offset;
+        //     byte_t * p2 = gb2 + offset;
+        //     void * pp  = (void *)*(size_t *)p ;
+        //     void * pp2 = (void *)*(size_t *)p2;
+        //     ssize_t t  = (pp  == nullptr) ? 0 : (ssize_t)pp  - (ssize_t)(void *)gb;
+        //     ssize_t t2 = (pp2 == nullptr) ? 0 : (ssize_t)pp2 - (ssize_t)(void *)gb2;
+
+        //     printl("i: %2d, "
+        //         "g [%3zu] (%p) = %11p, diff: %15zd, "
+        //         "g2[%3zu] (%p) = %11p, diff: %15zd? "
+        //         "%d",
+        //         i,
+        //         offset, p,  pp,  t,
+        //         offset, p2, pp2, t2,
+        //         t == t2
+        //     );
+        // }
+
         if (g) {
             rendSys.add("test", g);
         }

@@ -4,14 +4,12 @@
 #include "Fog.h"
 #include "Lights.h"
 #include "RenderSettings.h"
-#include "Samplers.h"
 #include "../common/debug_defines.h"
 #include "../memory/MemMan.h"
 #include "../memory/Gobj.h"
 
 class RenderSystem {
 public:
-    Samplers samplers;
     bgfx::ProgramHandle unlitProgram;
     bgfx::ProgramHandle standardProgram;
     Lights lights;
@@ -27,7 +25,8 @@ public:
     uint16_t drawMesh(Gobj * gobj, Gobj::Mesh const & mesh, glm::mat4 const & transform = Identity);
     void shutdown();
 
-    void add(char const * key, Gobj * gobj);
+    // adds gobj. if adds generic materials or other, might return different gobj
+    Gobj * add(char const * key, Gobj * gobj);
     void remove(char const * key);
     // returns gobj at key before update, nullptr if not found
     Gobj * update(char const * key, Gobj * newGobj);
@@ -43,6 +42,9 @@ public:
     size_t renderableCount() const;
 
 private:
+    bgfx::UniformHandle samplerColor;
+    bgfx::UniformHandle samplerNorm;
+    bgfx::UniformHandle samplerMetal;
     bgfx::UniformHandle materialBaseColor;
     bgfx::UniformHandle materialPBRValues;
     bgfx::UniformHandle normModel;
@@ -51,6 +53,9 @@ private:
 
     CharKeys * renderList = nullptr;
     
+    Gobj * addMinReqMat(Gobj * gobj);
+    bool needsMinReqMat(Gobj * gobj);
+    Gobj::Counts countsForMinReqMat(Gobj * gobj);
     void addHandles(Gobj * gobj);
     bimg::ImageContainer * decodeImage(Gobj::Image * img, char const * loadedDirName);
     void removeHandles(Gobj * gobj);
