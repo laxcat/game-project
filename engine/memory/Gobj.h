@@ -270,7 +270,7 @@ public:
     Texture          * textures          = nullptr;
     byte_t           * rawData           = nullptr;
 
-    Counts counts;
+    Counts const counts;
 
     Scene * scene = nullptr;
 

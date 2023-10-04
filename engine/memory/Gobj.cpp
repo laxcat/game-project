@@ -234,67 +234,67 @@ bool Gobj::isReadyToDraw() const {
 
 void Gobj::copy(Gobj * src) {
     memcpy(strings, src->strings, src->strings->totalSize());
-    for (uint16_t i = 0; i < src->counts.accessors; ++i) {
+    for (uint16_t i = 0; i < src->counts.accessors && i < counts.accessors; ++i) {
         accessors[i].copy(src->accessors + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.animations; ++i) {
+    for (uint16_t i = 0; i < src->counts.animations && i < counts.animations; ++i) {
         animations[i].copy(src->animations + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.animationChannels; ++i) {
+    for (uint16_t i = 0; i < src->counts.animationChannels && i < counts.animationChannels; ++i) {
         animationChannels[i].copy(src->animationChannels + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.animationSamplers; ++i) {
+    for (uint16_t i = 0; i < src->counts.animationSamplers && i < counts.animationSamplers; ++i) {
         animationSamplers[i].copy(src->animationSamplers + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.buffers; ++i) {
+    for (uint16_t i = 0; i < src->counts.buffers && i < counts.buffers; ++i) {
         buffers[i].copy(src->buffers + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.bufferViews; ++i) {
+    for (uint16_t i = 0; i < src->counts.bufferViews && i < counts.bufferViews; ++i) {
         bufferViews[i].copy(src->bufferViews + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.cameras; ++i) {
+    for (uint16_t i = 0; i < src->counts.cameras && i < counts.cameras; ++i) {
         cameras[i].copy(src->cameras + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.images; ++i) {
+    for (uint16_t i = 0; i < src->counts.images && i < counts.images; ++i) {
         images[i].copy(src->images + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.materials; ++i) {
+    for (uint16_t i = 0; i < src->counts.materials && i < counts.materials; ++i) {
         materials[i].copy(src->materials + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.meshes; ++i) {
+    for (uint16_t i = 0; i < src->counts.meshes && i < counts.meshes; ++i) {
         meshes[i].copy(src->meshes + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.meshAttributes; ++i) {
+    for (uint16_t i = 0; i < src->counts.meshAttributes && i < counts.meshAttributes; ++i) {
         meshAttributes[i].copy(src->meshAttributes + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.meshPrimitives; ++i) {
+    for (uint16_t i = 0; i < src->counts.meshPrimitives && i < counts.meshPrimitives; ++i) {
         meshPrimitives[i].copy(src->meshPrimitives + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.meshTargets; ++i) {
+    for (uint16_t i = 0; i < src->counts.meshTargets && i < counts.meshTargets; ++i) {
         meshTargets[i].copy(src->meshTargets + i, this, src);
     }
-    memcpy(meshWeights, src->meshWeights, sizeof(float) * src->counts.meshWeights);
-    for (uint16_t i = 0; i < src->counts.nodes; ++i) {
+    memcpy(meshWeights, src->meshWeights, sizeof(float) * min(src->counts.meshWeights, counts.meshWeights));
+    for (uint16_t i = 0; i < src->counts.nodes && i < counts.nodes; ++i) {
         nodes[i].copy(src->nodes + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.nodeChildren; ++i) {
+    for (uint16_t i = 0; i < src->counts.nodeChildren && i < counts.nodeChildren; ++i) {
         nodeChildren[i] = src->nodeRelPtr(src->nodeChildren[i], this);
     }
-    memcpy(nodeWeights, src->nodeWeights, sizeof(float) * src->counts.nodeWeights);
-    for (uint16_t i = 0; i < src->counts.samplers; ++i) {
+    memcpy(nodeWeights, src->nodeWeights, sizeof(float) * min(src->counts.nodeWeights, counts.nodeWeights));
+    for (uint16_t i = 0; i < src->counts.samplers && i < counts.samplers; ++i) {
         samplers[i].copy(src->samplers + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.scenes; ++i) {
+    for (uint16_t i = 0; i < src->counts.scenes && i < counts.scenes; ++i) {
         scenes[i].copy(src->scenes + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.skins; ++i) {
+    for (uint16_t i = 0; i < src->counts.skins && i < counts.skins; ++i) {
         skins[i].copy(src->skins + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.textures; ++i) {
+    for (uint16_t i = 0; i < src->counts.textures && i < counts.textures; ++i) {
         textures[i].copy(src->textures + i, this, src);
     }
-    memcpy(rawData, src->rawData, src->counts.rawDataLen);
-    counts = src->counts;
+    memcpy(rawData, src->rawData, min(src->counts.rawDataLen, counts.rawDataLen));
+    // counts = src->counts; // don't copy the counts! Gobj ctor requires counts and gets set permenantly.
     scene = src->sceneRelPtr(src->scene, this);
     copyright = src->stringRelPtr(src->copyright, this);
     generator = src->stringRelPtr(src->generator, this);
