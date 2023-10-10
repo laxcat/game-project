@@ -12,7 +12,6 @@ inline char const * memBlockTypeStr(MemBlockType type) {
     case MEM_BLOCK_FILE:       return "FILE";
     case MEM_BLOCK_FRAMESTACK: return "FRAMESTACK";
     case MEM_BLOCK_FREELIST:   return "FREELIST";
-    case MEM_BLOCK_GLTF:       return "GLTF";
     case MEM_BLOCK_GOBJ:       return "GOBJ";
     case MEM_BLOCK_POOL:       return "POOL";
     case MEM_BLOCK_BGFX:       return "BGFX";
