@@ -73,4 +73,18 @@ void Gobj::editorEditBlock() {
             TreePop();
         }
     }
+    if (CollapsingHeader("Materials")) {
+        Indent();
+        for (uint16_t i = 0; i < counts.materials; ++i) {
+            Material * mat = materials + i;
+            PushID(mat);
+            char const * title = mm.frameFormatStr("Material %u (%s)", mat - materials, mat->name);
+            if (CollapsingHeader(title)) {
+                ColorEdit4("Base Color", mat->baseColorFactor, ImGuiColorEditFlags_DisplayHex);
+                SliderFloat("Roughness", &mat->roughnessFactor, 0.0f, 1.0f, "%.5f");
+                SliderFloat("Metallic", &mat->metallicFactor, 0.0f, 1.0f, "%.5f");
+            }
+            PopID();
+        }
+    }
 }
