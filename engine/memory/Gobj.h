@@ -4,6 +4,7 @@
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include "../common/AABB.h"
 #include "../common/debug_defines.h"
 #include "../common/types.h"
 
@@ -282,6 +283,8 @@ public:
     Counts const counts;
 
     Scene * scene = nullptr;
+
+    AABB bounds;
 
     // asset
     char const * copyright = nullptr;

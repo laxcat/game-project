@@ -59,6 +59,7 @@ private:
     void addHandles(Gobj * gobj);
     bimg::ImageContainer * decodeImage(Gobj::Image * img, char const * loadedDirName);
     void removeHandles(Gobj * gobj);
+    void updateBounds(Gobj * gobj);
 
     #if DEV_INTERFACE
     friend class Editor;

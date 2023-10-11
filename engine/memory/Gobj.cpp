@@ -885,6 +885,9 @@ char * Gobj::printToFrameStack() const {
     fs.formatPen("version:    %s\n", version);
     fs.formatPen("minVersion: %s\n", minVersion);
 
+    fs.formatPen("bounds min: %14.6f,%14.6f,%14.6f\n", bounds.min.x, bounds.min.y, bounds.min.z);
+    fs.formatPen("bounds max: %14.6f,%14.6f,%14.6f\n", bounds.max.x, bounds.max.y, bounds.max.z);
+
     fs.terminatePen();
 
     // printl("test[[[%s]]]", str);

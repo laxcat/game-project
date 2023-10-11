@@ -271,6 +271,7 @@ Gobj * RenderSystem::add(char const * key, Gobj * gobj) {
     gobj = addMinReqMat(gobj);
     renderList->insert(key, gobj);
     addHandles(gobj);
+    updateBounds(gobj);
 
     return gobj;
 }
@@ -591,4 +592,37 @@ void RenderSystem::removeHandles(Gobj * gobj) {
             // mm.memMan.request({.ptr=tex.source->decoded, .size=0});
         }
     }
+}
+
+void RenderSystem::updateBounds(Gobj * gobj) {
+    gobj->traverse(
+        {.eachPrim = [gobj](Gobj::MeshPrimitive * prim, glm::mat4 const & global){
+            for (int attrIndex = 0; attrIndex < prim->nAttributes; ++attrIndex) {
+                Gobj::MeshAttribute * attr = prim->attributes + attrIndex;
+                if (attr->type == Gobj::ATTR_POSITION) {
+                    glm::vec4 min = global * glm::vec4{*(glm::vec3 *)attr->accessor->min, 1.f};
+                    glm::vec4 max = global * glm::vec4{*(glm::vec3 *)attr->accessor->max, 1.f};
+                    // check both min and max as global scale might have flipped things
+                    // x min
+                    if (gobj->bounds.min.x > min.x) gobj->bounds.min.x = min.x;
+                    if (gobj->bounds.min.x > max.x) gobj->bounds.min.x = max.x;
+                    // x max
+                    if (gobj->bounds.max.x < max.x) gobj->bounds.max.x = max.x;
+                    if (gobj->bounds.max.x < min.x) gobj->bounds.max.x = min.x;
+                    // y min
+                    if (gobj->bounds.min.y > min.y) gobj->bounds.min.y = min.y;
+                    if (gobj->bounds.min.y > max.y) gobj->bounds.min.y = max.y;
+                    // y max
+                    if (gobj->bounds.max.y < max.y) gobj->bounds.max.y = max.y;
+                    if (gobj->bounds.max.y < min.y) gobj->bounds.max.y = min.y;
+                    // z min
+                    if (gobj->bounds.min.z > min.z) gobj->bounds.min.z = min.z;
+                    if (gobj->bounds.min.z > max.z) gobj->bounds.min.z = max.z;
+                    // z max
+                    if (gobj->bounds.max.z < max.z) gobj->bounds.max.z = max.z;
+                    if (gobj->bounds.max.z < min.z) gobj->bounds.max.z = min.z;
+                }
+            }
+        }}
+    );
 }
