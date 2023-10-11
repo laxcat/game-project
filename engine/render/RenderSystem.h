@@ -48,7 +48,6 @@ private:
     bgfx::UniformHandle materialBaseColor;
     bgfx::UniformHandle materialPBRValues;
     bgfx::UniformHandle normModel;
-    bgfx::TextureHandle whiteTexture;
     BXAllocator bxAllocator;
 
     CharKeys * renderList = nullptr;

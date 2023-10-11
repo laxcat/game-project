@@ -52,34 +52,6 @@ void RenderSystem::init() {
     normModel = bgfx::createUniform("u_normModel", bgfx::UniformType::Mat3);
 
     renderList = mm.memMan.createCharKeys(8);
-
-    // 2x2 white png
-    byte_t temp[] = {
-        255,255,255,255,
-        255,255,255,255,
-        255,255,255,255,
-        255,255,255,255
-    };
-    whiteTexture = bgfx::createTexture2D(
-        (uint16_t)2,
-        (uint16_t)2,
-        false,
-        1,
-        bgfx::TextureFormat::Enum::RGBA8,
-        BGFX_TEXTURE_NONE|BGFX_SAMPLER_NONE,
-        bgfx::copy(temp, 16)
-    );
-
-    // int outLen;
-    // // (const unsigned char *pixels, int stride_bytes, int x, int y, int n, int *out_len)
-    // unsigned char * png = stbi_write_png_to_mem(temp, 8, 2, 2, 4, &outLen);
-    // char * pngBase64 = (char *)malloc(modp_b64_encode_len(outLen));
-    // modp_b64_encode(pngBase64, (char const *)png, outLen);
-    // printl("WHITE PNG BASE 64:");
-    // printl("%s", pngBase64);
-    // printl("------------------");
-    // free(pngBase64);
-    // free(png);
 }
 
 void RenderSystem::draw() {
@@ -302,7 +274,6 @@ void RenderSystem::shutdown() {
     lights.shutdown();
     fog.shutdown();
     colors.shutdown();
-    bgfx::destroy(whiteTexture);
 
     bgfx::destroy(materialBaseColor);
     bgfx::destroy(materialPBRValues);

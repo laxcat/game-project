@@ -10,7 +10,7 @@ void Gobj::editorCreate() {
 
     if (Button("Create From GLTF")) {
         nfdchar_t * outPath = NULL;
-        nfdresult_t result = NFD_OpenDialog(NULL, "/Users/Shared/Dev/gltf_assets", &outPath);
+        nfdresult_t result = NFD_OpenDialog(NULL, ".", &outPath);
 
         if (result == NFD_OKAY) {
             Gobj * g = mm.memMan.createGobj(outPath);
