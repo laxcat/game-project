@@ -512,10 +512,10 @@ public:
             float baseColorFactor[4] = {1.f, 1.f, 1.f, 1.f};
             Texture * baseColorTexture = nullptr;
             Attr baseColorTexCoord = ATTR_TEXCOORD0;
-            float metallicFactor = 1.f;
+            float metallicFactor = 0.f;
             Texture * metallicRoughnessTexture = nullptr;
             Attr metallicRoughnessTexCoord = ATTR_TEXCOORD0;
-            float roughnessFactor = 1.f;
+            float roughnessFactor = 0.5f;
         char const * name = nullptr;
 
         void copy(Material * material, Gobj * dst, Gobj * src);

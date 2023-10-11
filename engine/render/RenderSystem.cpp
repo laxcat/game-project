@@ -200,39 +200,45 @@ uint16_t RenderSystem::drawMesh(Gobj * gobj, Gobj::Mesh const & mesh, glm::mat4 
         state |= bgfxPrimitiveType(prim->mode);
 
         // require material
-        assert(prim->material                           && "Set minimum material during setup if not in Gobj.");
-        assert(prim->material->baseColorTexture         && "Set minimum material baseColorTexture during setup if not in Gobj.");
-        assert(prim->material->normalTexture            && "Set minimum material normalTexture during setup if not in Gobj.");
-        assert(prim->material->metallicRoughnessTexture && "Set minimum material metallicRoughnessTexture during setup if not in Gobj.");
+        assert(mat                           && "Set minimum material during setup if not in Gobj.");
+        assert(mat->baseColorTexture         && "Set minimum material baseColorTexture during setup if not in Gobj.");
+        assert(mat->normalTexture            && "Set minimum material normalTexture during setup if not in Gobj.");
+        assert(mat->metallicRoughnessTexture && "Set minimum material metallicRoughnessTexture during setup if not in Gobj.");
 
         // set textures
         bgfx::setTexture(
             TEXTURE_SLOT_COLOR,
             samplerColor,
-            bgfx::TextureHandle{prim->material->baseColorTexture->renderHandle}
+            bgfx::TextureHandle{mat->baseColorTexture->renderHandle}
         );
         bgfx::setTexture(
             TEXTURE_SLOT_NORM,
             samplerNorm,
-            bgfx::TextureHandle{prim->material->normalTexture->renderHandle}
+            bgfx::TextureHandle{mat->normalTexture->renderHandle}
         );
         bgfx::setTexture(
             TEXTURE_SLOT_METAL,
             samplerMetal,
-            bgfx::TextureHandle{prim->material->metallicRoughnessTexture->renderHandle}
+            bgfx::TextureHandle{mat->metallicRoughnessTexture->renderHandle}
         );
-        bgfx::setUniform(materialBaseColor, prim->material->baseColorFactor);
+        bgfx::setUniform(materialBaseColor, mat->baseColorFactor);
 
-        if (prim->material->alphaMode == Gobj::Material::ALPHA_BLEND ||
-            prim->material->baseColorFactor[3] < 1.f) {
+        if (mat->alphaMode == Gobj::Material::ALPHA_BLEND ||
+            mat->baseColorFactor[3] < 1.f) {
             state |= BGFX_STATE_BLEND_ALPHA;
         }
 
+        // glm::vec4 pbrValues{
+        //     0.5f, // roughness. 0 smooth, 1 rough
+        //     0.0f, // metallic. 0 plastic, 1 metal
+        //     0.2f, // specular, additional specular adjustment for non-matalic materials
+        //     1.0f  // color intensity
+        // };
         glm::vec4 pbrValues{
-            0.5f, // roughness. 0 smooth, 1 rough
-            0.0f, // metallic. 0 plastic, 1 metal
-            0.2f, // specular, additional specular adjustment for non-matalic materials
-            1.0f  // color intensity
+            mat->roughnessFactor,
+            mat->metallicFactor,
+            0.2f, // unused
+            1.0f, // unused
         };
         bgfx::setUniform(materialPBRValues, &pbrValues);
 
@@ -358,36 +364,55 @@ Gobj * RenderSystem::addMinReqMat(Gobj * gobj) {
 
     gobj = mm.memMan.updateGobj(gobj, countsForMinReqMat(gobj));
 
-    static char const * white2x2PNG =
+    static char const * white2x2x3PNG =
     "data:image/png;base64,"
-    "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEU"
-    "lEQVR4XmP8DwQMQMDEAAUAPfgEAHCr5OoAAAAASUVORK5CYII=";
+    // 2x2 PNG, filled with 0xffffff (r,g,b) for every 3-byte pixel:
+    "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAE0lEQVR4XmP8//8/AwMDEwMYAA"
+    "AkBgMBTJCz6gAAAABJRU5ErkJggg==";
 
-    Gobj::Image * newImg = gobj->images + gobj->counts.images - 1;
-    newImg->uri = white2x2PNG;
+    static char const * metalRoughPNG =
+    "data:image/png;base64,"
+    //          (g) roughness---v v---metalic (b)
+    // 2x2 PNG, filled with 0xffff00ff (r,g,b,a) for every 4-byte pixel:
+    "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAE0lEQVR4XmP8/5/hPwMQMDFAAQ"
+    "AvBwMBP8AQXgAAAABJRU5ErkJggg==";
 
-    Gobj::Texture * newTex = gobj->textures + gobj->counts.textures - 1;
-    newTex->source = newImg;
+    Gobj::Image * normColorImg = gobj->images + gobj->counts.images - 2;
+    normColorImg->uri = white2x2x3PNG;
+    Gobj::Image * metalRoughImg = gobj->images + gobj->counts.images - 1;
+    metalRoughImg->uri = metalRoughPNG;
+
+    Gobj::Texture * normColorTex = gobj->textures + gobj->counts.textures - 2;
+    normColorTex->source = normColorImg;
+    Gobj::Texture * metalRoughTex = gobj->textures + gobj->counts.textures - 1;
+    metalRoughTex->source = metalRoughImg;
 
     Gobj::Material * newMat = gobj->materials + gobj->counts.materials - 1;
-    newMat->baseColorTexture = newTex;
-    newMat->normalTexture = newTex;
-    newMat->metallicRoughnessTexture = newTex;
+    newMat->baseColorTexture = normColorTex;
+    newMat->normalTexture = normColorTex;
+    newMat->metallicRoughnessTexture = metalRoughTex;
 
-    for (uint16_t i = 0; i < gobj->counts.meshPrimitives; ++i) {
-        Gobj::MeshPrimitive * prim = gobj->meshPrimitives + i;
-        if (prim->material == nullptr) {
-            prim->material = newMat;
-        }
-        else {
-            if (prim->material->baseColorTexture == nullptr) {
-                prim->material->baseColorTexture = newTex;
+    for (uint16_t m = 0; m < gobj->counts.meshes; ++m) {
+        Gobj::Mesh * mesh = gobj->meshes + m;
+        for (uint16_t p = 0; p < mesh->nPrimitives; ++p) {
+            Gobj::MeshPrimitive * prim = mesh->primitives + p;
+            if (prim->material == nullptr) {
+                printl("adding default material to mesh %u (%s) primative %u", m, mesh->name, p);
+                prim->material = newMat;
             }
-            if (prim->material->normalTexture == nullptr) {
-                prim->material->normalTexture = newTex;
-            }
-            if (prim->material->metallicRoughnessTexture == nullptr) {
-                prim->material->metallicRoughnessTexture = newTex;
+            else {
+                if (prim->material->baseColorTexture == nullptr) {
+                    printl("adding default norm/color texture to baseColorTexture of mesh %u (%s) primative %u", m, mesh->name, p);
+                    prim->material->baseColorTexture = normColorTex;
+                }
+                if (prim->material->normalTexture == nullptr) {
+                    printl("adding default norm/color texture to normalTexture of mesh %u (%s) primative %u", m, mesh->name, p);
+                    prim->material->normalTexture = normColorTex;
+                }
+                if (prim->material->metallicRoughnessTexture == nullptr) {
+                    printl("adding default metal/rough texture to metallicRoughnessTexture of mesh %u (%s) primative %u", m, mesh->name, p);
+                    prim->material->metallicRoughnessTexture = metalRoughTex;
+                }
             }
         }
     }
@@ -416,8 +441,8 @@ bool RenderSystem::needsMinReqMat(Gobj * gobj) {
 Gobj::Counts RenderSystem::countsForMinReqMat(Gobj * gobj) {
     return {
         .materials = 1,
-        .textures = 1,
-        .images = 1,
+        .textures = 2,
+        .images = 2,
     };
 }
 
