@@ -123,10 +123,52 @@ void RenderSystem::draw() {
                 submitCount += drawMesh(gobj, gobj->meshes[meshIndex]);
             }
         }
+
+        if (settings.user.drawSceneAABB) {
+            if (!Gobj::isValid(gobj->bounds.renderHandleIndex)) {
+                static uint16_t const data[24] = {
+                    // bottom
+                    0, 1, 1, 2, 2, 3, 3, 0,
+                    // sides
+                    0, 4, 1, 5, 2, 6, 3, 7,
+                    // top
+                    4, 5, 5, 6, 6, 7, 7, 4
+                };
+                auto indexRef = bgfx::makeRef(data, 24 * sizeof(uint16_t));
+                gobj->bounds.renderHandleIndex = bgfx::createIndexBuffer(indexRef).idx;
+            }
+            if (!Gobj::isValid(gobj->bounds.renderHandleVertex)) {
+                bgfx::VertexLayout layout;
+                layout.begin();
+                layout.add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float);
+                layout.end();
+                static glm::vec3 data[8];
+                gobj->bounds.fillCubePoints(data);
+                auto ref = bgfx::makeRef(data, sizeof(float) * 3 * 8);
+                gobj->bounds.renderHandleVertex = bgfx::createVertexBuffer(ref, layout).idx;
+            }
+
+            bgfx::setVertexBuffer(0, bgfx::VertexBufferHandle{gobj->bounds.renderHandleVertex});
+            bgfx::setIndexBuffer(bgfx::IndexBufferHandle{gobj->bounds.renderHandleIndex});
+
+            bgfx::setUniform(materialBaseColor, settings.user.aabbColor);
+
+            // set transform
+            static glm::mat4 transform{1.f};
+            bgfx::setTransform(&transform);
+
+            // set modified state
+            uint64_t state = settings.state;
+            state |= BGFX_STATE_PT_LINES;
+            bgfx::setState(state);
+
+            // submit
+            bgfx::submit(mm.mainView, unlitProgram);
+            ++submitCount;
+        }
     }
 
     // printl("submit count for frame %zu: %d", mm.frame, submitCount);
-
     if (!submitCount) {
         bgfx::touch(mm.mainView);
     }

@@ -8,7 +8,7 @@ public:
     // const
     glm::vec3 const up = {0.f, 1.f, 0.f};
 
-    // set by ctor
+    // set by init
     float windowRatio;
     float windowInvRatio;
 
@@ -53,10 +53,10 @@ public:
             }
             else {
                 target      = {0.f, 0.f, 0.f};
-                distance    = 27;
+                distance    = 5;
                 pitch       = 0;
                 yaw         = 0;
-                fov         = (float)M_PI/6.f;
+                fov         = (float)M_PI/4.f;
             }
             updateProjection();
             updatePosFromDistancePitchYaw();

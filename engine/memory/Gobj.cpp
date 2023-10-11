@@ -842,6 +842,10 @@ Gobj::Attr Gobj::texCoordAttr(int index) {
     return (Attr)((int)ATTR_TEXCOORD0 + index);
 }
 
+bool Gobj::isValid(uint16_t handle) {
+    return handle != UINT16_MAX;
+}
+
 #if DEBUG || DEV_INTERFACE
 
 void Gobj::print() const {

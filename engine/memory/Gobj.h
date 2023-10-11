@@ -663,6 +663,12 @@ public:
     // attr conversion
     static Attr texCoordAttr(int index);
 
+// STATIC HELPERS
+public:
+    // generic fn that assumes invalid render handles are UINT16_MAX
+    // (matches bgfx, but not-exactly-coupled)
+    static bool isValid(uint16_t handle);
+
 // -------------------------------------------------------------------------- //
 // DEBUG
 public:

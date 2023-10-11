@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <bgfx/bgfx.h>
 #include "../dev/print.h"
 #include "../common/platform.h"
@@ -14,6 +15,9 @@ public:
         int msaa = 2;
         bool vsync = true;
         bool maxAnisotropy = false;
+        bool drawSceneAABB = true;
+        std::function<void(bool)> didChangeDrawSceneAABB = nullptr;
+        float aabbColor[4] = {0.0f, 1.0f, 0.0f, 1.0f};
 
         bool operator == (User const & other) {
             return (

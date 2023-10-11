@@ -85,6 +85,14 @@ void Editor::guiRendering() {
 
         Checkbox("V-Sync", &mm.rendSys.settings.user.vsync);
         Checkbox("Max Anisotropy", &mm.rendSys.settings.user.maxAnisotropy);
+        if (Checkbox("Draw Scene AABB", &mm.rendSys.settings.user.drawSceneAABB) &&
+            mm.rendSys.settings.user.didChangeDrawSceneAABB) {
+            mm.rendSys.settings.user.didChangeDrawSceneAABB(mm.rendSys.settings.user.drawSceneAABB);
+        }
+        if (mm.rendSys.settings.user.drawSceneAABB) {
+            SameLine();
+            ColorEdit4("##aabbColor", mm.rendSys.settings.user.aabbColor, ImGuiColorEditFlags_DisplayHex);
+        }
         
         if (user != mm.rendSys.settings.user) {
             mm.rendSys.settings.reinit();
@@ -207,7 +215,7 @@ void Editor::guiCamera() {
         if (mm.camera.projType == Camera::ProjType::Persp) {
             bool pitchChanged =  SliderAngle("Pitch", &mm.camera.pitch, -89.999f, 0.f, "%.3f");
             bool yawChanged =    SliderAngle("Yaw", &mm.camera.yaw);
-            bool fovChanged =    SliderAngle("FOV", &mm.camera.fov, 1.f, 89.f);
+            bool fovChanged =    SliderAngle("FOV", &mm.camera.fov, 10.f, 110.f);
 
             if (typeChanged || fovChanged) {
                 mm.camera.updateProjection();
