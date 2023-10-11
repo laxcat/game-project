@@ -237,6 +237,15 @@ public:
         ATTR_TEXCOORD7,
     };
 
+    using NodeFn = std::function<void(Node *, glm::mat4 const &)>;
+    using MeshFn = std::function<void(Mesh *, glm::mat4 const &)>;
+    using PrimFn = std::function<void(MeshPrimitive *, glm::mat4 const &)>;
+    struct TraverseFns {
+        NodeFn const & eachNode = nullptr;
+        MeshFn const & eachMesh = nullptr;
+        PrimFn const & eachPrim = nullptr;
+    };
+
 // -------------------------------------------------------------------------- //
 // INIT
 private:
@@ -290,6 +299,9 @@ public:
     void setStatus(Status status);
     bool isReadyToDraw() const;
     void copy(Gobj * srcGobj);
+    void traverse(                          TraverseFns const & params, glm::mat4 const & parentTransform = glm::mat4{1.f});
+    void traverseNode(Node * node,          TraverseFns const & params, glm::mat4 const & parentTransform = glm::mat4{1.f});
+    void traverseMesh(Mesh * mesh,          TraverseFns const & params, glm::mat4 const & parentTransform = glm::mat4{1.f});
 
 
 // PRIVATE STORAGE

@@ -536,6 +536,53 @@ byte_t * Gobj::rawDataRelPtr(byte_t * data, Gobj * dst) const {
     return dst->rawData + (data - rawData);
 }
 
+void Gobj::traverse(TraverseFns const & fns, glm::mat4 const & parentTransform) {
+    // if scene is set
+    if (scene) {
+        // each root node of scene
+        for (uint16_t nodeIndex = 0; nodeIndex < scene->nNodes; ++nodeIndex) {
+            traverseNode(scene->nodes[nodeIndex], fns, parentTransform);
+        }
+    }
+    // otherwise calculate all meshes
+    else {
+        // each mesh
+        for (uint16_t meshIndex = 0; meshIndex < counts.meshes; ++meshIndex) {
+            traverseMesh(meshes + meshIndex, fns, parentTransform);
+        }
+    }
+}
+
+void Gobj::traverseNode(Node * node, TraverseFns const & fns, glm::mat4 const & parentTransform) {
+    // calc global transform
+    glm::mat4 global = parentTransform * node->matrix;
+    // run node fn if present
+    if (fns.eachNode) {
+        fns.eachNode(node, global);
+    }
+    // traverse mesh
+    if (node->mesh) {
+        traverseMesh(node->mesh, fns, global);
+    }
+    // traverse child nodes
+    for (uint16_t nodeIndex = 0; nodeIndex < node->nChildren; ++nodeIndex) {
+        traverseNode(node->children[nodeIndex], fns, global);
+    }
+}
+
+void Gobj::traverseMesh(Mesh * mesh, TraverseFns const & fns, glm::mat4 const & parentTransform) {
+    // run mesh fn if present
+    if (fns.eachMesh) {
+        fns.eachMesh(mesh, parentTransform);
+    }
+    for (int primIndex = 0; primIndex < mesh->nPrimitives; ++primIndex) {
+        Gobj::MeshPrimitive * prim = mesh->primitives + primIndex;
+        if (fns.eachPrim) {
+            fns.eachPrim(prim, parentTransform);
+        }
+    }
+}
+
 size_t Gobj::Counts::totalSize() const {
     return
         ALIGN_SIZE(sizeof(Gobj)) +
