@@ -164,6 +164,8 @@ uint16_t RenderSystem::drawMesh(Gobj * gobj, Gobj::Mesh const & mesh, glm::mat4 
     // each primitive
     for (int primIndex = 0; primIndex < mesh.nPrimitives; ++primIndex) {
         Gobj::MeshPrimitive * prim = mesh.primitives + primIndex;
+        Gobj::Material * mat = prim->material;
+
         printc(ShowRenderDbgTick,
             "-----\n"
             "mesh primitive %p\n"
@@ -180,6 +182,8 @@ uint16_t RenderSystem::drawMesh(Gobj * gobj, Gobj::Mesh const & mesh, glm::mat4 
 
         uint64_t state = settings.state;
         uint32_t stateRGBA = 0;
+
+        state |= bgfxPrimitiveType(prim->mode);
 
         // require material
         assert(prim->material                           && "Set minimum material during setup if not in Gobj.");
