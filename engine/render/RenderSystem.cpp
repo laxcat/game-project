@@ -482,7 +482,8 @@ void RenderSystem::addHandles(Gobj * gobj) {
     // setup textures
     for (uint16_t texIndex = 0; texIndex < gobj->counts.textures; ++texIndex) {
         Gobj::Texture * tex = gobj->textures + texIndex;
-        if (tex->renderHandle != UINT16_MAX) {
+        // skip if texture already created
+        if (Gobj::isValid(tex->renderHandle)) {
             continue;
         }
         mm.createWorker([this, tex, gobj]{
