@@ -3,10 +3,21 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <limits.h>
+#include "debug_defines.h"
 
 #if DEBUG
 #include <stdio.h>
 #endif
+
+// String-based number.
+
+// Accepts string assumed to be numerical, tries to convert the  number as to
+// uint64_t, int64, and double then notes which conversions succeeded.
+// The values can then be accessed through type-conversion operators (with
+// optional validation, currently if DEBUG macro is true).
+
+// Written for JSON string-to-number parsing, specifically rapidjson's
+// RawNumber function.
 
 class Number {
 public:

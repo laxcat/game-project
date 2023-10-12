@@ -305,6 +305,7 @@ public:
     void traverse(                          TraverseFns const & params, glm::mat4 const & parentTransform = glm::mat4{1.f});
     void traverseNode(Node * node,          TraverseFns const & params, glm::mat4 const & parentTransform = glm::mat4{1.f});
     void traverseMesh(Mesh * mesh,          TraverseFns const & params, glm::mat4 const & parentTransform = glm::mat4{1.f});
+    void updateBoundsForCurrentScene();
 
 
 // PRIVATE STORAGE

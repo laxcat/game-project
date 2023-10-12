@@ -175,7 +175,7 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
 
     // check for exepected size
     #if DEBUG
-    if (loader->isGLB()) {
+    if (loader->isBinary()) {
         assert(
             gobj->rawData + alignSize(loader->binDataSize(), Gobj::Align) ==
             block->data() + block->dataSize() &&

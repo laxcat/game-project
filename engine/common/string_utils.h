@@ -9,7 +9,7 @@ bool strEqu(char const * strA, char const * strB);
 // faster but requires length. compares in 8-byte chunks
 bool strEqu(char const * strA, char const * strB, size_t length);
 
-// finds if str exactly matches a sub string in a comma seperated strGroup
+// finds if str exactly matches a sub string in a comma separated strGroup
 // eg:
 // strWithin("hello", "hello,goodbye") // return true
 // strWithin("hell", "hello,goodbye") // return false

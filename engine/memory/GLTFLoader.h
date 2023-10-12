@@ -13,18 +13,13 @@ Loads GLTF files into Gobj.
 Implemented:
     • opening/reading .glb files
     • opening/reading .gltf files (some limitations, see below)
-        • buffer data in seperate file
+        • buffer data in separate file
         • base64-encoded buffer data
+        • images in separate file
+        • base64-encoded images
     • Calculating size
     • loading strings
-    • loading accessors
-    • loading animations and related sub-objects
-    • loading buffers
-    • loading bufferViews
-    • loading cameras
-    • loading images
-    • loading materials
-    • loading meshes and related sub-objects
+    • loading all Gobj sub-objects
 
 NOT implemented yet:
     • images with URI (not BufferView)
@@ -33,7 +28,6 @@ NOT implemented yet:
     • accessor.sparce
     • any extensions
     • any extras
-    • loading anything not specifically mentioned in "Implemented" list
 
 */
 
@@ -126,11 +120,6 @@ public:
         std::function<bool(GLTFLoader *, Gobj * g, uint32_t)> handleEnd = nullptr;
     };
 
-// PUBLIC STATIC INTERFACE
-public:
-    // handles string that might be a uri OR data-stream
-    static size_t handleDataString(byte_t * dst, char const * loadingDir, char const * str, size_t strLength);
-
 // PUBLIC INTERFACE
 public:
     GLTFLoader(byte_t const * gltfData, char const * loadingDir = nullptr);
@@ -142,7 +131,7 @@ public:
     // or just to reset the counts object
     void setCounts(Gobj::Counts const & counts);
     Gobj::Counts counts() const;
-    bool isGLB() const;
+    bool isBinary() const;
     uint32_t binDataSize() const;
     bool validData() const;
 
@@ -156,7 +145,7 @@ private:
     Gobj::Counts _counts;
     // json string. is NOT copied. might not be null terminated.
     byte_t const * _gltfData;
-    bool _isGLB = false;
+    bool _isBinary = false;
     // loading dir
     char const * _loadingDir = nullptr;
     // crumb stack
@@ -205,8 +194,9 @@ private:
     void printBreadcrumbs() const;
     #endif // DEBUG
 
-// HANDLERS
+// JSON PART HANDLERS
 private:
+    // handle json objects
     static bool handleRoot              (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
     static bool handleAccessor          (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
     static bool handleAsset             (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
@@ -225,5 +215,8 @@ private:
     static bool handleScene             (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
     static bool handleSkin              (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
     static bool handleTexture           (GLTFLoader * l, Gobj * g, char const * str, uint32_t len);
+
+    // handles string that might be a uri OR data-stream
+    static size_t handleDataString(byte_t * dst, char const * loadingDir, char const * str, size_t strLength);
 
 };

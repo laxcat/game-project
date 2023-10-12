@@ -9,6 +9,14 @@
 #include "../common/string_utils.h"
 #include "../MrManager.h"
 
+// The handler functions corerce strings to uintXX_t types for fast comparison,
+// which makes endianness matter. Since the loader expects a set specification,
+// only the minimal amount of characters are checked.
+#include "../common/endian.h"
+#ifndef IS_LITTLE_ENDIAN
+    #error "GLTFLoader only supports little endian architechtures."
+#endif
+
 #define PRINT_BREADCRUMBS 0
 
 // -------------------------------------------------------------------------- //
@@ -290,7 +298,7 @@ bool GLTFLoader::Crumb::hasKey() const { return (key[0] != '\0'); }
 bool GLTFLoader::Crumb::isValid() const { return (objType != TYPE_UNKNOWN); }
 
 // -------------------------------------------------------------------------- //
-// LOADER
+// LOADER PUBLIC INTERFACE
 // -------------------------------------------------------------------------- //
 
 GLTFLoader::GLTFLoader(byte_t const * gltfData, char const * loadingDir) :
@@ -306,7 +314,7 @@ GLTFLoader::GLTFLoader(byte_t const * gltfData, char const * loadingDir) :
 
     // binary
     if (strEqu((char const *)_gltfData, "glTF", 4)) {
-        _isGLB = true;
+        _isBinary = true;
 
         if (!strEqu((char const *)(_gltfData + 16), "JSON", 4)) {
             fprintf(stderr, "glTF JSON chunk magic string not found.\n");
@@ -322,21 +330,6 @@ GLTFLoader::GLTFLoader(byte_t const * gltfData, char const * loadingDir) :
     // not binary
     else {
     }
-}
-
-void GLTFLoader::setCounts(Gobj::Counts const & counts) {
-    _counts = counts;
-}
-
-Gobj::Counts GLTFLoader::counts() const { return _counts; }
-bool GLTFLoader::isGLB() const { return _isGLB; }
-
-GLTFLoader::Crumb & GLTFLoader::crumb(int offset) {
-    // out of bounds, return invalid crumb
-    if (_depth <= -offset || offset > 0) {
-        return _invalidCrumb;
-    }
-    return _crumbs[_depth-1+offset];
 }
 
 size_t GLTFLoader::calculateSize() {
@@ -382,6 +375,87 @@ bool GLTFLoader::load(Gobj * gobj) {
     return result;
 }
 
+void GLTFLoader::setCounts(Gobj::Counts const & counts) {
+    _counts = counts;
+}
+
+Gobj::Counts GLTFLoader::counts() const {
+    return _counts;
+}
+
+bool GLTFLoader::isBinary() const {
+    return _isBinary;
+}
+
+uint32_t GLTFLoader::binDataSize() const {
+    return *(uint32_t *)binChunkStart();
+}
+
+bool GLTFLoader::validData() const {
+    return _gltfData;
+}
+
+#if DEBUG
+char const * GLTFLoader::prettyJSON(uint32_t * prettyJSONSize) {
+    assert(_gltfData && "GLTF data invalid.");
+
+    rapidjson::StringBuffer sb;
+    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(sb);
+
+    auto ss = rapidjson::StringStream(jsonStr());
+    _reader.Parse(ss, writer);
+
+    if (prettyJSONSize) {
+        *prettyJSONSize = (uint32_t)sb.GetSize() + 1;
+    }
+    return mm.frameFormatStr("%s", sb.GetString());
+}
+#endif // DEBUG
+
+// -------------------------------------------------------------------------- //
+// LOADER INTERNALS
+// -------------------------------------------------------------------------- //
+
+void GLTFLoader::push(ObjType objType) {
+    assert(_depth < MaxDepth && "Can't push crumb.");
+
+    // push new crumb
+    ++_depth;
+    Crumb & newCrumb = crumb();
+    Crumb & parentCrumb = crumb(-1);
+
+    // set index
+    // if parent is an array, mark the index in newly pushed child and increntment next index.
+    if (parentCrumb.objType == TYPE_ARR) {
+        newCrumb.index = parentCrumb.childCount;
+        ++parentCrumb.childCount;
+    }
+    else {
+        newCrumb.index = -1;
+    }
+    // set type
+    newCrumb.objType = objType;
+    // set key (copy and reset buffer)
+    newCrumb.setKey(_key);
+    _key[0] = '\0';
+    // reset everthing
+    newCrumb.childCount = 0;
+    newCrumb.handleChild = nullptr;
+    newCrumb.handleEnd = nullptr;
+}
+
+void GLTFLoader::pop() {
+    --_depth;
+}
+
+GLTFLoader::Crumb & GLTFLoader::crumb(int offset) {
+    // out of bounds, return invalid crumb
+    if (_depth <= -offset || offset > 0) {
+        return _invalidCrumb;
+    }
+    return _crumbs[_depth-1+offset];
+}
+
 void GLTFLoader::postLoad(Gobj * g) {
     // set byte stride on all mesh primitive attributes
     for (uint16_t meshIndex = 0; meshIndex < g->counts.meshes; ++meshIndex) {
@@ -416,24 +490,43 @@ void GLTFLoader::postLoad(Gobj * g) {
     for (uint16_t nodeIndex = 0; nodeIndex < g->scene->nNodes; ++nodeIndex) {
         g->scene->nodes[nodeIndex]->syncMatrixTRS(true);
     }
+
+    // update bounds
+    g->updateBoundsForCurrentScene();
 }
 
-#if DEBUG
-char const * GLTFLoader::prettyJSON(uint32_t * prettyJSONSize) {
-    assert(_gltfData && "GLTF data invalid.");
-
-    rapidjson::StringBuffer sb;
-    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(sb);
-
-    auto ss = rapidjson::StringStream(jsonStr());
-    _reader.Parse(ss, writer);
-
-    if (prettyJSONSize) {
-        *prettyJSONSize = (uint32_t)sb.GetSize() + 1;
-    }
-    return mm.frameFormatStr("%s", sb.GetString());
+uint32_t GLTFLoader::jsonStrSize() const {
+    assert(_isBinary && "jsonStrSize() not available when _isBinary==false.");
+    return *(uint32_t *)(_gltfData + 12);
 }
-#endif // DEBUG
+
+char const * GLTFLoader::jsonStr() const {
+    // returns _gltfData if GLTF,
+    // returns _gltfData+20 if GLB
+    return (char const *)(_gltfData + (_isBinary * 20));
+}
+
+byte_t const * GLTFLoader::binChunkStart() const {
+    assert(_isBinary && "No binary chuck to access.");
+    // aligned because GLTF spec will add space characters at end of json
+    // string in order to align to 4-byte boundary
+    auto jsonPtr = jsonStr() + jsonStrSize();
+    auto alignedPtr = (byte_t const *)alignPtr((void *)jsonPtr, 4);
+    return alignedPtr;
+}
+
+byte_t const * GLTFLoader::binData() const {
+    return binChunkStart() + 8;
+}
+
+char const * GLTFLoader::objTypeStr(ObjType objType) {
+    return
+        (objType == TYPE_OBJ)   ? "OBJ" :
+        (objType == TYPE_ARR)   ? "ARR" :
+        (objType == TYPE_STR)   ? "STR" :
+        (objType == TYPE_NUM)   ? "NUM" :
+        "UNKNOWN";
+}
 
 #if DEBUG
 void GLTFLoader::printBreadcrumbs() const {
@@ -452,116 +545,8 @@ void GLTFLoader::printBreadcrumbs() const {
 }
 #endif // DEBUG
 
-uint32_t GLTFLoader::jsonStrSize() const {
-    assert(_isGLB && "jsonStrSize() not available when _isGLB==false.");
-    return *(uint32_t *)(_gltfData + 12);
-}
-
-char const * GLTFLoader::jsonStr() const {
-    // returns _gltfData if GLTF,
-    // returns _gltfData+20 if GLB
-    return (char const *)(_gltfData + (_isGLB * 20));
-}
-
-byte_t const * GLTFLoader::binChunkStart() const {
-    assert(_isGLB && "No binary chuck to access.");
-    // aligned because GLTF spec will add space characters at end of json
-    // string in order to align to 4-byte boundary
-    auto jsonPtr = jsonStr() + jsonStrSize();
-    auto alignedPtr = (byte_t const *)alignPtr((void *)jsonPtr, 4);
-    return alignedPtr;
-}
-
-uint32_t GLTFLoader::binDataSize() const {
-    return *(uint32_t *)binChunkStart();
-}
-
-byte_t const * GLTFLoader::binData() const {
-    return binChunkStart() + 8;
-}
-
-bool GLTFLoader::validData() const {
-    return _gltfData;
-}
-
-char const * GLTFLoader::objTypeStr(ObjType objType) {
-    return
-        (objType == TYPE_OBJ)   ? "OBJ" :
-        (objType == TYPE_ARR)   ? "ARR" :
-        (objType == TYPE_STR)   ? "STR" :
-        (objType == TYPE_NUM)   ? "NUM" :
-        "UNKNOWN";
-}
-
-void GLTFLoader::push(ObjType objType) {
-    assert(_depth < MaxDepth && "Can't push crumb.");
-
-    // push new crumb
-    ++_depth;
-    Crumb & newCrumb = crumb();
-    Crumb & parentCrumb = crumb(-1);
-
-    // set index
-    // if parent is an array, mark the index in newly pushed child and increntment next index.
-    if (parentCrumb.objType == TYPE_ARR) {
-        newCrumb.index = parentCrumb.childCount;
-        ++parentCrumb.childCount;
-    }
-    else {
-        newCrumb.index = -1;
-    }
-    // set type
-    newCrumb.objType = objType;
-    // set key (copy and reset buffer)
-    newCrumb.setKey(_key);
-    _key[0] = '\0';
-    // reset everthing
-    newCrumb.childCount = 0;
-    newCrumb.handleChild = nullptr;
-    newCrumb.handleEnd = nullptr;
-}
-
-void GLTFLoader::pop() {
-    --_depth;
-}
-
-size_t GLTFLoader::handleDataString(byte_t * dst, char const * loadingDir, char const * str, size_t strLength) {
-    // base64?
-    static char const * isDataStr = "data:application/octet-stream;base64,";
-    static size_t isDataLen = strlen(isDataStr);
-    if (strEqu(str, isDataStr, isDataLen)) {
-        size_t b64StrLen = strLength - isDataLen;
-        modp_b64_decode((char *)dst, (char *)str + isDataLen, b64StrLen);
-        return modp_b64_decode_len(b64StrLen);
-    }
-
-    // uri to load?
-    // TODO: test this
-    char * fullPath = mm.frameFormatStr("%s%s", loadingDir, str);
-    FILE * fp = fopen(fullPath, "r");
-    if (!fp) {
-        fprintf(stderr, "WARNING: Error opening buffer file: %s\n", fullPath);
-        return 0;
-    }
-    long fileSize = getFileSize(fp);
-    if (fileSize == -1) {
-        fclose(fp);
-        return 0;
-    }
-    size_t readSize = fread(dst, 1, fileSize, fp);
-    // error
-    if (ferror(fp) || readSize != fileSize) {
-        fprintf(stderr, "Error reading file \"%s\" contents: read %zu, expecting %zu\n",
-            fullPath, readSize, fileSize);
-        fclose(fp);
-        return 0;
-    }
-
-    return readSize;
-}
-
 // -------------------------------------------------------------------------- //
-// HANDLERS
+// LOADER JSON PART HANDLERS
 // -------------------------------------------------------------------------- //
 
 bool GLTFLoader::handleRoot(GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
@@ -849,7 +834,7 @@ bool GLTFLoader::handleBuffer(GLTFLoader * l, Gobj * g, char const * str, uint32
     // uri
     case 'u': {
         // copy data and set byteLength for non-GLB
-        if (l->_isGLB) {
+        if (l->_isBinary) {
             fprintf(stderr, "Unexpected buffer.uri in GLB.\n");
             return false;
         }
@@ -866,7 +851,7 @@ bool GLTFLoader::handleBuffer(GLTFLoader * l, Gobj * g, char const * str, uint32
     // byteLength
     case 'b': {
         // copy data and set byteLength for GLB
-        if (l->_isGLB && bufIndex == 0) {
+        if (l->_isBinary && bufIndex == 0) {
             Number n{str, len};
             buf->byteLength = n;
             if ((uint32_t)n != l->binDataSize()) {
@@ -1396,4 +1381,39 @@ bool GLTFLoader::handleTexture(GLTFLoader * l, Gobj * g, char const * str, uint3
     case 'n'|'a'<<8: { tex->name = g->strings->writeStr(str, len); break; }
     }
     return true;
+}
+
+size_t GLTFLoader::handleDataString(byte_t * dst, char const * loadingDir, char const * str, size_t strLength) {
+    // base64?
+    static char const * isDataStr = "data:application/octet-stream;base64,";
+    static size_t isDataLen = strlen(isDataStr);
+    if (strEqu(str, isDataStr, isDataLen)) {
+        size_t b64StrLen = strLength - isDataLen;
+        modp_b64_decode((char *)dst, (char *)str + isDataLen, b64StrLen);
+        return modp_b64_decode_len(b64StrLen);
+    }
+
+    // uri to load?
+    // TODO: test this
+    char * fullPath = mm.frameFormatStr("%s%s", loadingDir, str);
+    FILE * fp = fopen(fullPath, "r");
+    if (!fp) {
+        fprintf(stderr, "WARNING: Error opening buffer file: %s\n", fullPath);
+        return 0;
+    }
+    long fileSize = getFileSize(fp);
+    if (fileSize == -1) {
+        fclose(fp);
+        return 0;
+    }
+    size_t readSize = fread(dst, 1, fileSize, fp);
+    // error
+    if (ferror(fp) || readSize != fileSize) {
+        fprintf(stderr, "Error reading file \"%s\" contents: read %zu, expecting %zu\n",
+            fullPath, readSize, fileSize);
+        fclose(fp);
+        return 0;
+    }
+
+    return readSize;
 }
