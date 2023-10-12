@@ -241,10 +241,12 @@ public:
     using NodeFn = std::function<void(Node *, glm::mat4 const &)>;
     using MeshFn = std::function<void(Mesh *, glm::mat4 const &)>;
     using PrimFn = std::function<void(MeshPrimitive *, glm::mat4 const &)>;
+    using AccrFn = std::function<void(Accessor *, glm::mat4 const &)>;
     struct TraverseFns {
         NodeFn const & eachNode = nullptr;
         MeshFn const & eachMesh = nullptr;
         PrimFn const & eachPrim = nullptr;
+        AccrFn const & eachPosAccr = nullptr;
     };
 
 // -------------------------------------------------------------------------- //

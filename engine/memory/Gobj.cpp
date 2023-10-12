@@ -581,38 +581,41 @@ void Gobj::traverseMesh(Mesh * mesh, TraverseFns const & fns, glm::mat4 const & 
         if (fns.eachPrim) {
             fns.eachPrim(prim, parentTransform);
         }
+        if (fns.eachPosAccr) {
+            for (int attrIndex = 0; attrIndex < prim->nAttributes; ++attrIndex) {
+                Gobj::MeshAttribute * attr = prim->attributes + attrIndex;
+                if (attr->type == Gobj::ATTR_POSITION) {
+                    fns.eachPosAccr(attr->accessor, parentTransform);
+                }
+            }
+        }
     }
 }
 
 void Gobj::updateBoundsForCurrentScene() {
     traverse(
-        {.eachPrim = [this](Gobj::MeshPrimitive * prim, glm::mat4 const & global){
-            for (int attrIndex = 0; attrIndex < prim->nAttributes; ++attrIndex) {
-                Gobj::MeshAttribute * attr = prim->attributes + attrIndex;
-                if (attr->type == Gobj::ATTR_POSITION) {
-                    glm::vec4 min = global * glm::vec4{*(glm::vec3 *)attr->accessor->min, 1.f};
-                    glm::vec4 max = global * glm::vec4{*(glm::vec3 *)attr->accessor->max, 1.f};
-                    // check both min and max as global scale might have flipped things
-                    // x min
-                    if (bounds.min.x > min.x) bounds.min.x = min.x;
-                    if (bounds.min.x > max.x) bounds.min.x = max.x;
-                    // x max
-                    if (bounds.max.x < max.x) bounds.max.x = max.x;
-                    if (bounds.max.x < min.x) bounds.max.x = min.x;
-                    // y min
-                    if (bounds.min.y > min.y) bounds.min.y = min.y;
-                    if (bounds.min.y > max.y) bounds.min.y = max.y;
-                    // y max
-                    if (bounds.max.y < max.y) bounds.max.y = max.y;
-                    if (bounds.max.y < min.y) bounds.max.y = min.y;
-                    // z min
-                    if (bounds.min.z > min.z) bounds.min.z = min.z;
-                    if (bounds.min.z > max.z) bounds.min.z = max.z;
-                    // z max
-                    if (bounds.max.z < max.z) bounds.max.z = max.z;
-                    if (bounds.max.z < min.z) bounds.max.z = min.z;
-                }
-            }
+        {.eachPosAccr = [this](Gobj::Accessor * accessor, glm::mat4 const & global) {
+            glm::vec4 min = global * glm::vec4{*(glm::vec3 *)accessor->min, 1.f};
+            glm::vec4 max = global * glm::vec4{*(glm::vec3 *)accessor->max, 1.f};
+            // check both min and max as global scale might have flipped things
+            // x min
+            if (bounds.min.x > min.x) bounds.min.x = min.x;
+            if (bounds.min.x > max.x) bounds.min.x = max.x;
+            // x max
+            if (bounds.max.x < max.x) bounds.max.x = max.x;
+            if (bounds.max.x < min.x) bounds.max.x = min.x;
+            // y min
+            if (bounds.min.y > min.y) bounds.min.y = min.y;
+            if (bounds.min.y > max.y) bounds.min.y = max.y;
+            // y max
+            if (bounds.max.y < max.y) bounds.max.y = max.y;
+            if (bounds.max.y < min.y) bounds.max.y = min.y;
+            // z min
+            if (bounds.min.z > min.z) bounds.min.z = min.z;
+            if (bounds.min.z > max.z) bounds.min.z = max.z;
+            // z max
+            if (bounds.max.z < max.z) bounds.max.z = max.z;
+            if (bounds.max.z < min.z) bounds.max.z = min.z;
         }}
     );
 }
