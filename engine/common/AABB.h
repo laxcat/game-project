@@ -27,6 +27,10 @@ struct AABB {
         points[7] = glm::vec3{min.x, max.y, max.z};
     }
 
+    glm::vec3 center() const {
+        return min + (max - min) / 2.f;
+    }
+
     uint16_t renderHandleIndex = UINT16_MAX;
     uint16_t renderHandleVertex = UINT16_MAX;
 };

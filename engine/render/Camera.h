@@ -2,6 +2,7 @@
 #include <glm/mat4x4.hpp>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
+#include "../memory/Gobj.h"
 
 class Camera {
 public:
@@ -134,5 +135,11 @@ public:
 
     void preDraw() {
         bgfx::setUniform(uniform, (float *)&pos);
+    }
+
+    void zoomTo(Gobj * gobj) {
+        target = gobj->bounds.center();
+        printl("zoom to center target %f %f %f", target.x, target.y, target.z);
+        updatePosFromDistancePitchYaw();
     }
 };
