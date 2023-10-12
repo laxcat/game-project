@@ -293,7 +293,7 @@ Gobj * RenderSystem::add(char const * key, Gobj * gobj) {
     }
     gobj = addMinReqMat(gobj);
     renderList->insert(key, gobj);
-    addHandles(gobj);
+    postAdd(gobj);
 
     return gobj;
 }
@@ -319,7 +319,7 @@ Gobj * RenderSystem::update(char const * key, Gobj * newGobj) {
     removeHandles(oldGobj);
     newGobj = addMinReqMat(newGobj);
     renderList->update(key, newGobj);
-    addHandles(newGobj);
+    postAdd(newGobj);
     // return removed gobj
     return oldGobj;
 }
@@ -354,6 +354,11 @@ void RenderSystem::showMoreStatus(char const * prefix) {
 
 size_t RenderSystem::renderableCount() const {
     return renderList->nNodes();
+}
+
+void RenderSystem::postAdd(Gobj * gobj) {
+    addHandles(gobj);
+    mm.camera.zoomTo(gobj);
 }
 
 Gobj * RenderSystem::addMinReqMat(Gobj * gobj) {

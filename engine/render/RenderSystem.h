@@ -52,6 +52,7 @@ private:
 
     CharKeys * renderList = nullptr;
     
+    void postAdd(Gobj * gobj);
     Gobj * addMinReqMat(Gobj * gobj);
     bool needsMinReqMat(Gobj * gobj);
     Gobj::Counts countsForMinReqMat(Gobj * gobj);
