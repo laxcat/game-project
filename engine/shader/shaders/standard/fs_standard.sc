@@ -17,7 +17,7 @@ void main() {
     // ensure unit length. can get too long from varying or possibly even from source
     vec3 norm = normalize(v_norm);
 
-    float phongExp = (2.0 / pow(materialRoughness, 4.0) - 2.0) + materialMetallic * 100.0;
+    float phongExp = (2.0 / pow(1.0 - materialRoughness, 4.0) - 2.0) + materialMetallic * 100.0;
 
     vec3 ambient = vec3(0.0);
     vec3 diffuse = vec3(0.0);
