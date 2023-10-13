@@ -601,7 +601,7 @@ bimg::ImageContainer * RenderSystem::decodeImage(Gobj::Image * img, char const *
             img->name, imgc->m_data, imgc->m_width, imgc->m_height, imgc->m_depth);
     }
     else {
-        fprintf(stderr, "error loading image: %s (%p, %u)", err.getMessage().getPtr(), data, dataSize);
+        fprintf(stderr, "error loading image: %s (%p, %u)\n", err.getMessage().getPtr(), data, dataSize);
         return nullptr;
     }
     img->decoded = imgc;

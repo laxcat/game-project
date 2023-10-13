@@ -63,7 +63,7 @@ struct EngineSetup {
     size_t memManFrameStackSize = 1024*1024*10;
 
     // number of concurrent auto-released allocations
-    size_t memManAutoReleaseBufferSize = 16;
+    size_t memManAutoReleaseBufferSize = 32;
 
     // fixed-size allocator setup
     MemManFSASetup memManFSA{

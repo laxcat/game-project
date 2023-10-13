@@ -40,6 +40,10 @@ void Gobj::drawNode(Node * node) {
 }
 
 void Gobj::editorEditBlock() {
+    if (Button("Zoom To")) {
+        mm.camera.zoomTo(this);
+    }
+
     if (scenes) {
         if (BeginCombo("Scene", scene->name)) {
             for (uint16_t i = 0; i < counts.scenes; ++i) {
