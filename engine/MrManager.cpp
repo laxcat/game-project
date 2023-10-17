@@ -11,9 +11,11 @@ int MrManager::init(EngineSetup const & setup) {
     thisTime = setup.startTime;
     prevTime = setup.startTime;
 
+    camera = &defaultCamera;
+
     memMan.init(setup, &frameStack);
     rendSys.init();
-    camera.init(windowSize);
+    camera->init(windowSize);
     editor.init();
 
     workers = memMan.createArray<Worker *>(64);
@@ -100,7 +102,7 @@ int MrManager::init(EngineSetup const & setup) {
 void MrManager::shutdown() {
     if (setup.preShutdown) setup.preShutdown();
     rendSys.shutdown();
-    camera.shutdown();
+    camera->shutdown();
     memMan.request({.ptr=workers, .size=0});
     memMan.request({.ptr=workerGroups, .size=0});
     if (setup.postShutdown) setup.postShutdown();
@@ -128,7 +130,7 @@ void MrManager::tick() {
 void MrManager::draw() {
     if (setup.preDraw) setup.preDraw();
     bgfx::setViewClear(mainView, BGFX_CLEAR_COLOR|BGFX_CLEAR_DEPTH, rendSys.colors.background.asRGBAInt());
-    bgfx::setViewTransform(mainView, (float *)&camera.viewMat, (float *)&camera.projMat);
+    bgfx::setViewTransform(mainView, (float *)&camera->viewMat, (float *)&camera->projMat);
     bgfx::setViewRect(mainView, 0, 0, bgfx::BackbufferRatio::Equal);
     rendSys.draw();
     bgfx::frame();
@@ -142,7 +144,7 @@ void MrManager::updateSize(size2 windowSize) {
 
     this->windowSize = windowSize;
     rendSys.settings.updateSize(windowSize);
-    camera.setRatio(windowSize);
+    camera->setRatio(windowSize);
 
     if (setup.postResize) setup.postResize();
 }

@@ -41,7 +41,7 @@ void Gobj::drawNode(Node * node) {
 
 void Gobj::editorEditBlock() {
     if (Button("Zoom To")) {
-        mm.camera.zoomTo(this);
+        mm.camera->zoomTo(this);
     }
 
     if (scenes) {

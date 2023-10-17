@@ -192,42 +192,42 @@ void Editor::guiLighting() {
 
 void Editor::guiCamera() {
     if (CollapsingHeader("Camera (Orbit Target)")) {
-        auto oldProjType = mm.camera.projType;
-        if (BeginCombo("Type", mm.camera.projTypeStr())) {
-            for (int n = 0; n < mm.camera.projTypeCount(); ++n) {
-                if (Selectable(mm.camera.projTypeStr(n))) {
-                    mm.camera.projType = (Camera::ProjType)n;
-                    mm.camera.reset();
+        auto oldProjType = mm.camera->projType;
+        if (BeginCombo("Type", mm.camera->projTypeStr())) {
+            for (int n = 0; n < mm.camera->projTypeCount(); ++n) {
+                if (Selectable(mm.camera->projTypeStr(n))) {
+                    mm.camera->projType = (Camera::ProjType)n;
+                    mm.camera->reset();
                     // SetItemDefaultFocus();
                 }
             }
             EndCombo();
         }
-        bool typeChanged = (oldProjType != mm.camera.projType);
+        bool typeChanged = (oldProjType != mm.camera->projType);
 
         if (Button("Reset")) {
-            mm.camera.reset();
+            mm.camera->reset();
         }
 
-        bool distChanged =  SliderFloat("Distance", &mm.camera.distance, 0.0f, 50.0f, "%.3f");
-        bool targetChanged = SliderFloat3("Target", (float *)&mm.camera.target, -10.0f, 10.0f, "%.3f");
+        bool distChanged =  SliderFloat("Distance", &mm.camera->distance, 0.0f, 50.0f, "%.3f");
+        bool targetChanged = SliderFloat3("Target", (float *)&mm.camera->target, -10.0f, 10.0f, "%.3f");
 
-        if (mm.camera.projType == Camera::ProjType::Persp) {
-            bool pitchChanged =  SliderAngle("Pitch", &mm.camera.pitch, -89.999f, 0.f, "%.3f");
-            bool yawChanged =    SliderAngle("Yaw", &mm.camera.yaw);
-            bool fovChanged =    SliderAngle("FOV", &mm.camera.fov, 10.f, 110.f);
+        if (mm.camera->projType == Camera::ProjType::Persp) {
+            bool pitchChanged =  SliderAngle("Pitch", &mm.camera->pitch, -89.999f, 0.f, "%.3f");
+            bool yawChanged =    SliderAngle("Yaw", &mm.camera->yaw);
+            bool fovChanged =    SliderAngle("FOV", &mm.camera->fov, 10.f, 110.f);
 
             if (typeChanged || fovChanged) {
-                mm.camera.updateProjection();
+                mm.camera->updateProjection();
             }
             if (typeChanged || distChanged || pitchChanged || yawChanged || targetChanged) {
-                mm.camera.updatePosFromDistancePitchYaw();
+                mm.camera->updatePosFromDistancePitchYaw();
             }
         }
 
-        else if (mm.camera.projType == Camera::ProjType::Ortho) {
+        else if (mm.camera->projType == Camera::ProjType::Ortho) {
             if (typeChanged || distChanged || targetChanged) {
-                mm.camera.updateProjection();
+                mm.camera->updateProjection();
             }
         }
 

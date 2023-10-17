@@ -58,7 +58,7 @@ void RenderSystem::draw() {
     printc(ShowRenderDbgTick, "STARTING RENDER FRAME-----------------------------------------------------------\n");
 
     lights.preDraw();
-    mm.camera.preDraw();
+    mm.camera->preDraw();
     bgfx::setUniform(fog.handle, (float *)&fog.data);
     bgfx::setUniform(colors.background.handle, (float *)&colors.background.data);
 
@@ -358,7 +358,7 @@ size_t RenderSystem::renderableCount() const {
 
 void RenderSystem::postAdd(Gobj * gobj) {
     addHandles(gobj);
-    mm.camera.zoomTo(gobj);
+    mm.camera->zoomTo(gobj);
 }
 
 Gobj * RenderSystem::addMinReqMat(Gobj * gobj) {

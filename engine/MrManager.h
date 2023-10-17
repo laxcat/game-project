@@ -53,7 +53,8 @@ public:
     glm::vec2 mouseDownPos;
     glm::vec2 mouseUpPos;
 
-    Camera camera;
+    Camera * camera;
+    Camera defaultCamera;
     CameraControl cameraControl;
 
     #if DEV_INTERFACE
