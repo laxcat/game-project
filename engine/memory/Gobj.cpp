@@ -305,6 +305,12 @@ void Gobj::copy(Gobj * src) {
     #if DEBUG
     jsonStr = src->stringRelPtr(src->jsonStr, this);
     #endif // DEBUG
+
+    printl("GOBJ DEEP COPY");
+    printl("SRC: %p", src);
+    src->print();
+    printl("DST: %p", this);
+    this->print();
 }
 
 void Gobj::Accessor::copy(Accessor * accessor, Gobj * dst, Gobj * src) {

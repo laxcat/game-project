@@ -88,9 +88,12 @@ Metallic factor simply reduces diffuse color.
 
 void main() {
     // ensure unit length. can get too long from varying or possibly even from source
-    vec3 norm = normalize(v_norm);
+    vec3 norm = normalize(v_norm) * texture2D(s_norm, v_texcoord0).xyz;
 
-    float phongExp = (2.0 / pow(1.0 - materialRoughness, 4.0) - 2.0) + materialMetallic * 100.0;
+    vec4 roughnessMetallicSample = texture2D(s_metal, v_texcoord0);
+    float roughness = materialRoughness * roughnessMetallicSample.g;
+    float metallic = materialMetallic * roughnessMetallicSample.b;
+    float phongExp = (2.0 / pow(1.0 - roughness, 4.0) - 2.0) + metallic * 100.0;
 
     vec3 ambient = vec3(0.0);
     vec3 diffuse = vec3(0.0);
@@ -126,7 +129,7 @@ void main() {
 
     // light + object color
     vec4 objColor = texture2D(s_color, v_texcoord0) * u_materialBaseColor;
-    vec4 color = vec4((ambient + diffuse * (1.0 - materialMetallic)) * objColor.rgb + specular, objColor.a);
+    vec4 color = vec4((ambient + diffuse * (1.0 - metallic)) * objColor.rgb + specular, objColor.a);
 
     // distance fog
     // not really distance, but just how far z is from origin: abs(v_pos.z)

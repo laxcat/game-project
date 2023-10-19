@@ -377,9 +377,9 @@ Gobj * RenderSystem::addMinReqMat(Gobj * gobj) {
     static char const * metalRoughPNG =
     "data:image/png;base64,"
     //          (g) roughness---v v---metalic (b)
-    // 2x2 PNG, filled with 0xffff00ff (r,g,b,a) for every 4-byte pixel:
-    "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAE0lEQVR4XmP8/5/hPwMQMDFAAQ"
-    "AvBwMBP8AQXgAAAABJRU5ErkJggg==";
+    // 2x2 PNG, filled with 0xffffffff (r,g,b,a) for every 4-byte pixel:
+    "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEUlEQVR4XmP8DwQMQMDEAAUAPf"
+    "gEAHCr5OoAAAAASUVORK5CYII=";
 
     Gobj::Image * normColorImg = gobj->images + gobj->counts.images - 2;
     normColorImg->uri = white2x2x3PNG;
