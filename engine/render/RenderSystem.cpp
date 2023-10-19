@@ -51,7 +51,7 @@ void RenderSystem::init() {
     materialPBRValues = bgfx::createUniform("u_materialPBRValues", bgfx::UniformType::Vec4);
     normModel = bgfx::createUniform("u_normModel", bgfx::UniformType::Mat3);
 
-    renderList = mm.memMan.createCharKeys(8);
+    renderList = mm.memMan.createCharKeys(RenderListMax);
 }
 
 void RenderSystem::draw() {
@@ -324,6 +324,9 @@ Gobj * RenderSystem::update(char const * key, Gobj * newGobj) {
     return oldGobj;
 }
 
+bool RenderSystem::canAdd() const {
+    return (renderList->isFull() == false);
+}
 
 bool RenderSystem::keyExists(char const * key) {
     return renderList->hasKey(key);

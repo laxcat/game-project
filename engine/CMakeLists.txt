@@ -25,6 +25,7 @@ if(DEV_INTERFACE)
     set(ENABLE_IMGUI 1)
 endif()
 
+set(CMAKE_SKIP_INSTALL_RULES ON QUIET)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 project (game_project_engine

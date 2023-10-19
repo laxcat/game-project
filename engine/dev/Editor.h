@@ -38,6 +38,7 @@ public:
     // void guiRenderables();
     // void guiRenderable(Renderable * r, bool defaultOpen = false);
     void guiGobjs();
+    void guiAddGobj();
     void guiFog();
     void guiColors();
     void guiMem();

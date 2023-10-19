@@ -10,6 +10,8 @@
 
 class RenderSystem {
 public:
+    static constexpr uint16_t RenderListMax = 8;
+public:
     bgfx::ProgramHandle unlitProgram;
     bgfx::ProgramHandle standardProgram;
     Lights lights;
@@ -31,6 +33,7 @@ public:
     // returns gobj at key before update, nullptr if not found
     Gobj * update(char const * key, Gobj * newGobj);
 
+    bool canAdd() const;
     bool keyExists(char const * key);
     Gobj * gobjForKey(char const * key);
 

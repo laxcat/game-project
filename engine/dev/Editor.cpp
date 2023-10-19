@@ -450,6 +450,50 @@ void Editor::guiGobjs() {
         mm.rendSys.remove(keyToUnload);
         mm.memMan.request({.ptr=oldGobj, .size=0});
     }
+
+    // add gltf with
+    guiAddGobj();
+}
+
+void Editor::guiAddGobj() {
+    if (!mm.rendSys.canAdd()) {
+        return;
+    }
+
+    TextUnformatted("Add Gobj from glTF");
+
+    Indent();
+
+    static char newKeyLabel[CharKeys::KEY_MAX];
+    // static int flags = ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue;
+    static int flags = 0;
+    PushItemWidth(120);
+    InputText("New Gobj Key", newKeyLabel, CharKeys::KEY_MAX, flags);
+    if (newKeyLabel[0] == '\0') {
+        Unindent();
+        return;
+    }
+
+    SameLine();
+    if (Button("Load") == false) {
+        Unindent();
+        return;
+    }
+
+    nfdchar_t * outPath = NULL;
+    nfdresult_t result = NFD_OpenDialog(NULL, ".", &outPath);
+    if (result == NFD_OKAY) {
+        mm.createWorker([outPath]{
+            Gobj * newGobj = mm.memMan.createGobj(outPath);
+            mm.rendSys.add(newKeyLabel, newGobj);
+            newKeyLabel[0] = '\0';
+            free(outPath);
+        });
+    }
+    else if (result == NFD_CANCEL) {}
+    else {
+        fprintf(stderr, "Error: %s\n", NFD_GetError());
+    }
 }
 
 void Editor::guiFog() {
