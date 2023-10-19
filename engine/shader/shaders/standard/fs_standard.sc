@@ -1,8 +1,81 @@
 $input v_texcoord0, v_norm, v_pos
 
 #include <bgfx_shader.sh>
-#include "../../engine.h"
+#include "../../shared_defines.h"
 
+// SHADER UTILS
+
+float map(float value, float min1, float max1, float min2, float max2) {
+  return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
+}
+
+// not sure about this attenuation function... could at least have better cutoff parameter
+// https://imdoingitwrong.wordpress.com/2011/01/31/light-attenuation/
+float calcAttenuation(float lightRadius, vec3 lightPos, vec3 fragPos, vec3 fragNormal, float cutoff) {
+    // calculate normalized light vector and distance to sphere light surface
+    vec3 L = lightPos - fragPos;
+    float distance = length(L);
+    float d = max(distance - lightRadius, 0.0);
+    L /= distance;
+
+    // calculate basic attenuation
+    float denom = d / lightRadius + 1.0;
+    float attenuation = 1.0 / (denom*denom);
+
+    // scale and bias attenuation such that:
+    //   attenuation == 0 at extent of max influence
+    //   attenuation == 1 when d == 0
+    attenuation = (attenuation - cutoff) / (1.0 - cutoff);
+    attenuation = max(attenuation, 0.0);
+
+    float dot = max(dot(L, fragNormal), 0.0);
+    return dot * attenuation;
+}
+
+SAMPLER2D(s_color, TEXTURE_SLOT_COLOR);
+SAMPLER2D(s_norm,  TEXTURE_SLOT_NORM);
+SAMPLER2D(s_metal, TEXTURE_SLOT_METAL);
+
+// material
+uniform vec4 u_materialBaseColor;
+uniform vec4 u_materialPBRValues;
+#define materialRoughness (u_materialPBRValues.x)
+#define materialMetallic (u_materialPBRValues.y)
+#define materialSpecular (u_materialPBRValues.z)
+#define materialBaseColorIntensity (u_materialPBRValues.w)
+
+// lights
+// directional
+uniform vec4 u_dirLightDir[MAX_DIRECTIONAL_LIGHTS];
+#define lightDir(INDEX) (u_dirLightDir[INDEX].xyz)
+uniform vec4 u_dirLightStrength[MAX_DIRECTIONAL_LIGHTS]; // x = ambient, y = diffuse, z = specular, w = global-factor
+#define dirAmbientStength(INDEX) (u_dirLightStrength[INDEX].x)
+#define dirDiffuseStength(INDEX) (u_dirLightStrength[INDEX].y)
+#define dirSpecularStength(INDEX) (u_dirLightStrength[INDEX].z)
+#define dirLightStength(INDEX) (u_dirLightStrength[INDEX].w)
+uniform vec4 u_dirLightColor[MAX_DIRECTIONAL_LIGHTS];
+#define dirColor(INDEX) (u_dirLightColor[INDEX].xyz)
+// point
+uniform vec4 u_pointLightPos[MAX_POINT_LIGHTS];
+#define lightPos(INDEX) (u_pointLightPos[INDEX].xyz)
+#define lightRadius(INDEX) (u_pointLightPos[INDEX].w)
+uniform vec4 u_pointLightStrength[MAX_POINT_LIGHTS]; // x = ambient, y = diffuse, z = specular, w = global-factor
+#define pointAmbientStength(INDEX) (u_pointLightStrength[INDEX].x)
+#define pointDiffuseStength(INDEX) (u_pointLightStrength[INDEX].y)
+#define pointSpecularStength(INDEX) (u_pointLightStrength[INDEX].z)
+#define pointLightStength(INDEX) (u_pointLightStrength[INDEX].w)
+uniform vec4 u_pointLightColor[MAX_POINT_LIGHTS];
+#define pointColor(INDEX) (u_pointLightColor[INDEX].xyz)
+
+// other
+uniform vec4 u_fog;
+uniform vec4 u_bgColor;
+uniform vec4 u_cameraPos;
+#define cameraPos (u_cameraPos.xyz)
+uniform vec4 u_lightExtra;
+#define dirLightCount (u_lightExtra.x)
+#define pointLightCount (u_lightExtra.y)
+#define pointLightCutoff (u_lightExtra.z)
 
 /*
 Blinn-Phong, with simple approximations for roughness/metalic material settings.
