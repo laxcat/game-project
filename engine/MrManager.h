@@ -1,7 +1,7 @@
 #pragma once
 #include <bgfx/bgfx.h>
 #include "engine.h"
-#include "common/EventQueue.h"
+#include "common/InputQueue.h"
 #include "memory/Array.h"
 #include "memory/MemMan.h"
 #include "memory/FrameStack.h"
@@ -38,7 +38,7 @@ public:
     size_t frame = 0;
     EngineSetup setup;
 
-    EventQueue eventQueue;
+    InputQueue inputQueue;
 
     MemMan memMan;
     FrameStack * frameStack = nullptr; // TODO: consider moving this into MemMan
@@ -93,12 +93,12 @@ public:
 // -------------------------------------------------------------------------- //
 // EVENT
 // -------------------------------------------------------------------------- //
-    void processEvents();
-    void keyEvent(Event const & e);
-    void charEvent(Event const & e);
-    void mousePosEvent(Event const & e);
-    void mouseButtonEvent(Event const & e);
-    void scrollEvent(Event const & e);
+    void processInputs();
+    void keyInput(Input const & i);
+    void charInput(Input const & i);
+    void mousePosInput(Input const & i);
+    void mouseButtonInput(Input const & i);
+    void scrollInput(Input const & i);
 
 // -------------------------------------------------------------------------- //
 // TEST/DEBUG

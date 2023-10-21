@@ -279,64 +279,64 @@ char * MrManager::frameFormatStr(char const * format, ...) {
 // EVENT
 // -------------------------------------------------------------------------- //
 
-void MrManager::processEvents() {
-    for (int i = 0; i < mm.eventQueue.count; ++i) {
-        Event & e = mm.eventQueue.events[i];
-        switch (e.type) {
-        // case Event::Window:
+void MrManager::processInputs() {
+    for (int i = 0; i < mm.inputQueue.count; ++i) {
+        Input & input = mm.inputQueue.inputs[i];
+        switch (input.type) {
+        // case Input::Window:
         //     break;
 
-        case Event::Key:
-            keyEvent(e);
+        case Input::Key:
+            keyInput(input);
             break;
-        case Event::Char:
-            charEvent(e);
+        case Input::Char:
+            charInput(input);
             break;
 
-        case Event::MousePos:
-            mousePosEvent(e);
+        case Input::MousePos:
+            mousePosInput(input);
             break;
-        case Event::MouseButton:
-            mouseButtonEvent(e);
+        case Input::MouseButton:
+            mouseButtonInput(input);
             break;
-        case Event::MouseScroll:
-            scrollEvent(e);
+        case Input::MouseScroll:
+            scrollInput(input);
             break;
 
         default:
-        case Event::None:
+        case Input::None:
             break;
         }
     }
-    mm.eventQueue.clear();
+    mm.inputQueue.clear();
 }
 
-void MrManager::keyEvent(Event const & e) {
-    if (e.action == GLFW_PRESS) {
+void MrManager::keyInput(Input const & i) {
+    if (i.action == GLFW_PRESS) {
         #if DEV_INTERFACE
-        int numKey = glfwNumberKey(e.key);
+        int numKey = glfwNumberKey(i.key);
         if (numKey != -1) {
             devOverlay.setState(numKey);
         }
         #endif // DEV_INTERFACE
     }
-    if (setup.keyEvent) setup.keyEvent(e);
+    if (setup.keyInput) setup.keyInput(i);
 }
 
-void MrManager::charEvent(Event const & e) {
-    if (setup.charEvent) setup.charEvent(e);
+void MrManager::charInput(Input const & i) {
+    if (setup.charInput) setup.charInput(i);
 }
 
-void MrManager::mousePosEvent(Event const & e) {
+void MrManager::mousePosInput(Input const & i) {
     mousePrevPos = mousePos;
-    mousePos.x = e.x;
-    mousePos.y = e.y;
-    if (setup.cameraControl) cameraControl.mousePosEvent(e);
-    if (setup.mousePosEvent) setup.mousePosEvent(e);
+    mousePos.x = i.x;
+    mousePos.y = i.y;
+    if (setup.cameraControl) cameraControl.mousePosInput(i);
+    if (setup.mousePosInput) setup.mousePosInput(i);
 }
 
-void MrManager::mouseButtonEvent(Event const & e) {
-    mouseIsDown = e.action;
+void MrManager::mouseButtonInput(Input const & i) {
+    mouseIsDown = i.action;
     if (mouseIsDown) {
         double tx, ty;
         glfwGetCursorPos(window, &tx, &ty);
@@ -347,12 +347,12 @@ void MrManager::mouseButtonEvent(Event const & e) {
     else {
         mouseUpPos = mousePos;
     }
-    if (setup.mouseButtonEvent) setup.mouseButtonEvent(e);
+    if (setup.mouseButtonInput) setup.mouseButtonInput(i);
 }
 
-void MrManager::scrollEvent(Event const & e) {
-    if (setup.cameraControl) cameraControl.scrollEvent(e);
-    if (setup.scrollEvent) setup.scrollEvent(e);
+void MrManager::scrollInput(Input const & i) {
+    if (setup.cameraControl) cameraControl.scrollInput(i);
+    if (setup.scrollInput) setup.scrollInput(i);
 }
 
 

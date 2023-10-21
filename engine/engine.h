@@ -16,9 +16,9 @@ int main(int argc, char ** argv) {
         .preDraw = preDraw,
         .postResize = postResize,
         .preShutdown = preShutdown,
-        .keyEvent = keyEvent,
-        .mousePosEvent = mousePosEvent,
-        .scrollEvent = scrollEvent,
+        .keyInput = keyInput,
+        .mousePosInput = mousePosInput,
+        .scrollInput = scrollInput,
         .windowTitle = "Example",
         .cameraControl = false,
         .limits = {.minw=200, .minh=200},
@@ -31,7 +31,7 @@ struct EngineSetup {
     using setup_callback_t = int (*)(EngineSetup & setup);
     using init_callback_t = int (*)(Args const & args);
     using callback_t = void (*)();
-    using input_callback_t = void (*)(Event const & event);
+    using input_callback_t = void (*)(Input const & input);
 
     setup_callback_t preWindow = nullptr;
     init_callback_t preInit = nullptr;
@@ -46,11 +46,11 @@ struct EngineSetup {
     callback_t postResize = nullptr;
     callback_t preShutdown = nullptr;
     callback_t postShutdown = nullptr;
-    input_callback_t keyEvent = nullptr;
-    input_callback_t charEvent = nullptr;
-    input_callback_t mousePosEvent = nullptr;
-    input_callback_t mouseButtonEvent = nullptr;
-    input_callback_t scrollEvent = nullptr;
+    input_callback_t keyInput = nullptr;
+    input_callback_t charInput = nullptr;
+    input_callback_t mousePosInput = nullptr;
+    input_callback_t mouseButtonInput = nullptr;
+    input_callback_t scrollInput = nullptr;
 
     Args args;
 

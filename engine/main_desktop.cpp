@@ -35,8 +35,8 @@ static void glfw_windowSizeCallback(GLFWwindow * window, int width, int height) 
 }
 
 static void glfw_keyCallback(GLFWwindow * window, int key, int scancode, int action, int mods) {
-    mm.eventQueue.push({
-        .type = Event::Key,
+    mm.inputQueue.push({
+        .type = Input::Key,
         .key = key,
         .scancode = scancode,
         .action = action,
@@ -46,16 +46,16 @@ static void glfw_keyCallback(GLFWwindow * window, int key, int scancode, int act
 }
 
 static void glfw_charCallback(GLFWwindow * window, unsigned int codepoint) {
-    mm.eventQueue.push({
-        .type = Event::Char,
+    mm.inputQueue.push({
+        .type = Input::Char,
         .codepoint = codepoint,
         .consume = true,
     });
 }
 
 static void glfw_mousePosCallback(GLFWwindow * window, double x, double y) {
-    mm.eventQueue.push({
-        .type = Event::MousePos,
+    mm.inputQueue.push({
+        .type = Input::MousePos,
         .x = (float)x,
         .y = (float)y,
         .consume = true,
@@ -63,8 +63,8 @@ static void glfw_mousePosCallback(GLFWwindow * window, double x, double y) {
 }
 
 static void glfw_mouseButtonCallback(GLFWwindow * window, int button, int action, int mods) {
-    mm.eventQueue.push({
-        .type = Event::MouseButton,
+    mm.inputQueue.push({
+        .type = Input::MouseButton,
         .button = button,
         .action = action,
         .mods = mods,
@@ -73,8 +73,8 @@ static void glfw_mouseButtonCallback(GLFWwindow * window, int button, int action
 }
 
 static void glfw_scrollCallback(GLFWwindow * window, double x, double y) {
-    mm.eventQueue.push({
-        .type = Event::MouseScroll,
+    mm.inputQueue.push({
+        .type = Input::MouseScroll,
         .scrollx = (float)x,
         .scrolly = (float)y,
         .consume = true,
@@ -176,9 +176,9 @@ int main_desktop(EngineSetup & setup) {
 
         #if ENABLE_IMGUI
             // might consume events
-            imguiBeginFrame(mm.windowSize, mm.eventQueue, mm.dt);
+            imguiBeginFrame(mm.windowSize, mm.inputQueue, mm.dt);
             // handle what wasn't consumed
-            mm.processEvents();
+            mm.processInputs();
 
             #if DEV_INTERFACE
             if (mm.devOverlay.isShowingImGUI()) {
@@ -194,7 +194,7 @@ int main_desktop(EngineSetup & setup) {
 
         // not ENABLE_IMGUI
         #else
-            mm.processEvents();
+            mm.processInputs();
             mm.tick();
             mm.draw();
 

@@ -32,7 +32,7 @@ struct WindowPlacement {
     int h = 1080;
 };
 
-struct Event {
+struct Input {
     enum Type {
         None,
         // Window,

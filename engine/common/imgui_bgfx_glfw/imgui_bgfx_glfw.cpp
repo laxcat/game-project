@@ -191,7 +191,7 @@ void imguiDestroy() {
     bgfx::destroy(_mainProgram);
 }
 
-void imguiBeginFrame(size2 windowSize, EventQueue & events, double dt) {
+void imguiBeginFrame(size2 windowSize, InputQueue & queue, double dt) {
     IM_ASSERT(_context != NULL && "Did you initalize imgui?");
     // printl("imguiBeginFrame dt %f", dt);
 
@@ -202,50 +202,50 @@ void imguiBeginFrame(size2 windowSize, EventQueue & events, double dt) {
 
     io.DeltaTime = (float)dt;
 
-    // process events
-    // printl("imguiBeginFrame event count: %d", events.count);
-    for (int i = 0; i < events.count; ++i) {
-        Event & e = events.events[i];
-        switch (e.type) {
+    // process queue
+    // printl("imguiBeginFrame event count: %d", queue.count);
+    for (int i = 0; i < queue.count; ++i) {
+        Input & input = queue.inputs[i];
+        switch (input.type) {
 
-        case Event::MousePos: {
-            io.AddMousePosEvent(e.x, e.y);
+        case Input::MousePos: {
+            io.AddMousePosEvent(input.x, input.y);
             // printf("cursorPosCallback %f, %f\n", x, y);
-            _lastValidMousePos = ImVec2(e.x, e.y);
-            if (e.consume && io.WantCaptureMouse) e.type = Event::None;
+            _lastValidMousePos = ImVec2(input.x, input.y);
+            if (input.consume && io.WantCaptureMouse) input.type = Input::None;
             break;
         }
-        case Event::MouseButton: {
-            updateKeyModifiers(e.mods);
-            if (e.button >= 0 && e.button < ImGuiMouseButton_COUNT)
-                io.AddMouseButtonEvent(e.button, (e.action == GLFW_PRESS));
-            if (e.consume && io.WantCaptureMouse) e.type = Event::None;
+        case Input::MouseButton: {
+            updateKeyModifiers(input.mods);
+            if (input.button >= 0 && input.button < ImGuiMouseButton_COUNT)
+                io.AddMouseButtonEvent(input.button, (input.action == GLFW_PRESS));
+            if (input.consume && io.WantCaptureMouse) input.type = Input::None;
             break;
         }
-        case Event::MouseScroll: {
-        io.AddMouseWheelEvent(e.scrollx, e.scrolly);
-            if (e.consume && io.WantCaptureMouse) e.type = Event::None;
+        case Input::MouseScroll: {
+        io.AddMouseWheelEvent(input.scrollx, input.scrolly);
+            if (input.consume && io.WantCaptureMouse) input.type = Input::None;
             break;
         }
 
-        case Event::Char: {
-            io.AddInputCharacter(e.codepoint);
-            if (e.consume && io.WantCaptureKeyboard) e.type = Event::None;
+        case Input::Char: {
+            io.AddInputCharacter(input.codepoint);
+            if (input.consume && io.WantCaptureKeyboard) input.type = Input::None;
             break;
         }
-        case Event::Key: {
-            if (e.action != GLFW_PRESS && e.action != GLFW_RELEASE)
+        case Input::Key: {
+            if (input.action != GLFW_PRESS && input.action != GLFW_RELEASE)
                 break;
-            updateKeyModifiers(e.mods);
-            int keycode = translateUntranslatedKey(e.key, e.scancode);
+            updateKeyModifiers(input.mods);
+            int keycode = translateUntranslatedKey(input.key, input.scancode);
             ImGuiKey imgui_key = keyToImGuiKey(keycode);
-            io.AddKeyEvent(imgui_key, (e.action == GLFW_PRESS));
-            io.SetKeyEventNativeData(imgui_key, keycode, e.scancode);
-            if (e.consume && io.WantCaptureKeyboard) e.type = Event::None;
+            io.AddKeyEvent(imgui_key, (input.action == GLFW_PRESS));
+            io.SetKeyEventNativeData(imgui_key, keycode, input.scancode);
+            if (input.consume && io.WantCaptureKeyboard) input.type = Input::None;
             break;
         }
 
-        case Event::None:
+        case Input::None:
         default:
             break;
         }
