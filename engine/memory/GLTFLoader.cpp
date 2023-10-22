@@ -371,8 +371,12 @@ bool GLTFLoader::load(Gobj * gobj) {
         fprintf(stderr, "JSON parse error: %s (%zu)\n",
             rapidjson::GetParseError_En(result.Code()), result.Offset());
     }
-    gobj->counts = gobj->maxCounts;
+
+    // track count of actual sub-objects populated by loader
+    gobj->counts += _counts;
+
     postLoad(gobj);
+
     return result;
 }
 

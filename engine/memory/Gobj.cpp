@@ -544,6 +544,34 @@ byte_t * Gobj::rawDataRelPtr(byte_t * data, Gobj * dst) const {
     return dst->rawData + (data - rawData);
 }
 
+bool Gobj::hasMemoryFor(Counts const & additionalCounts) const {
+    if (counts.allStrLen          + additionalCounts.allStrLen         > maxCounts.allStrLen)         return false;
+    if (counts.accessors          + additionalCounts.accessors         > maxCounts.accessors)         return false;
+    if (counts.animations         + additionalCounts.animations        > maxCounts.animations)        return false;
+    if (counts.animationChannels  + additionalCounts.animationChannels > maxCounts.animationChannels) return false;
+    if (counts.animationSamplers  + additionalCounts.animationSamplers > maxCounts.animationSamplers) return false;
+    if (counts.buffers            + additionalCounts.buffers           > maxCounts.buffers)           return false;
+    if (counts.bufferViews        + additionalCounts.bufferViews       > maxCounts.bufferViews)       return false;
+    if (counts.cameras            + additionalCounts.cameras           > maxCounts.cameras)           return false;
+    if (counts.images             + additionalCounts.images            > maxCounts.images)            return false;
+    if (counts.materials          + additionalCounts.materials         > maxCounts.materials)         return false;
+    if (counts.meshes             + additionalCounts.meshes            > maxCounts.meshes)            return false;
+    if (counts.meshAttributes     + additionalCounts.meshAttributes    > maxCounts.meshAttributes)    return false;
+    if (counts.meshPrimitives     + additionalCounts.meshPrimitives    > maxCounts.meshPrimitives)    return false;
+    if (counts.meshTargets        + additionalCounts.meshTargets       > maxCounts.meshTargets)       return false;
+    if (counts.meshWeights        + additionalCounts.meshWeights       > maxCounts.meshWeights)       return false;
+    if (counts.nodes              + additionalCounts.nodes             > maxCounts.nodes)             return false;
+    if (counts.nodeChildren       + additionalCounts.nodeChildren      > maxCounts.nodeChildren)      return false;
+    if (counts.nodeWeights        + additionalCounts.nodeWeights       > maxCounts.nodeWeights)       return false;
+    if (counts.samplers           + additionalCounts.samplers          > maxCounts.samplers)          return false;
+    if (counts.scenes             + additionalCounts.scenes            > maxCounts.scenes)            return false;
+    if (counts.skins              + additionalCounts.skins             > maxCounts.skins)             return false;
+    if (counts.textures           + additionalCounts.textures          > maxCounts.textures)          return false;
+    if (counts.rawDataLen         + additionalCounts.rawDataLen        > maxCounts.rawDataLen)        return false;
+
+    return true;
+}
+
 void Gobj::traverse(TraverseFns const & fns, glm::mat4 const & parentTransform) {
     // if scene is set
     if (scene) {
@@ -658,32 +686,36 @@ size_t Gobj::Counts::totalSize() const {
 
 Gobj::Counts Gobj::Counts::operator+(Counts const & other) const {
     Counts ret = *this;
-
-    ret.allStrLen          += other.allStrLen;
-    ret.accessors          += other.accessors;
-    ret.animations         += other.animations;
-    ret.animationChannels  += other.animationChannels;
-    ret.animationSamplers  += other.animationSamplers;
-    ret.buffers            += other.buffers;
-    ret.bufferViews        += other.bufferViews;
-    ret.cameras            += other.cameras;
-    ret.images             += other.images;
-    ret.materials          += other.materials;
-    ret.meshes             += other.meshes;
-    ret.meshAttributes     += other.meshAttributes;
-    ret.meshPrimitives     += other.meshPrimitives;
-    ret.meshTargets        += other.meshTargets;
-    ret.meshWeights        += other.meshWeights;
-    ret.nodes              += other.nodes;
-    ret.nodeChildren       += other.nodeChildren;
-    ret.nodeWeights        += other.nodeWeights;
-    ret.samplers           += other.samplers;
-    ret.scenes             += other.scenes;
-    ret.skins              += other.skins;
-    ret.textures           += other.textures;
-    ret.rawDataLen         += other.rawDataLen;
-
+    ret += other;
     return ret;
+}
+
+Gobj::Counts & Gobj::Counts::operator+=(Counts const & other) {
+    allStrLen          += other.allStrLen;
+    accessors          += other.accessors;
+    animations         += other.animations;
+    animationChannels  += other.animationChannels;
+    animationSamplers  += other.animationSamplers;
+    buffers            += other.buffers;
+    bufferViews        += other.bufferViews;
+    cameras            += other.cameras;
+    images             += other.images;
+    materials          += other.materials;
+    meshes             += other.meshes;
+    meshAttributes     += other.meshAttributes;
+    meshPrimitives     += other.meshPrimitives;
+    meshTargets        += other.meshTargets;
+    meshWeights        += other.meshWeights;
+    nodes              += other.nodes;
+    nodeChildren       += other.nodeChildren;
+    nodeWeights        += other.nodeWeights;
+    samplers           += other.samplers;
+    scenes             += other.scenes;
+    skins              += other.skins;
+    textures           += other.textures;
+    rawDataLen         += other.rawDataLen;
+
+    return *this;
 }
 
 uint8_t Gobj::Accessor::componentCount() const {

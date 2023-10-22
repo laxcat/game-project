@@ -433,7 +433,7 @@ void Editor::guiGobjs() {
 
         if (result == NFD_OKAY) {
             mm.createWorker([keyToSwap, outPath]{
-                Gobj * newGobj = mm.memMan.createGobj(outPath);
+                Gobj * newGobj = mm.memMan.createGobj(outPath, RenderSystem::typicalCountsForMinReqMat());
                 Gobj * oldGobj = mm.rendSys.update(keyToSwap, newGobj);
                 mm.memMan.request({.ptr=oldGobj, .size=0});
                 free(outPath);
@@ -484,7 +484,7 @@ void Editor::guiAddGobj() {
     nfdresult_t result = NFD_OpenDialog(NULL, ".", &outPath);
     if (result == NFD_OKAY) {
         mm.createWorker([outPath]{
-            Gobj * newGobj = mm.memMan.createGobj(outPath);
+            Gobj * newGobj = mm.memMan.createGobj(outPath, RenderSystem::typicalCountsForMinReqMat());
             mm.rendSys.add(newKeyLabel, newGobj);
             newKeyLabel[0] = '\0';
             free(outPath);

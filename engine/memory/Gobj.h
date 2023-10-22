@@ -200,6 +200,7 @@ public:
         size_t totalSize() const;
 
         Counts operator+(Counts const & other) const;
+        Counts & operator+=(Counts const & other);
 
         #if DEBUG || DEV_INTERFACE
         void print() const;
@@ -305,6 +306,7 @@ public:
     void setStatus(Status status);
     bool isReadyToDraw() const;
     void copy(Gobj * srcGobj);
+    bool hasMemoryFor(Counts const & counts) const;
     void traverse(                          TraverseFns const & params, glm::mat4 const & parentTransform = glm::mat4{1.f});
     void traverseNode(Node * node,          TraverseFns const & params, glm::mat4 const & parentTransform = glm::mat4{1.f});
     void traverseMesh(Mesh * mesh,          TraverseFns const & params, glm::mat4 const & parentTransform = glm::mat4{1.f});

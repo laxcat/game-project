@@ -93,7 +93,7 @@ CharKeys * MemMan::createCharKeys(size_t max) {
     return new (block->data()) CharKeys{max};
 }
 
-Gobj * MemMan::createGobj(char const * gltfPath) {
+Gobj * MemMan::createGobj(char const * gltfPath, Gobj::Counts additionalCounts) {
     guard_t guard{_mainMutex};
 
     #if DEBUG
@@ -125,7 +125,7 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     char * dirName = (char *)dirNameBlock->data();
     uint32_t dirNameLen = (uint32_t)copyDirName(dirName, gltfPath);
 
-    // LOADER 4
+    // LOADER
     BlockInfo * loaderBlock = createBlock({
         .size = sizeof(GLTFLoader),
         .lifetime = 0,
@@ -146,7 +146,7 @@ Gobj * MemMan::createGobj(char const * gltfPath) {
     loader->calculateSize();
 
     // create gobj block
-    Gobj * gobj = createGobj(loader->counts());
+    Gobj * gobj = createGobj(loader->counts() + additionalCounts);
     BlockInfo * block = blockForPtr(gobj);
     if (block == nullptr) {
         fprintf(stderr, "Error getting Gobj block.\n");

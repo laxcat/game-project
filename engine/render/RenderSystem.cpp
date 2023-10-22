@@ -369,7 +369,10 @@ Gobj * RenderSystem::addMinReqMat(Gobj * gobj) {
         return gobj;
     }
 
-    gobj = mm.memMan.updateGobj(gobj, countsForMinReqMat(gobj));
+    Gobj::Counts minReqCounts = countsForMinReqMat(gobj);
+    if (!gobj->hasMemoryFor(minReqCounts)) {
+        gobj = mm.memMan.updateGobj(gobj, minReqCounts);
+    }
 
     static char const * white2x2x3PNG =
     "data:image/png;base64,"
@@ -451,6 +454,10 @@ bool RenderSystem::needsMinReqMat(Gobj * gobj) {
 }
 
 Gobj::Counts RenderSystem::countsForMinReqMat(Gobj * gobj) {
+    return typicalCountsForMinReqMat(); // TODO: analyze gobj to find out if this is true
+}
+
+Gobj::Counts RenderSystem::typicalCountsForMinReqMat() {
     return {
         .materials = 1,
         .textures = 2,
