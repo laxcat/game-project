@@ -12,157 +12,157 @@
 #define ALIGN_SIZE(SIZE) alignSize(SIZE, Gobj::Align)
 #define ALIGN_PTR(PTR)  alignPtr(PTR, Gobj::Align)
 
-Gobj::Gobj(Gobj::Counts const & counts) :
-    counts(counts)
+Gobj::Gobj(Gobj::Counts const & maxCounts) :
+    maxCounts(maxCounts)
 {
     // don't align base head, we assume Gobj has been aligned externally (MemMan)
     byte_t * head = (byte_t *)this;
     head += ALIGN_SIZE(sizeof(Gobj));
 
     // has string data, create FrameStack to hold it
-    if (counts.allStrLen) {
-        strings = new (head) FrameStack{counts.allStrLen};
+    if (maxCounts.allStrLen) {
+        strings = new (head) FrameStack{maxCounts.allStrLen};
         head += ALIGN_SIZE(strings->totalSize());
     }
 
-    if (counts.accessors) {
+    if (maxCounts.accessors) {
         accessors = (Accessor *)head;
-        for (uint16_t i = 0; i < counts.accessors; ++i) {
+        for (uint16_t i = 0; i < maxCounts.accessors; ++i) {
             new (head) Accessor{};
             head += sizeof(Accessor);
         }
         head = (byte_t *)ALIGN_PTR(head);
     }
 
-    if (counts.animations) {
+    if (maxCounts.animations) {
         animations = (Animation *)head;
-        for (uint16_t i = 0; i < counts.animations; ++i) {
+        for (uint16_t i = 0; i < maxCounts.animations; ++i) {
             new (head) Animation{};
             head += sizeof(Animation);
         }
         head = (byte_t *)ALIGN_PTR(head);
     }
 
-    if (counts.animationChannels) {
+    if (maxCounts.animationChannels) {
         animationChannels = (AnimationChannel *)head;
-        for (uint16_t i = 0; i < counts.animationChannels; ++i) {
+        for (uint16_t i = 0; i < maxCounts.animationChannels; ++i) {
             new (head) AnimationChannel{};
             head += sizeof(AnimationChannel);
         }
         head = (byte_t *)ALIGN_PTR(head);
     }
 
-    if (counts.animationSamplers) {
+    if (maxCounts.animationSamplers) {
         animationSamplers = (AnimationSampler *)head;
-        for (uint16_t i = 0; i < counts.animationSamplers; ++i) {
+        for (uint16_t i = 0; i < maxCounts.animationSamplers; ++i) {
             new (head) AnimationSampler{};
             head += sizeof(AnimationSampler);
         }
         head = (byte_t *)ALIGN_PTR(head);
     }
 
-    if (counts.buffers) {
+    if (maxCounts.buffers) {
         buffers = (Buffer *)head;
-        for (uint16_t i = 0; i < counts.buffers; ++i) {
+        for (uint16_t i = 0; i < maxCounts.buffers; ++i) {
             new (head) Buffer{};
             head += sizeof(Buffer);
         }
         head = (byte_t *)ALIGN_PTR(head);
     }
 
-    if (counts.bufferViews) {
+    if (maxCounts.bufferViews) {
         bufferViews = (BufferView *)head;
-        for (uint16_t i = 0; i < counts.bufferViews; ++i) {
+        for (uint16_t i = 0; i < maxCounts.bufferViews; ++i) {
             new (head) BufferView{};
             head += sizeof(BufferView);
         }
         head = (byte_t *)ALIGN_PTR(head);
     }
 
-    if (counts.cameras) {
+    if (maxCounts.cameras) {
         cameras = (Camera *)head;
-        for (uint16_t i = 0; i < counts.cameras; ++i) {
+        for (uint16_t i = 0; i < maxCounts.cameras; ++i) {
             new (head) Camera{};
             head += sizeof(Camera);
         }
         head = (byte_t *)ALIGN_PTR(head);
     }
 
-    if (counts.images) {
+    if (maxCounts.images) {
         images = (Image *)head;
-        for (uint16_t i = 0; i < counts.images; ++i) {
+        for (uint16_t i = 0; i < maxCounts.images; ++i) {
             new (head) Image{};
             head += sizeof(Image);
         }
         head = (byte_t *)ALIGN_PTR(head);
     }
 
-    if (counts.materials) {
+    if (maxCounts.materials) {
         materials = (Material *)head;
-        for (uint16_t i = 0; i < counts.materials; ++i) {
+        for (uint16_t i = 0; i < maxCounts.materials; ++i) {
             new (head) Material{};
             head += sizeof(Material);
         }
         head = (byte_t *)ALIGN_PTR(head);
     }
 
-    if (counts.meshes) {
+    if (maxCounts.meshes) {
         meshes = (Mesh *)head;
-        for (uint16_t i = 0; i < counts.meshes; ++i) {
+        for (uint16_t i = 0; i < maxCounts.meshes; ++i) {
             new (head) Mesh{};
             head += sizeof(Mesh);
         }
         head = (byte_t *)ALIGN_PTR(head);
     }
 
-    if (counts.meshAttributes) {
+    if (maxCounts.meshAttributes) {
         meshAttributes = (MeshAttribute *)head;
-        for (uint16_t i = 0; i < counts.meshAttributes; ++i) {
+        for (uint16_t i = 0; i < maxCounts.meshAttributes; ++i) {
             new (head) MeshAttribute{};
             head += sizeof(MeshAttribute);
         }
         head = (byte_t *)ALIGN_PTR(head);
     }
 
-    if (counts.meshPrimitives) {
+    if (maxCounts.meshPrimitives) {
         meshPrimitives = (MeshPrimitive *)head;
-        for (uint16_t i = 0; i < counts.meshPrimitives; ++i) {
+        for (uint16_t i = 0; i < maxCounts.meshPrimitives; ++i) {
             new (head) MeshPrimitive{};
             head += sizeof(MeshPrimitive);
         }
         head = (byte_t *)ALIGN_PTR(head);
     }
 
-    if (counts.meshTargets) {
+    if (maxCounts.meshTargets) {
         meshTargets = (MeshTarget *)head;
-        for (uint16_t i = 0; i < counts.meshTargets; ++i) {
+        for (uint16_t i = 0; i < maxCounts.meshTargets; ++i) {
             new (head) MeshTarget{};
             head += sizeof(MeshTarget);
         }
         head = (byte_t *)ALIGN_PTR(head);
     }
 
-    if (counts.meshWeights) {
+    if (maxCounts.meshWeights) {
         meshWeights = (float *)head;
-        for (uint16_t i = 0; i < counts.meshWeights; ++i) {
+        for (uint16_t i = 0; i < maxCounts.meshWeights; ++i) {
             *(float *)head = 0.f;
             head += sizeof(float);
         }
         head = (byte_t *)ALIGN_PTR(head);
     }
 
-    if (counts.nodes) {
+    if (maxCounts.nodes) {
         nodes = (Node *)head;
-        for (uint16_t i = 0; i < counts.nodes; ++i) {
+        for (uint16_t i = 0; i < maxCounts.nodes; ++i) {
             new (head) Node{};
             head += sizeof(Node);
         }
         head = (byte_t *)ALIGN_PTR(head);
     }
 
-    if (counts.nodeChildren) {
+    if (maxCounts.nodeChildren) {
         nodeChildren = (Node **)head;
-        for (uint16_t i = 0; i < counts.nodeChildren; ++i) {
+        for (uint16_t i = 0; i < maxCounts.nodeChildren; ++i) {
             *(Node **)head = nullptr;
             head += sizeof(Node *);
         }
@@ -170,9 +170,9 @@ Gobj::Gobj(Gobj::Counts const & counts) :
         head = (byte_t *)ALIGN_PTR(head);
     }
 
-    if (counts.nodeWeights) {
+    if (maxCounts.nodeWeights) {
         nodeWeights = (float *)head;
-        for (uint16_t i = 0; i < counts.nodeWeights; ++i) {
+        for (uint16_t i = 0; i < maxCounts.nodeWeights; ++i) {
             *(float *)head = 0.f;
             head += sizeof(float);
         }
@@ -180,43 +180,43 @@ Gobj::Gobj(Gobj::Counts const & counts) :
         head = (byte_t *)ALIGN_PTR(head);
     }
 
-    if (counts.samplers) {
+    if (maxCounts.samplers) {
         samplers = (Sampler *)head;
-        for (uint16_t i = 0; i < counts.samplers; ++i) {
+        for (uint16_t i = 0; i < maxCounts.samplers; ++i) {
             new (head) Sampler{};
             head += sizeof(Sampler);
         }
         head = (byte_t *)ALIGN_PTR(head);
     }
 
-    if (counts.scenes) {
+    if (maxCounts.scenes) {
         scenes = (Scene *)head;
-        for (uint16_t i = 0; i < counts.scenes; ++i) {
+        for (uint16_t i = 0; i < maxCounts.scenes; ++i) {
             new (head) Scene{};
             head += sizeof(Scene);
         }
         head = (byte_t *)ALIGN_PTR(head);
     }
 
-    if (counts.skins) {
+    if (maxCounts.skins) {
         skins = (Skin *)head;
-        for (uint16_t i = 0; i < counts.skins; ++i) {
+        for (uint16_t i = 0; i < maxCounts.skins; ++i) {
             new (head) Skin{};
             head += sizeof(Skin);
         }
         head = (byte_t *)ALIGN_PTR(head);
     }
 
-    if (counts.textures) {
+    if (maxCounts.textures) {
         textures = (Texture *)head;
-        for (uint16_t i = 0; i < counts.textures; ++i) {
+        for (uint16_t i = 0; i < maxCounts.textures; ++i) {
             new (head) Texture{};
             head += sizeof(Texture);
         }
         head = (byte_t *)ALIGN_PTR(head);
     }
 
-    if (counts.buffers) {
+    if (maxCounts.buffers) {
         rawData = head;
     }
 }
@@ -234,67 +234,68 @@ bool Gobj::isReadyToDraw() const {
 
 void Gobj::copy(Gobj * src) {
     memcpy(strings, src->strings, src->strings->totalSize());
-    for (uint16_t i = 0; i < src->counts.accessors && i < counts.accessors; ++i) {
+    for (uint16_t i = 0; i < src->counts.accessors && i < maxCounts.accessors; ++i) {
         accessors[i].copy(src->accessors + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.animations && i < counts.animations; ++i) {
+    for (uint16_t i = 0; i < src->counts.animations && i < maxCounts.animations; ++i) {
         animations[i].copy(src->animations + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.animationChannels && i < counts.animationChannels; ++i) {
+    for (uint16_t i = 0; i < src->counts.animationChannels && i < maxCounts.animationChannels; ++i) {
         animationChannels[i].copy(src->animationChannels + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.animationSamplers && i < counts.animationSamplers; ++i) {
+    for (uint16_t i = 0; i < src->counts.animationSamplers && i < maxCounts.animationSamplers; ++i) {
         animationSamplers[i].copy(src->animationSamplers + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.buffers && i < counts.buffers; ++i) {
+    for (uint16_t i = 0; i < src->counts.buffers && i < maxCounts.buffers; ++i) {
         buffers[i].copy(src->buffers + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.bufferViews && i < counts.bufferViews; ++i) {
+    for (uint16_t i = 0; i < src->counts.bufferViews && i < maxCounts.bufferViews; ++i) {
         bufferViews[i].copy(src->bufferViews + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.cameras && i < counts.cameras; ++i) {
+    for (uint16_t i = 0; i < src->counts.cameras && i < maxCounts.cameras; ++i) {
         cameras[i].copy(src->cameras + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.images && i < counts.images; ++i) {
+    for (uint16_t i = 0; i < src->counts.images && i < maxCounts.images; ++i) {
         images[i].copy(src->images + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.materials && i < counts.materials; ++i) {
+    for (uint16_t i = 0; i < src->counts.materials && i < maxCounts.materials; ++i) {
         materials[i].copy(src->materials + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.meshes && i < counts.meshes; ++i) {
+    for (uint16_t i = 0; i < src->counts.meshes && i < maxCounts.meshes; ++i) {
         meshes[i].copy(src->meshes + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.meshAttributes && i < counts.meshAttributes; ++i) {
+    for (uint16_t i = 0; i < src->counts.meshAttributes && i < maxCounts.meshAttributes; ++i) {
         meshAttributes[i].copy(src->meshAttributes + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.meshPrimitives && i < counts.meshPrimitives; ++i) {
+    for (uint16_t i = 0; i < src->counts.meshPrimitives && i < maxCounts.meshPrimitives; ++i) {
         meshPrimitives[i].copy(src->meshPrimitives + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.meshTargets && i < counts.meshTargets; ++i) {
+    for (uint16_t i = 0; i < src->counts.meshTargets && i < maxCounts.meshTargets; ++i) {
         meshTargets[i].copy(src->meshTargets + i, this, src);
     }
-    memcpy(meshWeights, src->meshWeights, sizeof(float) * min(src->counts.meshWeights, counts.meshWeights));
-    for (uint16_t i = 0; i < src->counts.nodes && i < counts.nodes; ++i) {
+    memcpy(meshWeights, src->meshWeights, sizeof(float) * min(src->counts.meshWeights, maxCounts.meshWeights));
+    for (uint16_t i = 0; i < src->counts.nodes && i < maxCounts.nodes; ++i) {
         nodes[i].copy(src->nodes + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.nodeChildren && i < counts.nodeChildren; ++i) {
+    for (uint16_t i = 0; i < src->counts.nodeChildren && i < maxCounts.nodeChildren; ++i) {
         nodeChildren[i] = src->nodeRelPtr(src->nodeChildren[i], this);
     }
-    memcpy(nodeWeights, src->nodeWeights, sizeof(float) * min(src->counts.nodeWeights, counts.nodeWeights));
-    for (uint16_t i = 0; i < src->counts.samplers && i < counts.samplers; ++i) {
+    memcpy(nodeWeights, src->nodeWeights, sizeof(float) * min(src->counts.nodeWeights, maxCounts.nodeWeights));
+    for (uint16_t i = 0; i < src->counts.samplers && i < maxCounts.samplers; ++i) {
         samplers[i].copy(src->samplers + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.scenes && i < counts.scenes; ++i) {
+    for (uint16_t i = 0; i < src->counts.scenes && i < maxCounts.scenes; ++i) {
         scenes[i].copy(src->scenes + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.skins && i < counts.skins; ++i) {
+    for (uint16_t i = 0; i < src->counts.skins && i < maxCounts.skins; ++i) {
         skins[i].copy(src->skins + i, this, src);
     }
-    for (uint16_t i = 0; i < src->counts.textures && i < counts.textures; ++i) {
+    for (uint16_t i = 0; i < src->counts.textures && i < maxCounts.textures; ++i) {
         textures[i].copy(src->textures + i, this, src);
     }
-    memcpy(rawData, src->rawData, min(src->counts.rawDataLen, counts.rawDataLen));
-    // counts = src->counts; // don't copy the counts! Gobj ctor requires counts and gets set permenantly.
+    memcpy(rawData, src->rawData, min(src->counts.rawDataLen, maxCounts.rawDataLen));
+    // maxCounts = src->maxCounts; // don't copy the maxCounts! Gobj ctor requires maxCounts and gets set permenantly.
+    counts = src->counts;
     scene = src->sceneRelPtr(src->scene, this);
     bounds = src->bounds;
     copyright = src->stringRelPtr(src->copyright, this);
@@ -901,29 +902,29 @@ char * Gobj::printToFrameStack() const {
 
     char * str = (char *)fs.dataHead();
 
-    fs.formatPen("strings     %011p (%u)\n", strings,           counts.allStrLen);
-    fs.formatPen("Accessors   %011p (%u)\n", accessors,         counts.accessors);
-    fs.formatPen("Animation   %011p (%u)\n", animations,        counts.animations);
-    fs.formatPen("AChannels   %011p (%u)\n", animationChannels, counts.animationChannels);
-    fs.formatPen("ASamplers   %011p (%u)\n", animationSamplers, counts.animationSamplers);
-    fs.formatPen("Buffers     %011p (%u)\n", buffers,           counts.buffers);
-    fs.formatPen("BufferViews %011p (%u)\n", bufferViews,       counts.bufferViews);
-    fs.formatPen("Cameras     %011p (%u)\n", cameras,           counts.cameras);
-    fs.formatPen("Images      %011p (%u)\n", images,            counts.images);
-    fs.formatPen("Materials   %011p (%u)\n", materials,         counts.materials);
-    fs.formatPen("Meshs       %011p (%u)\n", meshes,            counts.meshes);
-    fs.formatPen("MAttributes %011p (%u)\n", meshAttributes,    counts.meshAttributes);
-    fs.formatPen("MPrimitives %011p (%u)\n", meshPrimitives,    counts.meshPrimitives);
-    fs.formatPen("MTargets    %011p (%u)\n", meshTargets,       counts.meshTargets);
-    fs.formatPen("MWeights    %011p (%u)\n", meshWeights,       counts.meshWeights);
-    fs.formatPen("Nodes       %011p (%u)\n", nodes,             counts.nodes);
-    fs.formatPen("Node Kids   %011p (%u)\n", nodeChildren,      counts.nodeChildren);
-    fs.formatPen("NWeights    %011p (%u)\n", nodeWeights,       counts.nodeWeights);
-    fs.formatPen("Samplers    %011p (%u)\n", samplers,          counts.samplers);
-    fs.formatPen("Scenes      %011p (%u)\n", scenes,            counts.scenes);
-    fs.formatPen("Skins       %011p (%u)\n", skins,             counts.skins);
-    fs.formatPen("Textures    %011p (%u)\n", textures,          counts.textures);
-    fs.formatPen("raw data    %011p (%u)\n", rawData,           counts.rawDataLen);
+    fs.formatPen("strings     %011p (%u/%u)\n", strings,           counts.allStrLen,            maxCounts.allStrLen);
+    fs.formatPen("Accessors   %011p (%u/%u)\n", accessors,         counts.accessors,            maxCounts.accessors);
+    fs.formatPen("Animation   %011p (%u/%u)\n", animations,        counts.animations,           maxCounts.animations);
+    fs.formatPen("AChannels   %011p (%u/%u)\n", animationChannels, counts.animationChannels,    maxCounts.animationChannels);
+    fs.formatPen("ASamplers   %011p (%u/%u)\n", animationSamplers, counts.animationSamplers,    maxCounts.animationSamplers);
+    fs.formatPen("Buffers     %011p (%u/%u)\n", buffers,           counts.buffers,              maxCounts.buffers);
+    fs.formatPen("BufferViews %011p (%u/%u)\n", bufferViews,       counts.bufferViews,          maxCounts.bufferViews);
+    fs.formatPen("Cameras     %011p (%u/%u)\n", cameras,           counts.cameras,              maxCounts.cameras);
+    fs.formatPen("Images      %011p (%u/%u)\n", images,            counts.images,               maxCounts.images);
+    fs.formatPen("Materials   %011p (%u/%u)\n", materials,         counts.materials,            maxCounts.materials);
+    fs.formatPen("Meshs       %011p (%u/%u)\n", meshes,            counts.meshes,               maxCounts.meshes);
+    fs.formatPen("MAttributes %011p (%u/%u)\n", meshAttributes,    counts.meshAttributes,       maxCounts.meshAttributes);
+    fs.formatPen("MPrimitives %011p (%u/%u)\n", meshPrimitives,    counts.meshPrimitives,       maxCounts.meshPrimitives);
+    fs.formatPen("MTargets    %011p (%u/%u)\n", meshTargets,       counts.meshTargets,          maxCounts.meshTargets);
+    fs.formatPen("MWeights    %011p (%u/%u)\n", meshWeights,       counts.meshWeights,          maxCounts.meshWeights);
+    fs.formatPen("Nodes       %011p (%u/%u)\n", nodes,             counts.nodes,                maxCounts.nodes);
+    fs.formatPen("Node Kids   %011p (%u/%u)\n", nodeChildren,      counts.nodeChildren,         maxCounts.nodeChildren);
+    fs.formatPen("NWeights    %011p (%u/%u)\n", nodeWeights,       counts.nodeWeights,          maxCounts.nodeWeights);
+    fs.formatPen("Samplers    %011p (%u/%u)\n", samplers,          counts.samplers,             maxCounts.samplers);
+    fs.formatPen("Scenes      %011p (%u/%u)\n", scenes,            counts.scenes,               maxCounts.scenes);
+    fs.formatPen("Skins       %011p (%u/%u)\n", skins,             counts.skins,                maxCounts.skins);
+    fs.formatPen("Textures    %011p (%u/%u)\n", textures,          counts.textures,             maxCounts.textures);
+    fs.formatPen("raw data    %011p (%u/%u)\n", rawData,           counts.rawDataLen,           maxCounts.rawDataLen);
 
     fs.formatPen("scene       %011p (%zu)\n", scene, scene - scenes);
 

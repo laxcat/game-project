@@ -253,7 +253,7 @@ public:
 // INIT
 private:
     friend class MemMan;
-    Gobj(Counts const & counts);
+    Gobj(Counts const & maxCounts);
 
 // -------------------------------------------------------------------------- //
 // STORAGE
@@ -282,7 +282,8 @@ public:
     Texture          * textures          = nullptr;
     byte_t           * rawData           = nullptr;
 
-    Counts const counts;
+    Counts const maxCounts; // size of buffers
+    Counts counts;          // actual count of active objects
 
     Scene * scene = nullptr;
 

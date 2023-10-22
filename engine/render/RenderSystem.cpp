@@ -384,20 +384,25 @@ Gobj * RenderSystem::addMinReqMat(Gobj * gobj) {
     "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEUlEQVR4XmP8DwQMQMDEAAUAPf"
     "gEAHCr5OoAAAAASUVORK5CYII=";
 
-    Gobj::Image * normColorImg = gobj->images + gobj->counts.images - 2;
+    Gobj::Image * normColorImg = gobj->images + gobj->counts.images;
     normColorImg->uri = white2x2x3PNG;
-    Gobj::Image * metalRoughImg = gobj->images + gobj->counts.images - 1;
+    ++gobj->counts.images;
+    Gobj::Image * metalRoughImg = gobj->images + gobj->counts.images;
     metalRoughImg->uri = metalRoughPNG;
+    ++gobj->counts.images;
 
-    Gobj::Texture * normColorTex = gobj->textures + gobj->counts.textures - 2;
+    Gobj::Texture * normColorTex = gobj->textures + gobj->counts.textures;
     normColorTex->source = normColorImg;
-    Gobj::Texture * metalRoughTex = gobj->textures + gobj->counts.textures - 1;
+    ++gobj->counts.textures;
+    Gobj::Texture * metalRoughTex = gobj->textures + gobj->counts.textures;
     metalRoughTex->source = metalRoughImg;
+    ++gobj->counts.textures;
 
-    Gobj::Material * newMat = gobj->materials + gobj->counts.materials - 1;
+    Gobj::Material * newMat = gobj->materials + gobj->counts.materials;
     newMat->baseColorTexture = normColorTex;
     newMat->normalTexture = normColorTex;
     newMat->metallicRoughnessTexture = metalRoughTex;
+    ++gobj->counts.materials;
 
     for (uint16_t m = 0; m < gobj->counts.meshes; ++m) {
         Gobj::Mesh * mesh = gobj->meshes + m;
