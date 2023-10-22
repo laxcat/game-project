@@ -5,6 +5,7 @@
 #endif // DEBUG
 #include "mem_utils.h"
 #include "FSA.h"
+#include "../common/string_utils.h"
 
 #if DEBUG
 constexpr static bool ShowMemManBGFXDbg = false;
@@ -254,6 +255,20 @@ void MemMan::request() {
     }
     // do nothing (size=0,ptr=0)
 }
+
+#if DEBUG
+void MemMan::setDebugName(void * ptr, char const * name) {
+    BlockInfo * bi = blockForPtr(ptr);
+    assert(bi && "Invalid block");
+    constexpr static char blank[BlockInfo::DebugNameMax] = {'\0'};
+    fixstrcpy<BlockInfo::DebugNameMax>(bi->_debug_name, blank);
+    // fixstrcpy results in junk past the null byte. technically acceptable,
+    // but distracting when inspecting memory. using snprintf instead.
+    // fixstrcpy<BlockInfo::DebugNameMax>(bi->_debug_name, name);
+    snprintf(bi->_debug_name, BlockInfo::DebugNameMax, "%s", name);
+
+}
+#endif // DEBUG
 
 size_t MemMan::sizeOfPtr(void * ptr, MemMan::BlockInfo const ** block) const {
     // is it in the FSA?

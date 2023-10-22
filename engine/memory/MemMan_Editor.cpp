@@ -215,7 +215,11 @@ void MemMan::editor() {
         char const * blockName = mm.frameFormatStr("%03d (%p): %s [pad:%zu, data:%zu]",
             blockIndex,
             basePtr,
-            memBlockTypeStr(b->type()),
+            #if DEBUG
+                (b->type() == MEM_BLOCK_GENERIC) ? b->_debug_name : memBlockTypeStr(b->type()),
+            #else
+                memBlockTypeStr(b->type()),
+            #endif // DEBUG
             b->paddingSize(),
             b->dataSize()
         );

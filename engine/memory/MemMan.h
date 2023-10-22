@@ -41,7 +41,8 @@ public:
 
     #if DEBUG
     //                          M     e     m     B     l     o     c     k
-    #define BLOCK_MAGIC_STRING {0x4D, 0x65, 0x6D, 0x42, 0x6C, 0x6F, 0x63, 0x6B}
+    // #define BLOCK_MAGIC_STRING {0x4D, 0x65, 0x6D, 0x42, 0x6C, 0x6F, 0x63, 0x6B}
+    #define BLOCK_MAGIC_STRING {'M','e','m','B','l','o','c','k'}
     constexpr static byte_t BlockMagicString[8] = BLOCK_MAGIC_STRING;
     #endif // DEBUG
 
@@ -69,6 +70,8 @@ public:
         MemBlockType _type = MEM_BLOCK_FREE;
 
         #if DEBUG
+        constexpr static uint16_t DebugNameMax = 16;
+        char _debug_name[DebugNameMax] = "GENERIC";
         size_t _debug_index = SIZE_MAX;
         byte_t _debug_magic[8] = BLOCK_MAGIC_STRING;
         #endif // DEBUG
@@ -169,6 +172,10 @@ public:
     // MEM_BLOCK_POOL
     template<typename T>
     Pool<T> * createPool(size_t max);
+
+    #if DEBUG
+    void setDebugName(void * ptr, char const * name);
+    #endif // DEBUG
 
 
 // SPECIAL INIT BLOCK OBJ CREATION ------------------------------------------ //
