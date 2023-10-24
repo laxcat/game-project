@@ -77,6 +77,7 @@ void MemMan::releaseBlock(BlockInfo * block) {
 
     // update block info
     block->_dataSize = blockSize - BlockInfoSize;
+    _freeBlockSize += block->blockSize();
 
     // set data bytes to 0
     #if DEBUG
@@ -110,6 +111,8 @@ MemMan::BlockInfo * MemMan::claimBlock(BlockInfo * block) {
     // create free block, leaving this block at requested size
     // (might fail but that's ok)
     shrinkBlock(block, _request->size);
+
+    _freeBlockSize -= block->blockSize();
 
     #if DEBUG
     // zero out data in newly claimed block
@@ -163,6 +166,7 @@ MemMan::BlockInfo * MemMan::claimBlockBack(BlockInfo * block) {
 
     // update old block info
     block->_dataSize = newBlock->basePtr() - block->data();
+    _freeBlockSize -= newBlock->blockSize();
 
     // set data bytes to 0
     #if DEBUG

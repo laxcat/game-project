@@ -17,6 +17,8 @@ void MemMan::editor() {
         return;
     }
 
+    Indent();
+
     // MEMMAN NOT INITIALIZED ----------------------------------------------- //
     if (!firstBlock()) {
         static int size = (int)mm.setup.memManSize;
@@ -40,13 +42,15 @@ void MemMan::editor() {
             setup.memManFSA = fsaSetup;
             init(setup);
         }
+        Unindent();
         return;
     }
 
     // MEMMAN IS INITIALIZED ------------------------------------------------ //
 
     // MEMMAN GENERAL INFO
-    Text("MemMan Initialized [%s]", mm.frameByteSizeStr(size()));
+    Text("Total Bytes: %s (%zu)", mm.frameByteSizeStr(size()), size());
+    Text("Free Block Bytes: %s (%zu)", mm.frameByteSizeStr(freeBlockSize()), freeBlockSize());
     Text("%p - %p", data(), data() + size());
     // don't show shutdown if is main memory manager
     if (&mm.memMan != this) {
@@ -190,6 +194,10 @@ void MemMan::editor() {
     ImGuiStyle * style = &ImGui::GetStyle();
     ImVec4 defaultTextColor = style->Colors[ImGuiCol_Text];
     int blockIndex = 0;
+
+    // reading while unlocked was crashing
+    _mainMutex.lock();
+
     for (MemMan::BlockInfo * b = firstBlock(); b; b = nextBlock(b)) {
         if (filterType != MEM_BLOCK_FILTER_ALL &&
             b->_type != filterType) {
@@ -326,6 +334,11 @@ void MemMan::editor() {
 
         PopID();
     }
+
+    // see note at lock ^
+    _mainMutex.unlock();
+
+    Unindent();
 }
 
 void MemMan::addTestAlloc(void * ptr, char const * formatString, ...) {

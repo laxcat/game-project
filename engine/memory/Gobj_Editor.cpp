@@ -45,7 +45,7 @@ void Gobj::editorEditBlock() {
     }
 
     if (scenes) {
-        if (BeginCombo("Scene", scene->name)) {
+        if (BeginCombo("Scene", scene ? scene->name : nullptr)) {
             for (uint16_t i = 0; i < counts.scenes; ++i) {
                 if (Selectable(scenes[i].name)) {
                     scene = scenes + i;
@@ -90,5 +90,6 @@ void Gobj::editorEditBlock() {
             }
             PopID();
         }
+        Unindent();
     }
 }

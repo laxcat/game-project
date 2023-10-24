@@ -16,6 +16,7 @@ void MemMan::init(EngineSetup const & setup, FrameStack ** frameStack) {
 
     _size = setup.memManSize;
     _data = (byte_t *)malloc(_size);
+    _freeBlockSize = _size;
     #if DEBUG
     memset(_data, 0, _size);
     #endif // DEBUG
@@ -88,6 +89,10 @@ byte_t const * MemMan::data() const {
 
 size_t MemMan::size() const {
     return _size;
+}
+
+size_t MemMan::freeBlockSize() const {
+    return _freeBlockSize;
 }
 
 MemMan::BlockInfo * MemMan::firstBlock() const {

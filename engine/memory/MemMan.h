@@ -142,6 +142,7 @@ public:
     // ACCESS
     byte_t const * data() const;
     size_t size() const;
+    size_t freeBlockSize() const;
     BlockInfo * firstBlock() const;
     BlockInfo * nextBlock(BlockInfo const * block) const;
     size_t blockCountForDisplayOnly() const;
@@ -192,6 +193,7 @@ private:
 private:
     byte_t * _data = nullptr;
     size_t _size = 0;
+    size_t _freeBlockSize = 0;
     BlockInfo * _head = nullptr;
     BlockInfo * _tail = nullptr;
     BlockInfo * _firstFree = nullptr;

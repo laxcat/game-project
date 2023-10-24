@@ -604,7 +604,7 @@ bimg::ImageContainer * RenderSystem::decodeImage(Gobj::Image * img, char const *
 
     // printl("Loading image at %p for %u bytes", data, bv.byteLength);
     bx::Error err;
-    bimg::ImageContainer * imgc = imageParse(
+    bimg::ImageContainer * imgc = bimg::imageParse(
         &bxAllocator,
         data,
         dataSize,
@@ -649,9 +649,7 @@ void RenderSystem::removeHandles(Gobj * gobj) {
             bgfx::destroy(bgfx::TextureHandle{tex.renderHandle});
         }
         if (tex.source && tex.source->decoded) {
-            // TODO: research a bit more. this was crashing. not necessary...?
-            // either BGFX handles this or was temporary in the first place
-            // mm.memMan.request({.ptr=tex.source->decoded, .size=0});
+            bimg::imageFree((bimg::ImageContainer *)tex.source->decoded);
         }
     }
 }
