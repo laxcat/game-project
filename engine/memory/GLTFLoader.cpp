@@ -487,7 +487,7 @@ void GLTFLoader::postLoad(Gobj * g) {
     for (uint16_t scnIndex = 0; scnIndex < g->counts.scenes && scnIndex < 100; ++scnIndex) {
         Gobj::Scene & s = g->scenes[scnIndex];
         if (s.name[0] == '\0') {
-            snprintf(s.name, Gobj::Scene::NameSize, "Scene%02u", scnIndex);
+            snprintf(s.name, Gobj::Scene::NameMax, "Scene%02u", scnIndex);
         }
     }
 
@@ -1343,7 +1343,7 @@ bool GLTFLoader::handleScene(GLTFLoader * l, Gobj * g, char const * str, uint32_
         break; }
     // name
     case 'n'|'a'<<8: {
-        snprintf(scn->name, Gobj::Scene::NameSize, "%.*s", len, str);
+        snprintf(scn->name, Gobj::Scene::NameMax, "%.*s", len, str);
         break; }
     }
 

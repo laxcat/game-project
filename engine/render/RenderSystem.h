@@ -44,6 +44,8 @@ public:
 
     size_t renderableCount() const;
 
+    static Gobj::Counts typicalCountsForMinReqMat();
+    
 private:
     bgfx::UniformHandle samplerColor;
     bgfx::UniformHandle samplerNorm;
@@ -59,7 +61,6 @@ private:
     Gobj * addMinReqMat(Gobj * gobj);
     bool needsMinReqMat(Gobj * gobj);
     Gobj::Counts countsForMinReqMat(Gobj * gobj);
-    static Gobj::Counts typicalCountsForMinReqMat();
     void addHandles(Gobj * gobj);
     bimg::ImageContainer * decodeImage(Gobj::Image * img, char const * loadedDirName);
     void removeHandles(Gobj * gobj);

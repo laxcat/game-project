@@ -312,6 +312,16 @@ public:
     void traverseMesh(Mesh * mesh,          TraverseFns const & params, glm::mat4 const & parentTransform = glm::mat4{1.f});
     void updateBoundsForCurrentScene();
 
+// CREATE SUB-OBJECT HELPERS
+    // These fuctions will create necessary sub-objects, increment counts,
+    // and ensure maxCounts is not exceeded.
+    // Designed to be used for building gobjs manually from editor or in
+    // game-code.
+
+    Scene * addScene(char const * name = nullptr, bool makeDefault = false);
+    Node ** addNodeChildren(uint16_t nNodes);
+    Mesh * addMesh();
+
 
 // PRIVATE STORAGE
 private:
@@ -627,8 +637,8 @@ public:
     struct Scene {
         Node ** nodes = nullptr; // roots nodes (spec supports multiple roots)
         int nNodes = 0;
-        static constexpr size_t NameSize = 8;
-        char name[NameSize] = "";
+        static constexpr size_t NameMax = 8;
+        char name[NameMax] = "";
 
         void copy(Scene * scene, Gobj * dst, Gobj * src);
     };

@@ -233,7 +233,9 @@ bool Gobj::isReadyToDraw() const {
 }
 
 void Gobj::copy(Gobj * src) {
-    memcpy(strings, src->strings, src->strings->totalSize());
+    if (src->strings) {
+        memcpy(strings, src->strings, src->strings->totalSize());
+    }
     for (uint16_t i = 0; i < src->counts.accessors && i < maxCounts.accessors; ++i) {
         accessors[i].copy(src->accessors + i, this, src);
     }
@@ -434,7 +436,7 @@ void Gobj::Sampler::copy(Sampler * sampler, Gobj * dst, Gobj * src) {
 void Gobj::Scene::copy(Scene * scene, Gobj * dst, Gobj * src) {
     nodes = src->nodeChildrenRelPtr(scene->nodes, dst);
     nNodes = scene->nNodes;
-    memcpy(name, scene->name, Scene::NameSize);
+    memcpy(name, scene->name, Scene::NameMax);
 }
 
 void Gobj::Skin::copy(Skin * skin, Gobj * dst, Gobj * src) {
@@ -653,6 +655,52 @@ void Gobj::updateBoundsForCurrentScene() {
             if (bounds.max.z < min.z) bounds.max.z = min.z;
         }}
     );
+}
+
+Gobj::Scene * Gobj::addScene(char const * name, bool makeDefault) {
+    if (counts.scenes == maxCounts.scenes) {
+        fprintf(stderr, "Could not create scene.\n");
+        return nullptr;
+    }
+    Scene * s = scenes + counts.scenes;
+    ++counts.scenes;
+    s->nNodes = 1;
+    s->nodes = addNodeChildren(1);
+    snprintf(s->name, Scene::NameMax, "%s", name);
+    if (makeDefault) {
+        scene = s;
+    }
+    return s;
+}
+
+Gobj::Node ** Gobj::addNodeChildren(uint16_t nNodes) {
+    if (counts.nodeChildren + nNodes > maxCounts.nodeChildren) {
+        fprintf(stderr, "Not enough room to create %u node children.\n", nNodes);
+        return nullptr;
+    }
+    if (counts.nodes + nNodes > maxCounts.nodes) {
+        fprintf(stderr, "Not enough room to create %u nodes.\n", nNodes);
+        return nullptr;
+    }
+    // mark the start of the nodeChildren array
+    Node ** ret = nodeChildren + counts.nodeChildren;
+    // populate array with nodes, incrementing count of used nodes
+    for (uint16_t i = 0; i < nNodes; ++i, ++counts.nodes) {
+        ret[i] = nodes + counts.nodes;
+    }
+    // increment count of used nodeChildren
+    counts.nodeChildren += nNodes;
+    return ret;
+}
+
+Gobj::Mesh * Gobj::addMesh() {
+    if (counts.meshes == maxCounts.meshes) {
+        fprintf(stderr, "Could not create mesh.\n");
+        return nullptr;
+    }
+    Mesh * m = meshes + counts.meshes;
+    ++counts.meshes;
+    return m;
 }
 
 size_t Gobj::Counts::totalSize() const {
