@@ -60,7 +60,14 @@ public:
     #if DEV_INTERFACE
     Renderable * originWidget;
     Editor editor;
-    DevOverlay devOverlay;
+    enum DevState {
+        DEV_STATE_NONE,
+        DEV_STATE_INTERFACE,
+        DEV_STATE_STATS,
+        DEV_STATE_TEXT,
+        DEV_STATE_WIREFRAME
+    };
+    DevState devState;
     #endif // DEV_INTERFACE
 
 // -------------------------------------------------------------------------- //
@@ -91,7 +98,7 @@ public:
     char * frameFormatStr(char const * format, ...);
 
 // -------------------------------------------------------------------------- //
-// EVENT
+// INPUT/EVENT
 // -------------------------------------------------------------------------- //
     void processInputs();
     void keyInput(Input const & i);
@@ -103,5 +110,10 @@ public:
 // -------------------------------------------------------------------------- //
 // TEST/DEBUG
 // -------------------------------------------------------------------------- //
+    #if DEV_INTERFACE
+    void setDevState(DevState value);
+    void showDevStateKeyboardShortcuts();
+    bool isShowingDevInterface();
+    #endif // DEV_INTERFACE
     void test();
 };

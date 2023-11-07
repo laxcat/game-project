@@ -1,8 +1,9 @@
 #pragma once
 #include <functional>
 #include <bgfx/bgfx.h>
-#include "../dev/print.h"
 #include "../common/platform.h"
+#include "../common/utils.h"
+#include "../dev/print.h"
 
 
 // Class designed to hold all the deep render settings, especially those 
@@ -36,6 +37,7 @@ public:
 
     bgfx::Init bgfxInit;
     uint64_t state = 0;
+    int msaaTemp = 0;
 
     void init(GLFWwindow * glfwWindow, size2 windowSize, bool forceOpenGL = false) {
         if (forceOpenGL) {
@@ -104,5 +106,10 @@ public:
 
     void reset() {
         bgfx::reset(bgfxInit.resolution.width, bgfxInit.resolution.height, bgfxInit.resolution.reset);
+    }
+
+    void toggleMSAA() {
+        swap(user.msaa, msaaTemp);
+        reinit();
     }
 };

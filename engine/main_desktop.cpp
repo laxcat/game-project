@@ -13,8 +13,8 @@
 
 // dev interface enabled, so imgui will be also
 #if DEV_INTERFACE
-    #define SHOULD_IMGUI_CAPTURE_KEYBOARD (mm.devOverlay.isShowingImGUI() && ImGui::GetCurrentContext() && ImGui::GetIO().WantCaptureKeyboard)
-    #define SHOULD_IMGUI_CAPTURE_MOUSE    (mm.devOverlay.isShowingImGUI() && ImGui::GetCurrentContext() && ImGui::GetIO().WantCaptureMouse)
+    #define SHOULD_IMGUI_CAPTURE_KEYBOARD (mm.isShowingDevInterface() && ImGui::GetCurrentContext() && ImGui::GetIO().WantCaptureKeyboard)
+    #define SHOULD_IMGUI_CAPTURE_MOUSE    (mm.isShowingDevInterface() && ImGui::GetCurrentContext() && ImGui::GetIO().WantCaptureMouse)
 // just imgui but not dev interface (using imgui in some other way)
 #elif ENABLE_IMGUI
     #define SHOULD_IMGUI_CAPTURE_KEYBOARD (ImGui::GetCurrentContext() && ImGui::GetIO().WantCaptureKeyboard)
@@ -181,7 +181,7 @@ int main_desktop(EngineSetup & setup) {
             mm.processInputs();
 
             #if DEV_INTERFACE
-            if (mm.devOverlay.isShowingImGUI()) {
+            if (mm.isShowingDevInterface()) {
                 if (mm.setup.preEditor) mm.setup.preEditor();
                 mm.editor.tick();
                 if (mm.setup.postEditor) mm.setup.postEditor();
@@ -206,9 +206,6 @@ int main_desktop(EngineSetup & setup) {
 
     #if ENABLE_IMGUI
     imguiDestroy();
-    #if DEV_INTERFACE
-    mm.devOverlay.shutdown();
-    #endif // DEV_INTERFACE
     #endif // ENABLE_IMGUI
 
     mm.shutdown();

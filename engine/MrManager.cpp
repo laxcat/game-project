@@ -22,79 +22,9 @@ int MrManager::init(EngineSetup const & setup) {
     workerGroups = memMan.createArray<WorkerGroup>(16);
 
     #if DEV_INTERFACE
-    devOverlay.init(windowSize);
-    devOverlay.setState(DevOverlay::DearImGUI);
-    devOverlay.showKeyboardShortcuts();
+    setDevState(DEV_STATE_INTERFACE);
+    showDevStateKeyboardShortcuts();
     #endif // DEV_INTERFACE
-
-    // #if DEV_INTERFACE
-    // originWidget = OriginWidget::create();
-    // originWidget->instances[0].active = false;
-    // OriginWidget::setScale(5.f);
-    // #endif // DEV_INTERFACE
-
-    if (setup.args.c > 1) {
-    }
-
-    // test();
-
-    createWorker([this]{
-        // Gobj * g = memMan.createGobj("../../../gltf_assets/Box With Spaces/Box With Spaces.gltf");
-        // Gobj * g = memMan.createGobj("../../../gltf_assets/Cameras.gltf");
-        // Gobj * g = memMan.createGobj("../../../gltf_assets/CesiumMilkTruck.glb");
-        // Gobj * g = memMan.createGobj("../../../gltf_assets/CesiumMilkTruck.glb");
-        // Gobj * g = memMan.createGobj("../../../gltf_assets/CesiumMilkTruck/CesiumMilkTruck.gltf");
-        // Gobj * g = memMan.createGobj("../../../gltf_assets/LS500.glb");
-        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoomBox/glTF-Binary/BoomBox.glb");
-        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/Box With Spaces/glTF/Box With Spaces.gltf");
-        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/Box/glTF-Binary/Box.glb");
-        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoxInterleaved/glTF-Binary/BoxInterleaved.glb");
-        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoxTextured/glTF-Binary/BoxTextured.glb");
-        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoxTextured/glTF-Embedded/BoxTextured.gltf");
-        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/ClearCoatCarPaint/glTF-Binary/ClearCoatCarPaint.glb");
-        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb");
-        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/FlightHelmet/glTF/FlightHelmet.gltf");
-        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MaterialsVariantsShoe/glTF-Binary/MaterialsVariantsShoe.glb");
-        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb");
-        Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MetalRoughSpheresNoTextures/glTF-Binary/MetalRoughSpheresNoTextures.glb");
-        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MorphStressTest/glTF-Binary/MorphStressTest.glb");
-        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MultipleScenes/glTF-Embedded/MultipleScenes.gltf");
-        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/TextureCoordinateTest/glTF-Binary/TextureCoordinateTest.glb");
-        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/TwoSidedPlane/glTF/TwoSidedPlane.gltf");
-
-        // g = memMan.updateGobj(g, {.materials=1, .textures=1});
-        // Gobj * g2 = memMan.createGobj(g->counts);
-        // g2->copy(g);
-
-        // pointers match?
-        // printl("g %p, g2 %p", g, g2);
-        // byte_t * gb  = (byte_t *)g;
-        // byte_t * gb2 = (byte_t *)g2;
-        // for (int i = 0; i < 23; ++i) {
-        //     size_t offset = i * sizeof(void *);
-        //     byte_t * p  = gb  + offset;
-        //     byte_t * p2 = gb2 + offset;
-        //     void * pp  = (void *)*(size_t *)p ;
-        //     void * pp2 = (void *)*(size_t *)p2;
-        //     ssize_t t  = (pp  == nullptr) ? 0 : (ssize_t)pp  - (ssize_t)(void *)gb;
-        //     ssize_t t2 = (pp2 == nullptr) ? 0 : (ssize_t)pp2 - (ssize_t)(void *)gb2;
-
-        //     printl("i: %2d, "
-        //         "g [%3zu] (%p) = %11p, diff: %15zd, "
-        //         "g2[%3zu] (%p) = %11p, diff: %15zd? "
-        //         "%d",
-        //         i,
-        //         offset, p,  pp,  t,
-        //         offset, p2, pp2, t2,
-        //         t == t2
-        //     );
-        // }
-
-        if (g) {
-            rendSys.add("test", g);
-        }
-        // rendSys.remove("test");
-    });
 
     return 0;
 }
@@ -273,10 +203,8 @@ char * MrManager::frameFormatStr(char const * format, ...) {
     return str;
 }
 
-
-
 // -------------------------------------------------------------------------- //
-// EVENT
+// INPUT/EVENT
 // -------------------------------------------------------------------------- //
 
 void MrManager::processInputs() {
@@ -316,7 +244,7 @@ void MrManager::keyInput(Input const & i) {
         #if DEV_INTERFACE
         int numKey = glfwNumberKey(i.key);
         if (numKey != -1) {
-            devOverlay.setState(numKey);
+            setDevState((DevState)numKey);
         }
         #endif // DEV_INTERFACE
     }
@@ -355,10 +283,57 @@ void MrManager::scrollInput(Input const & i) {
     if (setup.scrollInput) setup.scrollInput(i);
 }
 
+// -------------------------------------------------------------------------- //
+// DEBUG/TESTING
+// -------------------------------------------------------------------------- //
 
-// -------------------------------------------------------------------------- //
-// TESTING
-// -------------------------------------------------------------------------- //
+#if DEV_INTERFACE
+
+void MrManager::setDevState(DevState value) {
+    if (devState == value) {
+        return;
+    }
+    if (value == DEV_STATE_STATS || devState == DEV_STATE_STATS) {
+        // debugBreak();
+        rendSys.settings.toggleMSAA();
+    }
+
+    devState = value;
+
+    // update bgfx
+    // (imgui display set by run loop)
+    switch (devState) {
+    case DEV_STATE_STATS:
+        bgfx::setDebug(BGFX_DEBUG_STATS);
+        break;
+    case DEV_STATE_TEXT:
+        bgfx::setDebug(BGFX_DEBUG_TEXT);
+        break;
+    case DEV_STATE_WIREFRAME:
+        bgfx::setDebug(BGFX_DEBUG_WIREFRAME);
+        break;
+    default:
+        bgfx::setDebug(BGFX_DEBUG_NONE);
+    }
+}
+
+void MrManager::showDevStateKeyboardShortcuts() {
+    char const * summary = "\n"
+    "PRESS    FOR DEBUG OVERLAY         \n"
+    "0        none                      \n"
+    "1        developer interface       \n"
+    "2        bgfx stats                \n"
+    "3        bgfx debgug text output   \n"
+    "4        wireframes                \n"
+    "\n";
+    print("%s", summary);
+}
+
+bool MrManager::isShowingDevInterface() {
+    return (devState == DEV_STATE_INTERFACE);
+}
+
+#endif // DEV_INTERFACE
 
 void MrManager::test() {
     // char const * absPathA = "/tmp";
