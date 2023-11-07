@@ -78,7 +78,7 @@ public:
         // vsnprintf writes '\0' to buffer but doesn't count it in return value
         if (written > 0) _head += written + 1;
         // vsnprintf won't have written past size, but returns number of chars it WOULD have written, so
-        // head may be past. (but no memory was written there (i think))
+        // head may be past end bound. (but no memory was written there (i think))
         if (_head > _size) _head = _size;
         return str;
     }

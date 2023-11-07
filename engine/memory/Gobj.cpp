@@ -700,7 +700,7 @@ Gobj::Node * Gobj::addNode(char const * name) {
     }
     Node * n = nodes + counts.nodes;
     ++counts.nodes;
-    n->name = strings->writeStr(name);
+    n->name = writeStr(name);
     return n;
 }
 
@@ -775,14 +775,46 @@ Gobj::BufferView * Gobj::addBufferView() {
     return bv;
 }
 
-Gobj::Accessor * Gobj::addAccessor() {
+Gobj::Accessor * Gobj::addAccessor(char const * name) {
     if (counts.accessors >= maxCounts.accessors) {
         fprintf(stderr, "Could not create accessor.\n");
         return nullptr;
     }
     Accessor * accr = accessors + counts.accessors;
     ++counts.accessors;
+    accr->name = writeStr(name);
     return accr;
+}
+
+char * Gobj::formatStr(char const * fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    char * str = strings->vformatStr(fmt, args);
+    va_end(args);
+    counts.allStrLen = strings->head();
+    return str;
+}
+char * Gobj::formatPen(char const * fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    char * str = strings->vformatPen(fmt, args);
+    va_end(args);
+    counts.allStrLen = strings->head();
+    return str;
+}
+void Gobj::terminatePen() {
+    strings->terminatePen();
+    counts.allStrLen = strings->head();
+}
+char * Gobj::writeStr(char const * str, size_t length) {
+    char * ret = strings->formatStr("%.*s", length, str);
+    counts.allStrLen = strings->head();
+    return ret;
+}
+char * Gobj::writeStr(char const * str) {
+    char * ret = strings->formatStr("%s", str);
+    counts.allStrLen = strings->head();
+    return ret;
 }
 
 size_t Gobj::Counts::totalSize() const {
@@ -887,7 +919,7 @@ float Gobj::Accessor::componentValue(uint32_t index, uint8_t componentIndex) con
     }
 }
 
-void Gobj::Accessor::updateBounds() {
+void Gobj::Accessor::updateMinMax() {
     uint8_t cc = componentCount();
     for (uint32_t i = 0; i < count; ++i) {
         for (uint8_t c = 0; c < cc; ++c) {

@@ -325,7 +325,7 @@ public:
     // Designed to be used for building gobjs manually from editor or in
     // game-code.
 
-    Scene * addScene(char const * name = nullptr, bool makeDefault = false);
+    Scene * addScene(char const * name = "", bool makeDefault = false);
     Node ** addNodeChildren(uint16_t nNodes);
     Node * addNode(char const * name);
     Mesh * addMesh();
@@ -333,13 +333,21 @@ public:
     MeshAttribute * addMeshAttribute(Attr attr);
     Buffer * addBuffer(size_t size);
     BufferView * addBufferView();
-    Accessor * addAccessor();
+    Accessor * addAccessor(char const * name = "");
 
     template <typename ... TS>
     MeshPrimitive * addMeshPrimitive(TS && ... attrs) {
         return _addMeshPrimitive(sizeof...(TS), attrs...);
     }
 
+// STRING / FORMAT HELPERS
+    // They are shortcuts to FrameStack functions, but also update counts.allStrLen
+
+    char * formatStr(char const * fmt, ...);
+    char * formatPen(char const * fmt, ...);
+    void terminatePen();
+    char * writeStr(char const * str, size_t length);
+    char * writeStr(char const * str);
 
 // PRIVATE STORAGE
 private:
@@ -411,7 +419,7 @@ public:
         uint32_t byteSize() const;
         float componentValue(uint32_t index, uint8_t componentIndex) const;
 
-        void updateBounds();
+        void updateMinMax();
 
         void copy(Accessor * accessor, Gobj * dst, Gobj * src);
 

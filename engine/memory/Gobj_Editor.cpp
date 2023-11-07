@@ -97,7 +97,8 @@ void Gobj::editorEditBlock() {
         for (uint16_t i = 0; i < counts.accessors; ++i) {
             Accessor * accr = accessors + i;
             PushID(accr);
-            char * title = mm.frameFormatStr("Accessor %s/%s (%p)",
+            char * title = mm.frameFormatStr("%s %s/%s (%p)",
+                accr->name,
                 accessorTypeStr(accr->type),
                 accessorComponentTypeStr(accr->componentType),
                 accr
