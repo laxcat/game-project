@@ -309,7 +309,9 @@ public:
     char const * jsonStr = nullptr;
     #endif // DEBUG
 
+// -------------------------------------------------------------------------- //
 // INTERFACE
+public:
     void setStatus(Status status);
     bool isReadyToDraw() const;
     void copy(Gobj * srcGobj);
@@ -320,6 +322,7 @@ public:
     void updateBoundsForCurrentScene();
 
 // CREATE SUB-OBJECT HELPERS
+public:
     // These fuctions will create necessary sub-objects, increment counts,
     // and ensure maxCounts is not exceeded.
     // Designed to be used for building gobjs manually from editor or in
@@ -334,6 +337,7 @@ public:
     Buffer * addBuffer(size_t size);
     BufferView * addBufferView();
     Accessor * addAccessor(char const * name = "");
+    Material * addMaterial(char const * name = "");
 
     template <typename ... TS>
     MeshPrimitive * addMeshPrimitive(TS && ... attrs) {
@@ -341,6 +345,7 @@ public:
     }
 
 // STRING / FORMAT HELPERS
+public:
     // They are shortcuts to FrameStack functions, but also update counts.allStrLen
 
     char * formatStr(char const * fmt, ...);
@@ -637,6 +642,8 @@ public:
         char const * name = nullptr;
 
         void syncMatrixTRS(bool syncChildren = true);
+        void setMatrixToTRS(bool syncChildren = true);
+        void setTRSToMatrix(bool syncChildren = true);
 
         void copy(Node * node, Gobj * dst, Gobj * src);
     };

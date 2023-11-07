@@ -786,6 +786,17 @@ Gobj::Accessor * Gobj::addAccessor(char const * name) {
     return accr;
 }
 
+Gobj::Material * Gobj::addMaterial(char const * name) {
+    if (counts.materials >= maxCounts.materials) {
+        fprintf(stderr, "Could not create material.\n");
+        return nullptr;
+    }
+    Material * m = materials + counts.materials;
+    ++counts.materials;
+    m->name = writeStr(name);
+    return m;
+}
+
 char * Gobj::formatStr(char const * fmt, ...) {
     va_list args;
     va_start(args, fmt);
@@ -996,22 +1007,37 @@ void Gobj::Node::syncMatrixTRS(bool syncChildren) {
     // is identity?
     if (matrix == glm::mat4{1.f}) {
         // TRS -> matrix
-        matrix = glm::mat4{1.f};
-        matrix = glm::translate(matrix, translation);
-        matrix *= glm::mat4_cast(rotation);
-        matrix = glm::scale(matrix, scale);
+        setTRSToMatrix(syncChildren);
     }
     else {
         // matrix -> TRS
-        glm::vec3 skew;
-        glm::vec4 perspective;
-        glm::decompose(matrix, scale, rotation, translation, skew, perspective);
+        setMatrixToTRS(syncChildren);
     }
+}
+
+void Gobj::Node::setMatrixToTRS(bool syncChildren) {
+    glm::vec3 skew;
+    glm::vec4 perspective;
+    glm::decompose(matrix, scale, rotation, translation, skew, perspective);
 
     // process children too?
     if (syncChildren) {
-        for (uint16_t nodeIndex = 0; nodeIndex < nChildren; ++nodeIndex) {
-            children[nodeIndex]->syncMatrixTRS(syncChildren);
+        for (uint16_t i = 0; i < nChildren; ++i) {
+            children[i]->setMatrixToTRS(syncChildren);
+        }
+    }
+}
+
+void Gobj::Node::setTRSToMatrix(bool syncChildren) {
+    matrix = glm::mat4{1.f};
+    matrix = glm::translate(matrix, translation);
+    matrix *= glm::mat4_cast(rotation);
+    matrix = glm::scale(matrix, scale);
+
+    // process children too?
+    if (syncChildren) {
+        for (uint16_t i = 0; i < nChildren; ++i) {
+            children[i]->setTRSToMatrix(syncChildren);
         }
     }
 }
