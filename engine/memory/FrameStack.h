@@ -97,6 +97,9 @@ public:
     char * writeStr(char const * str, size_t length) {
         return formatStr("%.*s", length, str);
     }
+    char * writeStr(char const * str) {
+        return formatStr("%s", str);
+    }
 
     void reset() { _head = 0; }
 

@@ -658,7 +658,7 @@ void Gobj::updateBoundsForCurrentScene() {
 }
 
 Gobj::Scene * Gobj::addScene(char const * name, bool makeDefault) {
-    if (counts.scenes == maxCounts.scenes) {
+    if (counts.scenes >= maxCounts.scenes) {
         fprintf(stderr, "Could not create scene.\n");
         return nullptr;
     }
@@ -693,14 +693,96 @@ Gobj::Node ** Gobj::addNodeChildren(uint16_t nNodes) {
     return ret;
 }
 
+Gobj::Node * Gobj::addNode(char const * name) {
+    if (counts.nodes >= maxCounts.nodes) {
+        fprintf(stderr, "Not enough room to create node.\n");
+        return nullptr;
+    }
+    Node * n = nodes + counts.nodes;
+    ++counts.nodes;
+    n->name = strings->writeStr(name);
+    return n;
+}
+
 Gobj::Mesh * Gobj::addMesh() {
-    if (counts.meshes == maxCounts.meshes) {
+    if (counts.meshes >= maxCounts.meshes) {
         fprintf(stderr, "Could not create mesh.\n");
         return nullptr;
     }
     Mesh * m = meshes + counts.meshes;
     ++counts.meshes;
     return m;
+}
+
+Gobj::MeshPrimitive * Gobj::_addMeshPrimitive(int count, ...) {
+    if (counts.meshPrimitives >= maxCounts.meshPrimitives) {
+        fprintf(stderr, "Could not create mesh primitive.\n");
+        return nullptr;
+    }
+    if (counts.meshAttributes + count > maxCounts.meshAttributes) {
+        fprintf(stderr, "Could not create %d mesh attributes.\n", count);
+        return nullptr;
+    }
+    MeshPrimitive * prim = meshPrimitives + counts.meshPrimitives;
+    ++counts.meshPrimitives;
+    // prim->nAttributes = count;
+    // prim->attributes = meshAttributes + counts.meshAttributes;
+    // va_list args;
+    // va_start(args, count);
+    // for (int i = 0; i < count; ++i) {
+    //     Attr a = (Attr)va_arg(args, int);
+    //     addMeshAttribute(a);
+    // }
+    // va_end(args);
+    return prim;
+}
+
+Gobj::MeshAttribute * Gobj::addMeshAttribute(Attr attr) {
+    if (counts.meshAttributes >= maxCounts.meshAttributes) {
+        fprintf(stderr, "Could not create mesh attribute %d (%s).\n", (int)attr, attrStr(attr));
+        return nullptr;
+    }
+    MeshAttribute * ma = meshAttributes + counts.meshAttributes;
+    ++counts.meshAttributes;
+    ma->type = attr;
+    return ma;
+}
+
+Gobj::Buffer * Gobj::addBuffer(size_t size) {
+    if (counts.buffers >= maxCounts.buffers) {
+        fprintf(stderr, "Could not create buffer.\n");
+        return nullptr;
+    }
+    if (counts.rawDataLen + size > maxCounts.rawDataLen) {
+        fprintf(stderr, "Not enough raw-data space to create buffer of size %zu.\n", size);
+        return nullptr;
+    }
+    Buffer * b = buffers + counts.buffers;
+    ++counts.buffers;
+    b->byteLength = size;
+    b->data = rawData + counts.rawDataLen;
+    counts.rawDataLen += size;
+    return b;
+}
+
+Gobj::BufferView * Gobj::addBufferView() {
+    if (counts.bufferViews >= maxCounts.bufferViews) {
+        fprintf(stderr, "Could not create buffer view.\n");
+        return nullptr;
+    }
+    BufferView * bv = bufferViews + counts.bufferViews;
+    ++counts.bufferViews;
+    return bv;
+}
+
+Gobj::Accessor * Gobj::addAccessor() {
+    if (counts.accessors >= maxCounts.accessors) {
+        fprintf(stderr, "Could not create accessor.\n");
+        return nullptr;
+    }
+    Accessor * accr = accessors + counts.accessors;
+    ++counts.accessors;
+    return accr;
 }
 
 size_t Gobj::Counts::totalSize() const {
@@ -778,14 +860,42 @@ uint8_t Gobj::Accessor::componentCount() const {
     case TYPE_MAT4      : return 16;
     }
 }
-uint32_t Gobj::Accessor::byteSize() const {
+uint8_t Gobj::Accessor::componentByteSize() const {
     switch (componentType) {
     case COMPTYPE_BYTE           :
-    case COMPTYPE_UNSIGNED_BYTE  : return componentCount() * 1;
+    case COMPTYPE_UNSIGNED_BYTE  : return 1;
     case COMPTYPE_SHORT          :
-    case COMPTYPE_UNSIGNED_SHORT : return componentCount() * 2;
+    case COMPTYPE_UNSIGNED_SHORT : return 2;
     case COMPTYPE_UNSIGNED_INT   :
-    case COMPTYPE_FLOAT          : return componentCount() * 4;
+    case COMPTYPE_FLOAT          : return 4;
+    }
+}
+uint32_t Gobj::Accessor::byteSize() const {
+    return componentCount() * componentByteSize();
+}
+float Gobj::Accessor::componentValue(uint32_t index, uint8_t componentIndex) const {
+    auto data =
+        bufferView->buffer->data +
+        byteOffset +
+        bufferView->byteOffset +
+        bufferView->byteStride * index +
+        componentByteSize() * componentIndex;
+    switch (componentType) {
+    case COMPTYPE_FLOAT:            return *(float *)data;
+    case COMPTYPE_UNSIGNED_SHORT:   return (float)*(uint16_t *)data;
+    default:                        assert(false && "Unexpected component type.");
+    }
+}
+
+void Gobj::Accessor::updateBounds() {
+    uint8_t cc = componentCount();
+    for (uint32_t i = 0; i < count; ++i) {
+        for (uint8_t c = 0; c < cc; ++c) {
+            float fval = componentValue(i, c);
+            if (min[c] > fval) min[c] = fval;
+            if (max[c] < fval) max[c] = fval;
+            // printl("i: %u, c: %u, %f", i, c, fval);
+        }
     }
 }
 
@@ -793,10 +903,11 @@ uint32_t Gobj::Accessor::byteSize() const {
 void Gobj::Accessor::print(int indent) const { ::print(printToFrameStack(indent)); }
 char * Gobj::Accessor::printToFrameStack(int indent) const {
     assert(mm.frameStack && "Frame stack not initialized.");
+    assert(bufferView->byteStride && "byteStride must be set.");
 
     auto data = bufferView->buffer->data + byteOffset + bufferView->byteOffset;
     auto dataEnd = bufferView->buffer->data + bufferView->byteLength;
-    assert(componentType == Gobj::Accessor::COMPTYPE_FLOAT);
+    // assert(componentType == COMPTYPE_FLOAT);
 
     FrameStack & fs = *mm.frameStack;
     char * str = (char *)fs.dataHead();
@@ -807,11 +918,20 @@ char * Gobj::Accessor::printToFrameStack(int indent) const {
     fs.formatPen("%*s    data:\n", indent,"");
 
     uint8_t cc = componentCount();
+    // each element
     for (uint32_t i = 0; i < count; ++i) {
-        float * f = (float *)data;
         fs.formatPen("%*s%03u: ", indent+4,"", i);
+        // each component
         for (uint8_t c = 0; c < cc; ++c) {
-            fs.formatPen("%+f ", f[c]);
+            switch (componentType) {
+            case COMPTYPE_FLOAT: {
+                fs.formatPen("%+f ", ((float *)data)[c]);
+                break; }
+            case COMPTYPE_UNSIGNED_SHORT: {
+                fs.formatPen("%u ", ((uint16_t *)data)[c]);
+                break; }
+            default: {}
+            }
         }
         fs.formatPen("   (%p)\n", data);
         data += bufferView->byteStride;
@@ -938,7 +1058,7 @@ Gobj::Attr Gobj::attrFromStr(char const * str) {
     return ATTR_POSITION;
 }
 
-char const * Gobj::attrStr(Gobj::Attr attr) {
+char const * Gobj::attrStr(Attr attr) {
     switch(attr) {
     case ATTR_POSITION:     return "POSITION";
     case ATTR_NORMAL:       return "NORMAL";
@@ -961,6 +1081,32 @@ char const * Gobj::attrStr(Gobj::Attr attr) {
     default:                return "UNKNOWN";
     }
 }
+
+char const * Gobj::accessorTypeStr(Accessor::Type type) {
+    switch(type) {
+    case Accessor::TYPE_SCALAR: return "SCALAR";
+    case Accessor::TYPE_VEC2:   return "VEC2";
+    case Accessor::TYPE_VEC3:   return "VEC3";
+    case Accessor::TYPE_VEC4:   return "VEC4";
+    case Accessor::TYPE_MAT2:   return "MAT2";
+    case Accessor::TYPE_MAT3:   return "MAT3";
+    case Accessor::TYPE_MAT4:   return "MAT4";
+    default:                    return "UNKNOWN";
+    }
+}
+
+char const * Gobj::accessorComponentTypeStr(Accessor::ComponentType componentType) {
+    switch (componentType) {
+    case Accessor::COMPTYPE_BYTE:           return "BYTE";
+    case Accessor::COMPTYPE_UNSIGNED_BYTE:  return "UBYTE";
+    case Accessor::COMPTYPE_SHORT:          return "SHORT";
+    case Accessor::COMPTYPE_UNSIGNED_SHORT: return "USHORT";
+    case Accessor::COMPTYPE_UNSIGNED_INT:   return "UINT";
+    case Accessor::COMPTYPE_FLOAT:          return "FLOAT";
+    default:                                return "UNKNOWN";
+    }
+}
+
 
 Gobj::Attr Gobj::texCoordAttr(int index) {
     return (Attr)((int)ATTR_TEXCOORD0 + index);

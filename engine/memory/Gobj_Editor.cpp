@@ -92,4 +92,21 @@ void Gobj::editorEditBlock() {
         }
         Unindent();
     }
+    if (CollapsingHeader("Accessors")) {
+        Indent();
+        for (uint16_t i = 0; i < counts.accessors; ++i) {
+            Accessor * accr = accessors + i;
+            PushID(accr);
+            char * title = mm.frameFormatStr("Accessor %s/%s (%p)",
+                accessorTypeStr(accr->type),
+                accessorComponentTypeStr(accr->componentType),
+                accr
+            );
+            if (CollapsingHeader(title)) {
+                TextUnformatted(accr->printToFrameStack());
+            }
+            PopID();
+        }
+        Unindent();
+    }
 }

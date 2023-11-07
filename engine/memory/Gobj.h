@@ -15,6 +15,13 @@ Mostly deals with visual data, but will probably hold physics/etc data as well.
 Designed to only exist in pre-allocated space (Use GLTFLoader::calculateSize)
 to determine size beforehand.
 
+Supports buffers (maxCounts) larger than actual
+number (counts) of sub-objects, so that Gobjs can be created with in-place-room
+to group.
+
+If copy is necessary (growing too much, etc) use `copy` function, which will
+perform a deep copy and translate sub-object pointers.
+
 Visual data closely mirrors the GLTF spec.
 https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html
 Significant exceptions:
@@ -25,7 +32,7 @@ Brief memory layout:
 
 |-------|-----------|------|---------...-|---------...-|-...-------|-----------|
  Gobj   FrameStack  frame  Accessors...  Animations...   all sub-   raw buffer
-                    stack                                parts
+                    stack                                objects
                     data                                 (Node,
         ^                  ^             ^               Mesh, etc)
         strings            accessors     animations
@@ -147,7 +154,7 @@ public:
 // -------------------------------------------------------------------------- //
 // FORWARD
 public:
-    // sub-parts
+    // sub-objects
     struct Accessor;
     struct Animation;
     struct AnimationChannel;
@@ -320,7 +327,18 @@ public:
 
     Scene * addScene(char const * name = nullptr, bool makeDefault = false);
     Node ** addNodeChildren(uint16_t nNodes);
+    Node * addNode(char const * name);
     Mesh * addMesh();
+    MeshPrimitive * _addMeshPrimitive(int count, ...);
+    MeshAttribute * addMeshAttribute(Attr attr);
+    Buffer * addBuffer(size_t size);
+    BufferView * addBufferView();
+    Accessor * addAccessor();
+
+    template <typename ... TS>
+    MeshPrimitive * addMeshPrimitive(TS && ... attrs) {
+        return _addMeshPrimitive(sizeof...(TS), attrs...);
+    }
 
 
 // PRIVATE STORAGE
@@ -355,7 +373,7 @@ private:
     byte_t           * rawDataRelPtr            (byte_t * data,                 Gobj * dst) const;
 
 // -------------------------------------------------------------------------- //
-// SUB-PARTS
+// SUB-OBJECTS
 public:
     struct Accessor {
         BufferView * bufferView = nullptr;
@@ -389,7 +407,11 @@ public:
         uint16_t renderHandle = UINT16_MAX;
 
         uint8_t componentCount() const;
+        uint8_t componentByteSize() const;
         uint32_t byteSize() const;
+        float componentValue(uint32_t index, uint8_t componentIndex) const;
+
+        void updateBounds();
 
         void copy(Accessor * accessor, Gobj * dst, Gobj * src);
 
@@ -675,7 +697,9 @@ public:
     static Material::AlphaMode alphaModeFromStr(char const * str);
     static Attr attrFromStr(char const * str);
     // to string
-    static char const * attrStr(Gobj::Attr attr);
+    static char const * attrStr(Attr attr);
+    static char const * accessorTypeStr(Accessor::Type type);
+    static char const * accessorComponentTypeStr(Accessor::ComponentType componentType);
     // attr conversion
     static Attr texCoordAttr(int index);
 

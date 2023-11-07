@@ -371,6 +371,11 @@ Gobj * RenderSystem::addMinReqMat(Gobj * gobj) {
 
     Gobj::Counts minReqCounts = countsForMinReqMat(gobj);
     if (!gobj->hasMemoryFor(minReqCounts)) {
+        printl("gobj (%p) does not have memory for minimum required materials.");
+        printl("minReqCounts");
+        minReqCounts.print();
+        printl("gobj");
+        gobj->print();
         gobj = mm.memMan.updateGobj(gobj, minReqCounts);
     }
 
