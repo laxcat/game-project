@@ -112,4 +112,16 @@ public:
         swap(user.msaa, msaaTemp);
         reinit();
     }
+
+    void tempDisableMSAA() {
+        msaaTemp = user.msaa;
+        user.msaa = 0;
+        reinit();
+    }
+
+    void reenableMSAA() {
+        user.msaa = msaaTemp;
+        msaaTemp = 0;
+        reinit();
+    }
 };

@@ -26,6 +26,69 @@ int MrManager::init(EngineSetup const & setup) {
     showDevStateKeyboardShortcuts();
     #endif // DEV_INTERFACE
 
+    if (setup.args.c > 1) {
+    }
+
+    // test();
+
+    createWorker([this]{
+        // Gobj * g = memMan.createGobj("../../../gltf_assets/Box With Spaces/Box With Spaces.gltf");
+        // Gobj * g = memMan.createGobj("../../../gltf_assets/Cameras.gltf");
+        // Gobj * g = memMan.createGobj("../../../gltf_assets/CesiumMilkTruck.glb");
+        // Gobj * g = memMan.createGobj("../../../gltf_assets/CesiumMilkTruck.glb");
+        // Gobj * g = memMan.createGobj("../../../gltf_assets/CesiumMilkTruck/CesiumMilkTruck.gltf");
+        // Gobj * g = memMan.createGobj("../../../gltf_assets/LS500.glb");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoomBox/glTF-Binary/BoomBox.glb");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/Box With Spaces/glTF/Box With Spaces.gltf");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/Box/glTF-Binary/Box.glb");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoxInterleaved/glTF-Binary/BoxInterleaved.glb");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoxTextured/glTF-Binary/BoxTextured.glb");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/BoxTextured/glTF-Embedded/BoxTextured.gltf");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/ClearCoatCarPaint/glTF-Binary/ClearCoatCarPaint.glb");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/FlightHelmet/glTF/FlightHelmet.gltf");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MaterialsVariantsShoe/glTF-Binary/MaterialsVariantsShoe.glb");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb");
+        Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MetalRoughSpheresNoTextures/glTF-Binary/MetalRoughSpheresNoTextures.glb");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MorphStressTest/glTF-Binary/MorphStressTest.glb");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/MultipleScenes/glTF-Embedded/MultipleScenes.gltf");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/TextureCoordinateTest/glTF-Binary/TextureCoordinateTest.glb");
+        // Gobj * g = memMan.createGobj("../../glTF-Sample-Models/2.0/TwoSidedPlane/glTF/TwoSidedPlane.gltf");
+
+        // g = memMan.updateGobj(g, {.materials=1, .textures=1});
+        // Gobj * g2 = memMan.createGobj(g->counts);
+        // g2->copy(g);
+
+        // pointers match?
+        // printl("g %p, g2 %p", g, g2);
+        // byte_t * gb  = (byte_t *)g;
+        // byte_t * gb2 = (byte_t *)g2;
+        // for (int i = 0; i < 23; ++i) {
+        //     size_t offset = i * sizeof(void *);
+        //     byte_t * p  = gb  + offset;
+        //     byte_t * p2 = gb2 + offset;
+        //     void * pp  = (void *)*(size_t *)p ;
+        //     void * pp2 = (void *)*(size_t *)p2;
+        //     ssize_t t  = (pp  == nullptr) ? 0 : (ssize_t)pp  - (ssize_t)(void *)gb;
+        //     ssize_t t2 = (pp2 == nullptr) ? 0 : (ssize_t)pp2 - (ssize_t)(void *)gb2;
+
+        //     printl("i: %2d, "
+        //         "g [%3zu] (%p) = %11p, diff: %15zd, "
+        //         "g2[%3zu] (%p) = %11p, diff: %15zd? "
+        //         "%d",
+        //         i,
+        //         offset, p,  pp,  t,
+        //         offset, p2, pp2, t2,
+        //         t == t2
+        //     );
+        // }
+
+        if (g) {
+            rendSys.add("test", g);
+        }
+        // rendSys.remove("test");
+    });
+
     return 0;
 }
 
@@ -46,6 +109,8 @@ void MrManager::beginFrame(double nowInSeconds) {
     prevTime = thisTime;
     thisTime = nowInSeconds;
     dt = thisTime - prevTime;
+    bgfx::dbgTextPrintf(0, 0, 0x0f, "DT:  %5.1fms", dt * 1000.0);
+    bgfx::dbgTextPrintf(0, 1, 0x0e, "FPS: %5.1fms", 1.0 / dt);
 }
 
 void MrManager::endFrame() {
@@ -293,9 +358,11 @@ void MrManager::setDevState(DevState value) {
     if (devState == value) {
         return;
     }
-    if (value == DEV_STATE_STATS || devState == DEV_STATE_STATS) {
-        // debugBreak();
-        rendSys.settings.toggleMSAA();
+    if (value == DEV_STATE_STATS || value == DEV_STATE_TEXT) {
+        rendSys.settings.tempDisableMSAA();
+    }
+    else if (value != DEV_STATE_STATS && value != DEV_STATE_TEXT) {
+        rendSys.settings.reenableMSAA();
     }
 
     devState = value;

@@ -11,7 +11,6 @@
 #include "worker/Worker.h"
 
 #if DEV_INTERFACE
-#include "dev/DevOverlay.h"
 #include "dev/Editor.h"
 #endif // DEV_INTERFACE
 
