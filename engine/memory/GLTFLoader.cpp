@@ -359,7 +359,7 @@ bool GLTFLoader::load(Gobj * gobj) {
     // write pretty JSON into string buffer
     uint32_t length;
     char const * str = prettyJSON(&length);
-    gobj->jsonStr = gobj->strings->writeStr(str, length);
+    gobj->jsonStr = gobj->strings->copyStr(str, length);
     #endif // DEBUG
 
     auto ss = rapidjson::StringStream(jsonStr());
@@ -711,7 +711,7 @@ bool GLTFLoader::handleAccessor(GLTFLoader * l, Gobj * g, char const * str, uint
         break; }
     // name
     case 'n'|'a'<<8: {
-        a->name = g->strings->writeStr(str, len);
+        a->name = g->strings->copyStr(str, len);
         break; }
     // normalized
     case 'n'|'o'<<8: {
@@ -728,13 +728,13 @@ bool GLTFLoader::handleAccessor(GLTFLoader * l, Gobj * g, char const * str, uint
 bool GLTFLoader::handleAsset(GLTFLoader * l, Gobj * g, char const * str, uint32_t len) {
     switch(l->crumb().key[0]) {
     // copyright
-    case 'c': {  g->copyright  = g->strings->writeStr(str, len); break; }
+    case 'c': {  g->copyright  = g->strings->copyStr(str, len); break; }
     // generator
-    case 'g': {  g->generator  = g->strings->writeStr(str, len); break; }
+    case 'g': {  g->generator  = g->strings->copyStr(str, len); break; }
     // version
-    case 'v': {  g->version    = g->strings->writeStr(str, len); break; }
+    case 'v': {  g->version    = g->strings->copyStr(str, len); break; }
     // minVersion
-    case 'm': {  g->minVersion = g->strings->writeStr(str, len); break; }
+    case 'm': {  g->minVersion = g->strings->copyStr(str, len); break; }
     }
     return true;
 }
@@ -771,7 +771,7 @@ bool GLTFLoader::handleAnimation(GLTFLoader * l, Gobj * g, char const * str, uin
         break; }
     // name
     case 'n'|'a'<<8: {
-        g->animations[l->crumb(-1).index].name = g->strings->writeStr(str, len);
+        g->animations[l->crumb(-1).index].name = g->strings->copyStr(str, len);
         break; }
     }
     return true;
@@ -871,7 +871,7 @@ bool GLTFLoader::handleBuffer(GLTFLoader * l, Gobj * g, char const * str, uint32
         break; }
     // name
     case 'n': {
-        buf->name = g->strings->writeStr(str, len);
+        buf->name = g->strings->copyStr(str, len);
         break; }
     }
     return true;
@@ -908,7 +908,7 @@ bool GLTFLoader::handleBufferView(GLTFLoader * l, Gobj * g, char const * str, ui
         break; }
     // name
     case 'n': {
-        bv->name = g->strings->writeStr(str, len);
+        bv->name = g->strings->copyStr(str, len);
         break; }
     }
     return true;
@@ -958,7 +958,7 @@ bool GLTFLoader::handleCamera(GLTFLoader * l, Gobj * g, char const * str, uint32
         cam->type = Gobj::cameraTypeFromStr(str);
         break; }
     case 'n': {
-        cam->name = g->strings->writeStr(str, len);
+        cam->name = g->strings->copyStr(str, len);
         break; }
     }
     return true;
@@ -970,7 +970,7 @@ bool GLTFLoader::handleImage(GLTFLoader * l, Gobj * g, char const * str, uint32_
     switch (c.key[0]) {
     // uri
     case 'u': {
-        char * buf = g->strings->writeStr(str, len);
+        char * buf = g->strings->copyStr(str, len);
         // urldecode all strings that aren't data. len<8 strings always get decoded.
         // don't run strEqu if len is not at least 8.
         if (len < 8 || strEqu(buf, "data:ima", 8) == false) {
@@ -988,7 +988,7 @@ bool GLTFLoader::handleImage(GLTFLoader * l, Gobj * g, char const * str, uint32_
         break; }
     // name
     case 'n': {
-        img->name = g->strings->writeStr(str, len);
+        img->name = g->strings->copyStr(str, len);
         break; }
     }
     return true;
@@ -1053,7 +1053,7 @@ bool GLTFLoader::handleMaterial(GLTFLoader * l, Gobj * g, char const * str, uint
             };
             break; }
         // name
-        case 'a': { mat->name = g->strings->writeStr(str, len); break; }
+        case 'a': { mat->name = g->strings->copyStr(str, len); break; }
         }
         break; }
     // occlusionTexture
@@ -1161,7 +1161,7 @@ bool GLTFLoader::handleMesh(GLTFLoader * l, Gobj * g, char const * str, uint32_t
         };
         break; }
     // name
-    case 'n': { mesh->name = g->strings->writeStr(str, len); break; }
+    case 'n': { mesh->name = g->strings->copyStr(str, len); break; }
     }
     return true;
 }
@@ -1295,7 +1295,7 @@ bool GLTFLoader::handleNode(GLTFLoader * l, Gobj * g, char const * str, uint32_t
         break; }
     // name
     case 'n'|'a'<<8: {
-        node->name = g->strings->writeStr(str, len);
+        node->name = g->strings->copyStr(str, len);
         break; }
     }
     return true;
@@ -1322,7 +1322,7 @@ bool GLTFLoader::handleSampler(GLTFLoader * l, Gobj * g, char const * str, uint3
         }
         break; }
     // name
-    case 'n': { samp->name = g->strings->writeStr(str, len); break; }
+    case 'n': { samp->name = g->strings->copyStr(str, len); break; }
     }
     return true;
 }
@@ -1369,7 +1369,7 @@ bool GLTFLoader::handleSkin(GLTFLoader * l, Gobj * g, char const * str, uint32_t
     // skeleton
     case 's': { skin->skeleton = g->nodes + Number{str, len}; break; }
     // name
-    case 'n': { skin->name = g->strings->writeStr(str, len); break; }
+    case 'n': { skin->name = g->strings->copyStr(str, len); break; }
     }
     return true;
 }
@@ -1383,7 +1383,7 @@ bool GLTFLoader::handleTexture(GLTFLoader * l, Gobj * g, char const * str, uint3
     // source
     case 's'|'o'<<8: { tex->source = g->images + Number{str, len}; break; }
     // name
-    case 'n'|'a'<<8: { tex->name = g->strings->writeStr(str, len); break; }
+    case 'n'|'a'<<8: { tex->name = g->strings->copyStr(str, len); break; }
     }
     return true;
 }

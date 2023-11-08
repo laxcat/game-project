@@ -94,10 +94,10 @@ public:
     }
 
     // write string of known length to buffer
-    char * writeStr(char const * str, size_t length) {
+    char * copyStr(char const * str, size_t length) {
         return formatStr("%.*s", length, str);
     }
-    char * writeStr(char const * str) {
+    char * copyStr(char const * str) {
         return formatStr("%s", str);
     }
 

@@ -254,6 +254,7 @@ public:
         NodeFn const & eachNode = nullptr;
         MeshFn const & eachMesh = nullptr;
         PrimFn const & eachPrim = nullptr;
+        AccrFn const & eachAccr = nullptr;
         AccrFn const & eachPosAccr = nullptr;
     };
 
@@ -318,7 +319,6 @@ public:
     bool hasMemoryFor(Counts const & counts) const;
     void traverse(                          TraverseFns const & params, glm::mat4 const & parentTransform = glm::mat4{1.f});
     void traverseNode(Node * node,          TraverseFns const & params, glm::mat4 const & parentTransform = glm::mat4{1.f});
-    void traverseMesh(Mesh * mesh,          TraverseFns const & params, glm::mat4 const & parentTransform = glm::mat4{1.f});
     void updateBoundsForCurrentScene();
 
 // CREATE SUB-OBJECT HELPERS
@@ -328,10 +328,13 @@ public:
     // Designed to be used for building gobjs manually from editor or in
     // game-code.
 
+    // add* functions are minimal
+    // they add the named object, plus sometimes 1-2 support objects
+
     Scene * addScene(char const * name = "", bool makeDefault = false);
     Node ** addNodeChildren(uint16_t nNodes);
-    Node * addNode(char const * name);
-    Mesh * addMesh();
+    Node * addNode(char const * name = "");
+    Mesh * addMesh(char const * name = "");
     MeshPrimitive * _addMeshPrimitive(int count, ...);
     MeshAttribute * addMeshAttribute(Attr attr);
     Buffer * addBuffer(size_t size);
@@ -344,6 +347,17 @@ public:
         return _addMeshPrimitive(sizeof...(TS), attrs...);
     }
 
+    // make* functions create whole structures of objects, usually everything
+    // the named object needs, using common defaults and basic options
+
+    struct MakeMesh {
+        Attr attributes[3];
+        int nAttributes;
+        uint32_t nVertices;
+        uint32_t nIndices;
+    };
+    Mesh * makeMesh(MakeMesh const & setup, Buffer ** outMeshBuffer = nullptr);
+
 // STRING / FORMAT HELPERS
 public:
     // They are shortcuts to FrameStack functions, but also update counts.allStrLen
@@ -351,8 +365,8 @@ public:
     char * formatStr(char const * fmt, ...);
     char * formatPen(char const * fmt, ...);
     void terminatePen();
-    char * writeStr(char const * str, size_t length);
-    char * writeStr(char const * str);
+    char * copyStr(char const * str, size_t length);
+    char * copyStr(char const * str);
 
 // PRIVATE STORAGE
 private:
@@ -580,6 +594,10 @@ public:
         char const * name = nullptr;
 
         void copy(Mesh * mesh, Gobj * dst, Gobj * src);
+
+        void updateAccessorMinMax();
+        void traverse(TraverseFns const & params, glm::mat4 const & parentTransform = glm::mat4{1.f});
+
     };
 
     struct MeshAttribute {
@@ -713,6 +731,7 @@ public:
     static Attr attrFromStr(char const * str);
     // to string
     static char const * attrStr(Attr attr);
+    static char const * attrStr4(Attr attr);
     static char const * accessorTypeStr(Accessor::Type type);
     static char const * accessorComponentTypeStr(Accessor::ComponentType componentType);
     // attr conversion

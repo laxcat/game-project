@@ -166,7 +166,7 @@ Gobj * MemMan::createGobj(char const * gltfPath, Gobj::Counts additionalCounts) 
     }
 
     // set loadedDirName
-    gobj->loadedDirName = gobj->strings->writeStr(dirName, dirNameLen);
+    gobj->loadedDirName = gobj->strings->copyStr(dirName, dirNameLen);
 
     // bytesLeft should be 0 at this point.
     assert(gobj->strings->bytesLeft() == 0 && "Miscalculation in string buffer. Should be full.");

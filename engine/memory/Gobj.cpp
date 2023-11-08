@@ -586,7 +586,7 @@ void Gobj::traverse(TraverseFns const & fns, glm::mat4 const & parentTransform) 
     else {
         // each mesh
         for (uint16_t meshIndex = 0; meshIndex < counts.meshes; ++meshIndex) {
-            traverseMesh(meshes + meshIndex, fns, parentTransform);
+            (meshes + meshIndex)->traverse(fns, parentTransform);
         }
     }
 }
@@ -600,32 +600,11 @@ void Gobj::traverseNode(Node * node, TraverseFns const & fns, glm::mat4 const & 
     }
     // traverse mesh
     if (node->mesh) {
-        traverseMesh(node->mesh, fns, global);
+        node->mesh->traverse(fns, global);
     }
     // traverse child nodes
     for (uint16_t nodeIndex = 0; nodeIndex < node->nChildren; ++nodeIndex) {
         traverseNode(node->children[nodeIndex], fns, global);
-    }
-}
-
-void Gobj::traverseMesh(Mesh * mesh, TraverseFns const & fns, glm::mat4 const & parentTransform) {
-    // run mesh fn if present
-    if (fns.eachMesh) {
-        fns.eachMesh(mesh, parentTransform);
-    }
-    for (int primIndex = 0; primIndex < mesh->nPrimitives; ++primIndex) {
-        Gobj::MeshPrimitive * prim = mesh->primitives + primIndex;
-        if (fns.eachPrim) {
-            fns.eachPrim(prim, parentTransform);
-        }
-        if (fns.eachPosAccr) {
-            for (int attrIndex = 0; attrIndex < prim->nAttributes; ++attrIndex) {
-                Gobj::MeshAttribute * attr = prim->attributes + attrIndex;
-                if (attr->type == Gobj::ATTR_POSITION) {
-                    fns.eachPosAccr(attr->accessor, parentTransform);
-                }
-            }
-        }
     }
 }
 
@@ -700,17 +679,18 @@ Gobj::Node * Gobj::addNode(char const * name) {
     }
     Node * n = nodes + counts.nodes;
     ++counts.nodes;
-    n->name = writeStr(name);
+    n->name = copyStr(name);
     return n;
 }
 
-Gobj::Mesh * Gobj::addMesh() {
+Gobj::Mesh * Gobj::addMesh(char const * name) {
     if (counts.meshes >= maxCounts.meshes) {
         fprintf(stderr, "Could not create mesh.\n");
         return nullptr;
     }
     Mesh * m = meshes + counts.meshes;
     ++counts.meshes;
+    m->name = copyStr(name);
     return m;
 }
 
@@ -782,7 +762,7 @@ Gobj::Accessor * Gobj::addAccessor(char const * name) {
     }
     Accessor * accr = accessors + counts.accessors;
     ++counts.accessors;
-    accr->name = writeStr(name);
+    accr->name = copyStr(name);
     return accr;
 }
 
@@ -793,8 +773,88 @@ Gobj::Material * Gobj::addMaterial(char const * name) {
     }
     Material * m = materials + counts.materials;
     ++counts.materials;
-    m->name = writeStr(name);
+    m->name = copyStr(name);
     return m;
+}
+
+Gobj::Mesh * Gobj::makeMesh(MakeMesh const & setup, Buffer ** outMeshBuffer) {
+    size_t vertSize = 0;
+    for (int i = 0; i < setup.nAttributes; ++i) {
+        switch (setup.attributes[i]) {
+        case ATTR_POSITION: { vertSize += sizeof(float) * 3; break; }
+        case ATTR_NORMAL:   { vertSize += sizeof(float) * 3; break; }
+        default: {
+            fprintf(stderr, "Unexpected vertex attribute.");
+            return nullptr;
+        }
+        }
+    }
+    size_t bufferSize =
+        vertSize * setup.nVertices +
+        sizeof(uint16_t) * setup.nIndices;
+
+    Gobj::Buffer * buffer = addBuffer(bufferSize);
+
+    // buffer views
+    Gobj::BufferView * vertBV = addBufferView();
+    Gobj::BufferView * indexBV = addBufferView();
+    vertBV->buffer = buffer;
+    vertBV->byteOffset = 0;
+    vertBV->byteLength = vertSize * 4;
+    vertBV->byteStride = vertSize;
+    indexBV->buffer = buffer;
+    indexBV->byteOffset = vertBV->byteLength;
+    indexBV->byteLength = sizeof(uint16_t) * setup.nIndices;
+    indexBV->byteStride = sizeof(uint16_t);
+
+    // accessors
+    uint32_t byteOffset = 0;
+    Gobj::MeshAttribute * firstMeshAttr = nullptr;
+    for (int i = 0; i < setup.nAttributes; ++i) {
+        Attr attr = setup.attributes[i];
+        Gobj::Accessor * accr = addAccessor(attrStr4(attr));
+        accr->byteOffset = byteOffset;
+        accr->bufferView = vertBV;
+        accr->count = setup.nVertices;
+        Gobj::MeshAttribute * meshAttr = addMeshAttribute(attr);
+        meshAttr->accessor = accr;
+
+        byteOffset += sizeof(float) * 3;
+        if (!firstMeshAttr) firstMeshAttr = meshAttr;
+
+        switch(attr) {
+        case ATTR_POSITION:
+        case ATTR_NORMAL: {
+            accr->componentType = Gobj::Accessor::COMPTYPE_FLOAT;
+            accr->type = Gobj::Accessor::TYPE_VEC3;
+            break; }
+        default: {}
+        }
+    }
+
+    Gobj::Accessor * indexAccr = addAccessor(attrStr4(ATTR_INDICES));
+    indexAccr->byteOffset = 0;
+    indexAccr->bufferView = indexBV;
+    indexAccr->componentType = Gobj::Accessor::COMPTYPE_UNSIGNED_SHORT;
+    indexAccr->type = Gobj::Accessor::TYPE_SCALAR;
+    indexAccr->count = setup.nIndices;
+
+    // mesh / mesh primitive
+    Gobj::Mesh * mesh = addMesh("evn");
+    assert(mesh);
+    Gobj::MeshPrimitive * prim = addMeshPrimitive();
+    assert(prim);
+    mesh->nPrimitives = 1;
+    mesh->primitives = prim;
+    prim->nAttributes = setup.nAttributes;
+    prim->attributes = firstMeshAttr;
+    prim->indices = indexAccr;
+
+    if (outMeshBuffer) {
+        *outMeshBuffer = buffer;
+    }
+
+    return mesh;
 }
 
 char * Gobj::formatStr(char const * fmt, ...) {
@@ -817,12 +877,12 @@ void Gobj::terminatePen() {
     strings->terminatePen();
     counts.allStrLen = strings->head();
 }
-char * Gobj::writeStr(char const * str, size_t length) {
+char * Gobj::copyStr(char const * str, size_t length) {
     char * ret = strings->formatStr("%.*s", length, str);
     counts.allStrLen = strings->head();
     return ret;
 }
-char * Gobj::writeStr(char const * str) {
+char * Gobj::copyStr(char const * str) {
     char * ret = strings->formatStr("%s", str);
     counts.allStrLen = strings->head();
     return ret;
@@ -985,6 +1045,41 @@ char * Gobj::Accessor::printToFrameStack(int indent) const {
 }
 #endif // DEBUG || DEV_INTERFACE
 
+void Gobj::Mesh::updateAccessorMinMax() {
+    traverse({
+        .eachPrim = [this](Gobj::MeshPrimitive * prim, glm::mat4 const &) {
+            prim->indices->updateMinMax();
+        },
+        .eachAccr = [this](Gobj::Accessor * accr, glm::mat4 const &) {
+            accr->updateMinMax();
+        },
+    });
+}
+
+void Gobj::Mesh::traverse(TraverseFns const & fns, glm::mat4 const & parentTransform) {
+    // run mesh fn if present
+    if (fns.eachMesh) {
+        fns.eachMesh(this, parentTransform);
+    }
+    for (int primIndex = 0; primIndex < nPrimitives; ++primIndex) {
+        Gobj::MeshPrimitive * prim = primitives + primIndex;
+        if (fns.eachPrim) {
+            fns.eachPrim(prim, parentTransform);
+        }
+        if (fns.eachAccr || fns.eachPosAccr) {
+            for (int attrIndex = 0; attrIndex < prim->nAttributes; ++attrIndex) {
+                Gobj::MeshAttribute * attr = prim->attributes + attrIndex;
+                if (fns.eachAccr) {
+                    fns.eachAccr(attr->accessor, parentTransform);
+                }
+                if (attr->type == Gobj::ATTR_POSITION &&  fns.eachPosAccr) {
+                    fns.eachPosAccr(attr->accessor, parentTransform);
+                }
+            }
+        }
+    }
+}
+
 #if DEBUG
 void Gobj::MeshAttribute::print(int indent) const { ::print(printToFrameStack(indent)); }
 char * Gobj::MeshAttribute::printToFrameStack(int indent) const {
@@ -1137,6 +1232,30 @@ char const * Gobj::attrStr(Attr attr) {
     case ATTR_TEXCOORD6:    return "TEXCOORD6";
     case ATTR_TEXCOORD7:    return "TEXCOORD7";
     default:                return "UNKNOWN";
+    }
+}
+
+char const * Gobj::attrStr4(Attr attr) {
+    switch(attr) {
+    case ATTR_POSITION:     return "POSI";
+    case ATTR_NORMAL:       return "NORM";
+    case ATTR_TANGENT:      return "TANG";
+    case ATTR_BITANGENT:    return "BTNG";
+    case ATTR_COLOR0:       return "COL0";
+    case ATTR_COLOR1:       return "COL1";
+    case ATTR_COLOR2:       return "COL2";
+    case ATTR_COLOR3:       return "COL3";
+    case ATTR_INDICES:      return "INDX";
+    case ATTR_WEIGHT:       return "WGHT";
+    case ATTR_TEXCOORD0:    return "TXC0";
+    case ATTR_TEXCOORD1:    return "TXC1";
+    case ATTR_TEXCOORD2:    return "TXC2";
+    case ATTR_TEXCOORD3:    return "TXC3";
+    case ATTR_TEXCOORD4:    return "TXC4";
+    case ATTR_TEXCOORD5:    return "TXC5";
+    case ATTR_TEXCOORD6:    return "TXC6";
+    case ATTR_TEXCOORD7:    return "TXC7";
+    default:                return "UNKN";
     }
 }
 
