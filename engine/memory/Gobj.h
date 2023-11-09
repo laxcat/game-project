@@ -319,6 +319,7 @@ public:
     bool hasMemoryFor(Counts const & counts) const;
     void traverse(                          TraverseFns const & params, glm::mat4 const & parentTransform = glm::mat4{1.f});
     void traverseNode(Node * node,          TraverseFns const & params, glm::mat4 const & parentTransform = glm::mat4{1.f});
+    // void traverseMesh(Mesh * mesh,          TraverseFns const & params, glm::mat4 const & parentTransform = glm::mat4{1.f});
     void updateBoundsForCurrentScene();
 
 // CREATE SUB-OBJECT HELPERS
@@ -350,13 +351,20 @@ public:
     // make* functions create whole structures of objects, usually everything
     // the named object needs, using common defaults and basic options
 
+    // MAKE MESH
+    // Create a Mesh and neccessary support objects:
+    // (1) MeshPrimitive
+    // (nAttributes) Accessor and MeshAttribute objects
+    // (2) BufferView objects, one interleaved vertex, one index
+    // (1) Buffer, size determined by attribute type and index/vertex count
     struct MakeMesh {
-        Attr attributes[3];
-        int nAttributes;
-        uint32_t nVertices;
-        uint32_t nIndices;
+        Attr attributes[3] = {};
+        int nAttributes = 0;
+        uint32_t nVertices = 0;
+        uint32_t nIndices = 0;
+        char const * name = "";
     };
-    Mesh * makeMesh(MakeMesh const & setup, Buffer ** outMeshBuffer = nullptr);
+    Mesh * makeMesh(MakeMesh const & setup, Buffer ** outBuffer = nullptr);
 
 // STRING / FORMAT HELPERS
 public:

@@ -15,9 +15,9 @@ public:
 
     void init() {
         handle = bgfx::createUniform("u_fog", bgfx::UniformType::Vec4);
-        minDistance = 40.0;
-        fadeDistance = 60.0;
-        amount = 1.0;
+        minDistance = 40.0f;
+        fadeDistance = 60.0f;
+        amount = 0.0f;
     }
 
     void shutdown() {

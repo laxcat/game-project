@@ -777,14 +777,18 @@ Gobj::Material * Gobj::addMaterial(char const * name) {
     return m;
 }
 
-Gobj::Mesh * Gobj::makeMesh(MakeMesh const & setup, Buffer ** outMeshBuffer) {
+Gobj::Mesh * Gobj::makeMesh(MakeMesh const & setup, Buffer ** outBuffer) {
     size_t vertSize = 0;
     for (int i = 0; i < setup.nAttributes; ++i) {
         switch (setup.attributes[i]) {
         case ATTR_POSITION: { vertSize += sizeof(float) * 3; break; }
         case ATTR_NORMAL:   { vertSize += sizeof(float) * 3; break; }
+        case ATTR_COLOR0:
+        case ATTR_COLOR1:
+        case ATTR_COLOR2:
+        case ATTR_COLOR3:   { vertSize += sizeof(float) * 4; break; }
         default: {
-            fprintf(stderr, "Unexpected vertex attribute.");
+            fprintf(stderr, "Unexpected vertex attribute. TODO: support more.");
             return nullptr;
         }
         }
@@ -793,21 +797,22 @@ Gobj::Mesh * Gobj::makeMesh(MakeMesh const & setup, Buffer ** outMeshBuffer) {
         vertSize * setup.nVertices +
         sizeof(uint16_t) * setup.nIndices;
 
-    Gobj::Buffer * buffer = addBuffer(bufferSize);
+    Gobj::Buffer * buffer = nullptr;
+    if (bufferSize) {
+        buffer = addBuffer(bufferSize);
+    }
 
-    // buffer views
-    Gobj::BufferView * vertBV = addBufferView();
-    Gobj::BufferView * indexBV = addBufferView();
-    vertBV->buffer = buffer;
-    vertBV->byteOffset = 0;
-    vertBV->byteLength = vertSize * 4;
-    vertBV->byteStride = vertSize;
-    indexBV->buffer = buffer;
-    indexBV->byteOffset = vertBV->byteLength;
-    indexBV->byteLength = sizeof(uint16_t) * setup.nIndices;
-    indexBV->byteStride = sizeof(uint16_t);
+    // vertex buffer view
+    Gobj::BufferView * vertBV = nullptr;
+    if (vertSize) {
+        vertBV = addBufferView();
+        vertBV->buffer = buffer;
+        vertBV->byteOffset = 0;
+        vertBV->byteLength = vertSize * setup.nVertices;
+        vertBV->byteStride = vertSize;
+    }
 
-    // accessors
+    // vertex accessors
     uint32_t byteOffset = 0;
     Gobj::MeshAttribute * firstMeshAttr = nullptr;
     for (int i = 0; i < setup.nAttributes; ++i) {
@@ -819,28 +824,43 @@ Gobj::Mesh * Gobj::makeMesh(MakeMesh const & setup, Buffer ** outMeshBuffer) {
         Gobj::MeshAttribute * meshAttr = addMeshAttribute(attr);
         meshAttr->accessor = accr;
 
-        byteOffset += sizeof(float) * 3;
-        if (!firstMeshAttr) firstMeshAttr = meshAttr;
-
         switch(attr) {
         case ATTR_POSITION:
         case ATTR_NORMAL: {
             accr->componentType = Gobj::Accessor::COMPTYPE_FLOAT;
             accr->type = Gobj::Accessor::TYPE_VEC3;
             break; }
+        case ATTR_COLOR0:
+        case ATTR_COLOR1:
+        case ATTR_COLOR2:
+        case ATTR_COLOR3: {
+            accr->componentType = Gobj::Accessor::COMPTYPE_FLOAT;
+            accr->type = Gobj::Accessor::TYPE_VEC4;
+            break; }
         default: {}
         }
+
+        byteOffset += accr->byteSize();
+        if (!firstMeshAttr) firstMeshAttr = meshAttr;
     }
 
-    Gobj::Accessor * indexAccr = addAccessor(attrStr4(ATTR_INDICES));
-    indexAccr->byteOffset = 0;
-    indexAccr->bufferView = indexBV;
-    indexAccr->componentType = Gobj::Accessor::COMPTYPE_UNSIGNED_SHORT;
-    indexAccr->type = Gobj::Accessor::TYPE_SCALAR;
-    indexAccr->count = setup.nIndices;
+    // index accessor and buffer view
+    Gobj::Accessor * indexAccr = nullptr;
+    if (setup.nIndices) {
+        indexAccr = addAccessor(attrStr4(ATTR_INDICES));
+        indexAccr->byteOffset = 0;
+        indexAccr->componentType = Gobj::Accessor::COMPTYPE_UNSIGNED_SHORT;
+        indexAccr->type = Gobj::Accessor::TYPE_SCALAR;
+        indexAccr->count = setup.nIndices;
+        indexAccr->bufferView = addBufferView();
+        indexAccr->bufferView->buffer = buffer;
+        indexAccr->bufferView->byteOffset = (vertBV) ? vertBV->byteLength : 0;
+        indexAccr->bufferView->byteLength = sizeof(uint16_t) * setup.nIndices;
+        indexAccr->bufferView->byteStride = sizeof(uint16_t);
+    }
 
     // mesh / mesh primitive
-    Gobj::Mesh * mesh = addMesh("evn");
+    Gobj::Mesh * mesh = addMesh(setup.name);
     assert(mesh);
     Gobj::MeshPrimitive * prim = addMeshPrimitive();
     assert(prim);
@@ -850,8 +870,8 @@ Gobj::Mesh * Gobj::makeMesh(MakeMesh const & setup, Buffer ** outMeshBuffer) {
     prim->attributes = firstMeshAttr;
     prim->indices = indexAccr;
 
-    if (outMeshBuffer) {
-        *outMeshBuffer = buffer;
+    if (outBuffer) {
+        *outBuffer = buffer;
     }
 
     return mesh;
@@ -1009,7 +1029,7 @@ char * Gobj::Accessor::printToFrameStack(int indent) const {
     assert(bufferView->byteStride && "byteStride must be set.");
 
     auto data = bufferView->buffer->data + byteOffset + bufferView->byteOffset;
-    auto dataEnd = bufferView->buffer->data + bufferView->byteLength;
+    // auto dataEnd = bufferView->buffer->data + bufferView->byteLength;
     // assert(componentType == COMPTYPE_FLOAT);
 
     FrameStack & fs = *mm.frameStack;
@@ -1017,7 +1037,11 @@ char * Gobj::Accessor::printToFrameStack(int indent) const {
 
     fs.formatPen("%*sAccessor: %s (%p)\n", indent,"", name, this);
     fs.formatPen("%*s    count: %u\n", indent,"", count);
+    fs.formatPen("%*s    byteOffset: %u\n", indent,"", byteOffset);
+    fs.formatPen("%*s    buffer: %p-%p\n", indent,"", bufferView->buffer->data, bufferView->buffer->data + bufferView->buffer->byteLength);
+    fs.formatPen("%*s    buffer byteLength: %u\n", indent,"", bufferView->buffer->byteLength);
     fs.formatPen("%*s    bufferView byteLength: %u\n", indent,"", bufferView->byteLength);
+    fs.formatPen("%*s    bufferView byteOffset: %u\n", indent,"", bufferView->byteOffset);
     fs.formatPen("%*s    data:\n", indent,"");
 
     uint8_t cc = componentCount();
