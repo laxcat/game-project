@@ -8,11 +8,11 @@
 
 /*
 
-Loads GLTF files into Gobj.
+Loads GLTF/GLB files into Gobj (in-memory game object).
 
 Implemented:
     • opening/reading .glb files
-    • opening/reading .gltf files (some limitations, see below)
+    • opening/reading .gltf files
         • buffer data in separate file
         • base64-encoded buffer data
         • images in separate file
@@ -22,12 +22,9 @@ Implemented:
     • loading all Gobj sub-objects
 
 NOT implemented yet:
-    • images with URI (not BufferView)
-        • data-stream
-        • external file
     • accessor.sparce
-    • any extensions
-    • any extras
+    • extensions
+    • extras
 
 */
 

@@ -12,12 +12,11 @@
 Gobj (game object, "gobject")
 Main structure object for items/things/characters that exist in the game world.
 Mostly deals with visual data, but will probably hold physics/etc data as well.
-Designed to only exist in pre-allocated space (Use GLTFLoader::calculateSize)
-to determine size beforehand.
+Designed to only exist in pre-allocated memory, specifically in this engine's
+MemMan. Use GLTFLoader::calculateSize to determine size beforehand.
 
-Supports buffers (maxCounts) larger than actual
-number (counts) of sub-objects, so that Gobjs can be created with in-place-room
-to group.
+Supports buffers (maxCounts) larger than actual number (counts) of sub-objects,
+so that Gobjs can be created with in-place-room to grow.
 
 If copy is necessary (growing too much, etc) use `copy` function, which will
 perform a deep copy and translate sub-object pointers.
@@ -26,6 +25,7 @@ Visual data closely mirrors the GLTF spec.
 https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html
 Significant exceptions:
     No extensions
+    No extras
 
 
 Brief memory layout:
